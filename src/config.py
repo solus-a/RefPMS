@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def program_root() -> Path:
-    return Path(__file__).resolve().parent
+    return Path(__file__).resolve().parent.parent
 
 
 def data_dir() -> Path:
