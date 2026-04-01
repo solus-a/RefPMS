@@ -53,8 +53,7 @@ Grade (예: F316L, F11)
 Flange_Type (예: WN, SO, BL, LJ, SW, Threaded)
 Rating (예: 150#, 300#, 600#, 900#, 1500#, 2500#)
 Facing (예: RF, FF, RTJ)
-Bore_Schedule (WN 해당, 예: SCH 40, SCH 80)
-End_Type (예: BW, SW, Threaded)
+Bore_Schedule (WN, SW 해당, 예: SCH 40, SCH 80)
 Dim_Standard (예: ASME B16.5, B16.47 Ser.A/B)
 Remarks
 
@@ -62,12 +61,13 @@ Gasket
 
 Item_Code
 Size (NPS)
-Gasket_Type (예: Spiral Wound, Ring Joint, Full Face, Raised Face Sheet)
-Inner_Ring_Material (Spiral Wound 해당, 예: SS316, SS304)
-Filler_Material (예: Graphite, PTFE, Ceramic)
-Outer_Ring_Material (예: CS, SS316)
-Sheet_Material (Sheet Gasket 해당, 예: Compressed Fiber, PTFE)
-Ring_Number (RTJ 해당, 예: R-24, RX-24, BX-154)
+Gasket_Type (예: Spiral Wound, Ring Joint, Sheet)
+Body Material (예: SS304, PTFE, NBR)
+	Filler_Material for Spiral Wound (예: Graphite, PTFE, Ceramic)
+	Inner_Ring_Material (Spiral Wound 해당, 예: SS316, SS304)
+	Outer_Ring_Material (Spiral Wound, Kammprofile 해당, 예: CS, SS316)
+	Layer_Material (Kammprofile 해당, 예: Graphite, Mica, PTFE)
+Ring_Type (RTJ 해당, 예: R, RX, BX)
 Rating (예: 150#, 300#, 600#)
 Facing (예: RF, FF, RTJ)
 Dim_Standard (예: ASME B16.20, B16.21)
@@ -77,16 +77,14 @@ Remarks
 Bolt & Nut
 
 Item_Code
-Size (Bolt Diameter, 예: 3/4", 1")
-Length (예: 3", 3-1/2", 4")
-Bolt_Type (예: Stud Bolt, Machine Bolt, Hex Bolt)
+Size (Bolt Diameter, 예: 3/4", 1", M24)
+Length (예: 70mm, 105mm)
+Bolt_Type (예: Stud Bolt, Heavy Hex Bolt, Hex Bolt, Square Bolt)
 Bolt_Material_Spec (예: ASTM A193)
 Bolt_Grade (예: B7, B8M, B16)
 Nut_Material_Spec (예: ASTM A194)
 Nut_Grade (예: 2H, 8M)
-Thread_Type (예: UNC, 8UN)
 Nut_Type (예: Heavy Hex Nut, Hex Nut)
-Quantity_Per_Set (Bolt 수량 기준, 예: 4, 8, 12)
 Dim_Standard (예: ASME B18.2.1, B18.2.2)
 Coating (예: None, Zinc Plated, PTFE Coated, Galvanized)
 Remarks
