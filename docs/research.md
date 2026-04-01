@@ -42,16 +42,23 @@
 
 ---
 
-## 4. 아키텍처적 결함 및 기술 부채 (Technical Debt)
+## 4. 아키텍처적 결함 및 해결 방안 (Technical Debt & Solutions)
 
-1.  **속성 데이터의 비구조화:** 
-    최종 결과물에서 `Item_Description`은 하나의 긴 문자열로 저장됩니다. 이는 나중에 다른 시스템에서 데이터를 재활용할 때 다시 파싱해야 하는 불편함을 초래합니다. (Layer 4의 "DNA" 개념에 따라 각 속성이 개별 컬럼으로 존재해야 함)
-2.  **하드코딩된 마스터 데이터:** 
-    `NPS_LIST`와 `ITEM_CODE_OUTPUT_ORDER` 등이 코드 내부에 직접 적혀 있어, 인치 단위가 아닌 메트릭 단위 프로젝트로 전환 시 코드 수정이 불가피합니다.
-3.  **검증 로직의 부재:** 
-    입력된 `Mat_Code`가 실제 존재하는지, `Schedule` 데이터가 누락되지 않았는지 등에 대한 사전 검증(Validation) 단계가 약합니다.
-4.  **확장성 한계:** 
-    새로운 부품군(예: Instrument, Support)을 추가하려면 `pms_generator.py`의 내부 로직을 대대적으로 수정해야 하는 구조입니다.
+1.  **속성 데이터의 비구조화 (Unstructured Attributes)**
+    *   **문제:** `Item_Description`이 단순 문자열로 결합되어 있어 재활용 및 데이터 정규화가 어려움.
+    *   **해결:** Layer 4(Definition Layer)에서 모든 속성을 원자적 데이터(Material, Grade, Schedule 등)로 분리하여 저장하고, 최종 문자열은 이 데이터들을 기반으로 템플릿 엔진이 생성하도록 구조 변경.
+
+2.  **하드코딩된 마스터 데이터 (Hardcoded Master Data)**
+    *   **문제:** `NPS_LIST` 등 프로젝트 핵심 규칙이 코드 내부에 고정되어 프로젝트 간 전용이 어려움.
+    *   **해결:** `project_config.json`을 도입하여 프로젝트별 단위(Unit), 사이즈 리스트, 코딩 규칙을 외부 설정으로 관리.
+
+3.  **검증 로직의 부재 (Lack of Validation)**
+    *   **문제:** 잘못된 조합(NPS-Schedule 누락 등)이나 데이터 무결성 체크가 사후에 발견됨.
+    *   **해결:** 데이터 생성 전 단계에서 Layer 2(Class Spec)와 Layer 3(Group Rule)에 정의된 제약 조건을 전수 검증하는 Validator 모듈 구축.
+
+4.  **확장성 한계 (Extensibility Limits)**
+    *   **문제:** 새로운 부품군 추가 시 하드코딩된 조건문을 대대적으로 수정해야 함.
+    *   **해결:** `component_mapping.json`을 통해 부품군별 필요 속성을 정의하는 "메타데이터 기반 매핑" 엔진 도입. 로직 수정 없이 설정 추가만으로 새로운 부품 대응 가능.
 
 ---
 

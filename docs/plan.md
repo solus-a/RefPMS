@@ -4,6 +4,18 @@ This document outlines the strategic roadmap to evolve RefPMS from a "file conve
 
 ---
 
+## Phase 0: Schema & Architectural Decisions
+**Goal:** Finalize the "Global Schema" and "Data Structure" before implementation.
+
+### Key Questions for the User:
+1. **Unit System Strategy**: 단일 프로젝트 내에서 Inch와 Metric을 혼용해야 합니까, 아니면 프로젝트 설정(Layer 1)에서 하나만 선택하도록 강제합니까?
+2. **Mandatory Atomic Attributes**: 모든 부품군(Pipe, Fitting, Valve 등)이 공통적으로 가져야 하는 "최소 원자 속성"은 무엇입니까? (예: Material, Grade, Manufacturing Method, Standard)
+3. **Item Code Logic**: Item Code(Commodity Code) 생성 규칙은 고정입니까, 아니면 프로젝트별로 템플릿화하여 변경 가능해야 합니까?
+4. **Data Normalization**: 최종 출력물에서 모든 데이터를 하나의 시트에 통합할까요, 아니면 현재처럼 부품군별로 시트를 분리하여 유지할까요?
+5. **Vendor Data Handling**: 표준 규격품(Standard)과 벤더 특정 제품(Vendor-specific)을 스키마 레벨에서 어떻게 구분하여 관리하길 원하십니까?
+
+---
+
 ## Phase 1: Layer 1 - Project Context Externalization
 **Goal:** Remove hardcoded constants and allow project-specific "Laws of Physics."
 
