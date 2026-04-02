@@ -1,0 +1,60 @@
+{
+  "project_info": {
+    "unit_system": "Inch"
+  },
+  "nps_master": {
+    "nps_list": [
+      "0.5",
+      "0.75",
+      "1",
+      "1.5",
+      "2",
+      "3",
+      "4",
+      "6",
+      "8",
+      "10",
+      "12",
+      "14",
+      "16",
+      "18",
+      "20",
+      "22",
+      "24"
+    ]
+  },
+  "output_settings": {
+    "filename": "Piping_Material_Class_Data.xlsx",
+    "sheet_name": "Piping_Material_Class_Data",
+    "columns": [
+      "Class_Name",
+      "Item_Code",
+      "Size1",
+      "Size2",
+      "Thickness1",
+      "Thickness2",
+      "Commodity_Code",
+      "Item_Description",
+      "Item_Name",
+      "Remarks"
+    ],
+    "item_order": [
+      "P",
+      "JN",
+      "JNP",
+      "JN1",
+      "JNP1",
+      "E",
+      "ES",
+      "E4",
+      "ES4",
+      "RC",
+      "RE",
+      "RCS",
+      "RES"
+    ]
+  },
+  "coding_rules": {
+    "commodity_code_logic": "fixed_corporate_standard"
+  }
+}

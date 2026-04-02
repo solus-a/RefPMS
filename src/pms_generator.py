@@ -9,58 +9,14 @@ from openpyxl.utils import get_column_letter
 
 import config
 
+# 프로젝트 설정 로드
+cfg = config.config_manager
 
-OUTPUT_FILENAME = "Piping_Material_Class_Data.xlsx"
-OUTPUT_SHEET_NAME = "Piping_Material_Class_Data"
-
-NPS_LIST = [
-    "0.5",
-    "0.75",
-    "1",
-    "1.5",
-    "2",
-    "3",
-    "4",
-    "6",
-    "8",
-    "10",
-    "12",
-    "14",
-    "16",
-    "18",
-    "20",
-    "22",
-    "24",
-]
-
-OUTPUT_COLUMNS = [
-    "Class_Name",
-    "Item_Code",
-    "Size1",
-    "Size2",
-    "Thickness1",
-    "Thickness2",
-    "Commodity_Code",
-    "Item_Description",
-    "Item_Name",
-    "Remarks",
-]
-
-ITEM_CODE_OUTPUT_ORDER = [
-    "P",
-    "JN",
-    "JNP",
-    "JN1",
-    "JNP1",
-    "E",
-    "ES",
-    "E4",
-    "ES4",
-    "RC",
-    "RE",
-    "RCS",
-    "RES",
-]
+OUTPUT_FILENAME = cfg.get("output_settings.filename", "Piping_Material_Class_Data.xlsx")
+OUTPUT_SHEET_NAME = cfg.get("output_settings.sheet_name", "Piping_Material_Class_Data")
+NPS_LIST = cfg.get("nps_master.nps_list", [])
+OUTPUT_COLUMNS = cfg.get("output_settings.columns", [])
+ITEM_CODE_OUTPUT_ORDER = cfg.get("output_settings.item_order", [])
 
 def _autofit_output_sheet_columns(
     ws,

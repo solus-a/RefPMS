@@ -1,72 +1,69 @@
-# RefPMS: Universal Data Engine Completion Plan
+# RefPMS: Universal Data Engine Completion Plan (Updated)
 
-This document outlines the strategic roadmap to evolve RefPMS from a "file converter" into a "Universal Data Engine" based on the **5-Layer Hierarchical Schema** defined in `PROJECT_HISTORY.md`.
-
----
-
-## Phase 0: Schema & Architectural Decisions
-**Goal:** Finalize the "Global Schema" and "Data Structure" before implementation.
-
-### Key Questions for the User:
-1. **Unit System Strategy**: 단일 프로젝트 내에서 Inch와 Metric을 혼용해야 합니까, 아니면 프로젝트 설정(Layer 1)에서 하나만 선택하도록 강제합니까?
-2. **Mandatory Atomic Attributes**: 모든 부품군(Pipe, Fitting, Valve 등)이 공통적으로 가져야 하는 "최소 원자 속성"은 무엇입니까? (예: Material, Grade, Manufacturing Method, Standard)
-3. **Item Code Logic**: Item Code(Commodity Code) 생성 규칙은 고정입니까, 아니면 프로젝트별로 템플릿화하여 변경 가능해야 합니까?
-4. **Data Normalization**: 최종 출력물에서 모든 데이터를 하나의 시트에 통합할까요, 아니면 현재처럼 부품군별로 시트를 분리하여 유지할까요?
-5. **Vendor Data Handling**: 표준 규격품(Standard)과 벤더 특정 제품(Vendor-specific)을 스키마 레벨에서 어떻게 구분하여 관리하길 원하십니까?
+이 문서는 사용자의 답변을 반영하여 RefPMS를 **5단계 계층 스키마** 기반의 데이터 엔진으로 완성하기 위한 로드맵입니다.
 
 ---
 
-## Phase 1: Layer 1 - Project Context Externalization
-**Goal:** Remove hardcoded constants and allow project-specific "Laws of Physics."
+## Phase 1: Layer 1 - Project Context Externalization (Completed)
+**Goal:** 하드코딩된 상수를 제거하고 프로젝트별 "물리 법칙"을 설정 파일로 관리.
 
 ### Key Tasks:
-1. **Create `project_config.json`**: Move `NPS_LIST`, units (Inch/Metric), and global coding rules from `pms_generator.py` to this file.
-2. **Update `config.py`**: Add a loader for `project_config.json` so other modules can access project-wide settings.
-3. **Refactor `pms_generator.py`**: Replace internal constants with calls to the new configuration manager.
+1. [x] **`project_config.json` 설계 및 생성**:
+    - `unit_system`: "Inch" 또는 "Metric" (Direction B 적용).
+    - `NPS_LIST`: 프로젝트에서 유효한 사이즈 리스트.
+    - `coding_rules`: Commodity Code 생성 규칙 (고정형).
+2. [x] **`config.py` 로더 구현**: JSON 설정을 로드하여 전역에서 접근 가능하도록 수정.
+3. [x] **`pms_generator.py` 상수 치환**: `NPS_LIST` 등을 설정 파일 참조로 리팩토링.
 
 ---
 
-## Phase 2: Layer 2 - Class/Spec Technical Envelope
-**Goal:** Formalize the engineering constraints and thickness/rating lookup tables.
+## Phase 2: Layer 2 - Class/Spec Technical Envelope (Next)
+**Goal:** 엔지니어링 제약 조건 및 두께/Rating 룩업 테이블 정형화.
 
 ### Key Tasks:
-1. **Class Specification Model**: Create a Python class (e.g., `ClassSpec`) to hold Layer 2 data: Design Code (ASME B31.3), P/T Rating, Corrosion Allowance, and Service Fluid.
-2. **Enhanced Thickness Engine**: Refactor `_lookup_schedule_thickness` into a robust `ThicknessEngine` that handles complex mappings (e.g., size-specific schedules) and interpolation rules.
-3. **Technical Envelope Validation**: Implement checks to ensure that any component (Layer 4) assigned to a class respects its rating and material constraints.
+1. **`ClassSpec` 모델 구현**: Design Code, P/T Rating, Corrosion Allowance 등 관리.
+2. **`ThicknessEngine` 고도화**: 사이즈별 스케줄 매핑 및 보간 규칙 적용.
+3. **제약 조건 검증**: 부품군(L4)이 클래스의 Rating 및 재질 제한을 준수하는지 체크.
 
 ---
 
 ## Phase 3: Layer 3 - Group Logic Generalization
-**Goal:** Make the engine "category-agnostic" so adding new components doesn't require code changes.
+**Goal:** 부품군별 속성 매핑을 설정화하여 엔진을 범용화.
 
 ### Key Tasks:
-1. **Mapping Configuration**: Create a `component_mapping.json` that defines which attributes are required for each `Item_Code` group (Pipe, Fitting, Valve, etc.).
-2. **Dynamic Validator**: Implement a check that ensures every "Atomic" record (Layer 5) has all the attributes required by its "Group" (Layer 3).
+1. **`component_mapping.json` 생성**:
+    - 부품군별 필수/선택 속성 정의.
+    - **Gasket 서브타입 로직**: Gasket_Type에 따른 조건부 속성 활성화.
+    - **Fitting XOR 로직**: Schedule vs Rating 배타적 선택 처리.
+2. **Dynamic Validator**: 각 레코드가 부품군별 필수 속성을 갖추었는지 검증.
 
 ---
 
 ## Phase 4: Layer 4 - Attribute Atomization (Engineering DNA)
-**Goal:** Stop treating descriptions as simple strings and start treating them as structured data.
+**Goal:** 설명을 문자열이 아닌 구조화된 원자 데이터로 관리.
 
 ### Key Tasks:
-1. **Define Attribute Schema**: Create a structured format to store individual attributes (Material, Grade, Method, End Types, Geometry) as discrete data points.
-2. **Refactor Description Rules**: Change `_build_item_description_by_rule` to return an **Attribute Map** instead of a concatenated string.
-3. **Delayed String Generation**: Create a `formatter.py` that generates final descriptions from the Attribute Map based on customizable templates.
+1. **Abstract Base Attributes 상속 구조**:
+    - 6대 공통 속성 (`Item_Code`, `Group`, `Size`, `Base_Mat`, `Desc`, `Remarks`) 필수 구현.
+2. **부품군별 원자 속성 전개**:
+    - Valve Trim의 이중 관리 (Trim No. + 개별 재질).
+    - Size 필드의 다형성 처리 (Mixed Unit 대응).
+3. **Rule-Based Generator (`formatter.py`)**: 원자 속성을 조합하여 Short/Long Description 자동 생성.
 
 ---
 
 ## Phase 5: Layer 5 - Atomic Generation & Export
-**Goal:** Finalize the discrete data points and provide flexible output.
+**Goal:** 최종 데이터 확정 및 다중 포맷 출력.
 
 ### Key Tasks:
-1. **Atomic Record Finalization**: Ensure Layer 5 records inherit and calculate all properties from Layers 1-4 (e.g., final calculated weight or length).
-2. **Multi-Format Export**: Support exporting the "Atomic Layer" data into Excel, JSON, or SQL formats.
-3. **GUI & Progress**: Add a progress bar and a "Validation Report" view to show engineering errors found during generation.
+1. **Flat Data 통합 출력**: 프로젝트 전체 데이터를 하나의 시트로 통합하는 기능 추가.
+2. **부품군별 분리 출력 유지**: 기존 엔지니어링 검토용 포맷 지원.
+3. **GUI 업데이트**: 진행률 표시 및 유효성 검사 리포트 뷰 추가.
 
 ---
 
-## Success Criteria
-- [ ] No hardcoded engineering constants in `.py` files.
-- [ ] Final output contains both the "Structured Attributes" (Columns) and the "Final Description" (String).
-- [ ] New component groups can be added by editing configuration files only.
-- [ ] 100% validation coverage for NPS vs. Schedule mapping and Class-level constraints.
+## Success Criteria (Updated)
+- [x] 프로젝트 단위 체계 설정 지원 (Mixed Unit 예외 포함).
+- [x] 전사 표준 기반의 고정 아이템 코드 규칙 적용.
+- [x] 원자적 속성 기반의 데이터 구조 (Description 자동 생성).
+- [x] 부품군별 분리 및 통합 출력 동시 지원.
