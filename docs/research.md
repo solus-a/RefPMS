@@ -23,9 +23,12 @@
 
 ## 4. 코드 및 데이터 구조 정밀 분석 (Current Implementation Analysis)
 
-### 4.1 핵심 엔진: `pms_generator.py`
-*   **NPS Master:** 현재 `NPS_LIST` 상수로 하드코딩됨 -> Phase 1에서 `project_config.json`으로 외부화 예정.
-*   **Size Explosion:** `_explode_size_range`를 통해 L5(Atomic) 행 생성.
+### 4.1 핵심 엔진: `pms_generator.py` 및 분리 모듈
+*   **NPS Master:** `project_config.json`의 `nps_master.nps_list` 사용 (`thickness_engine.nps_list` / `explode_size_range`).
+*   **Size Explosion:** `thickness_engine.explode_size_range` 및 `pms_generator`에서 L5(Atomic) 행 생성.
+*   **Schedule 룩업:** `thickness_engine.load_schedule_rows`, `lookup_schedule_thickness` — NPS 리스트 매칭 후 **From~To 숫자 구간** 폴백.
+*   **Reducing_Table:** `Item_Type` RD→RC/RE, SN→RCS/RES; **RC/RE/RCS/RES는 Fitting_Group 템플릿 행으로는 전개하지 않음**(중복 방지). RCS·RES 설명: BE+PE일 때 스케줄 동일 `PBE`, 상이 `BLE/PSE`.
+*   **클래스 봉투:** `class_spec.load_class_specs_from_workbook`, `log_class_constraint_warnings`. 재질: `data/class_material_mapping.json` allowlist. Rating: B16.5 Class 집합 vs B16.11(3000# 등) 집합 **교차 비교 생략**.
 *   **Description 생성:** 현재 문자열 결합 방식 -> Phase 4에서 원자 속성 기반 템플릿 방식으로 전환 예정.
 
 ---
@@ -36,4 +39,5 @@
 2. 하드코딩된 마스터 데이터 -> `project_config.json` 도입.
 3. 검증 로직 부재 -> Validator 모듈 구축.
 4. 확장성 한계 -> `component_mapping.json` 도입.
+5. B16.5/B16.11 등급 집합은 코드 상수(`class_spec`) — **사용 중 ASME 판본과 불일치 시 수정 필요**.
 

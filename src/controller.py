@@ -7,7 +7,7 @@ from typing import Callable, Optional
 import tkinter as tk
 
 import gui
-from template_generator import generate_class_define_template
+from template_generator import DEFAULT_TEMPLATE_FILENAME, generate_class_define_template
 import file_handler
 import pms_generator
 
@@ -34,7 +34,11 @@ def create_controller(root: tk.Tk) -> None:
 
         status_setter("템플릿 생성 중...")
         try:
-            out_path = Path(save_dir) / "Class_Define_Template.xlsx"
+            # 선택 폴더 / template / YYYYMMDDHHMMSS / 템플릿.xlsx
+            stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            out_dir = Path(save_dir) / "template" / stamp
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out_path = out_dir / DEFAULT_TEMPLATE_FILENAME
             generate_class_define_template(output_path=out_path)
             status_setter(f"템플릿 생성 완료: {out_path}")
         except Exception as exc:
@@ -60,9 +64,9 @@ def create_controller(root: tk.Tk) -> None:
             status_setter("대기중")
             return
 
-        # 예: 2026-03-29_14-30-45/ (같은 날 여러 번 생성 시 덮어쓰기 방지)
-        out_stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        out_dir = Path(save_root) / out_stamp
+        # 선택 폴더 / output / YYYYMMDDHHMMSS / 자재 클래스 xlsx
+        out_stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        out_dir = Path(save_root) / "output" / out_stamp
         out_dir.mkdir(parents=True, exist_ok=True)
         output_path = out_dir / pms_generator.OUTPUT_FILENAME
 

@@ -17,13 +17,14 @@
 
 ---
 
-## Phase 2: Layer 2 - Class/Spec Technical Envelope (Next)
+## Phase 2: Layer 2 - Class/Spec Technical Envelope (Baseline done)
 **Goal:** 엔지니어링 제약 조건 및 두께/Rating 룩업 테이블 정형화.
 
 ### Key Tasks:
-1. **`ClassSpec` 모델 구현**: Design Code, P/T Rating, Corrosion Allowance 등 관리.
-2. **`ThicknessEngine` 고도화**: 사이즈별 스케줄 매핑 및 보간 규칙 적용.
-3. **제약 조건 검증**: 부품군(L4)이 클래스의 Rating 및 재질 제한을 준수하는지 체크.
+1. [x] **`ClassSpec` 모델 구현**: `class_spec.py` — `Class_Define` 시트에서 Design Code, Class_Rating, Corrosion Allowance, P/T 범위 등 로드 (`TypedDict`).
+2. [x] **`ThicknessEngine` 정형화**: `thickness_engine.py` — Schedule 시트 룩업, `project_config.json`의 `nps_master`; 행 전개는 NPS 리스트 연속 구간, **Schedule 룩업**은 From~To **숫자 구간** 폴백(Reducing 등 nps_list에 없는 NPS).
+3. [x] **제약 조건 검증(1차)**: `log_class_constraint_warnings` — `Class_Rating` vs 부품 `Rating`(ASME **B16.5 P-T Class** vs **B16.11** 단조 등급은 교차 비교 안 함), 재질은 **`data/class_material_mapping.json`** allowlist(키=Class_Base_Material). 경고만, 행 스킵 없음.
+4. [x] **출력 규칙 정합**: RC/RE/RCS/RES는 `Reducing_Table`에서만 전개; RCS·RES 설명 BE+PE → 스케줄 동일 시 `PBE`, 상이 시 `BLE/PSE`.
 
 ---
 

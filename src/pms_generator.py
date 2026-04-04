@@ -8,13 +8,30 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.utils import get_column_letter
 
 import config
+from class_spec import (
+    ClassSpec,
+    load_class_specs_from_workbook,
+    log_class_constraint_warnings,
+)
+from excel_sheet_utils import (
+    build_header_index as _build_header_index,
+    detect_header_row as _detect_header_row,
+    get_cell_text as _get_cell_text,
+    pick_first_non_empty as _pick_first_non_empty,
+    to_float as _to_float,
+    to_text as _to_text,
+)
+from thickness_engine import (
+    explode_size_range as _explode_size_range,
+    load_schedule_rows,
+    lookup_schedule_thickness,
+)
 
 # 프로젝트 설정 로드
 cfg = config.config_manager
 
 OUTPUT_FILENAME = cfg.get("output_settings.filename", "Piping_Material_Class_Data.xlsx")
 OUTPUT_SHEET_NAME = cfg.get("output_settings.sheet_name", "Piping_Material_Class_Data")
-NPS_LIST = cfg.get("nps_master.nps_list", [])
 OUTPUT_COLUMNS = cfg.get("output_settings.columns", [])
 ITEM_CODE_OUTPUT_ORDER = cfg.get("output_settings.item_order", [])
 
@@ -39,19 +56,15 @@ def _autofit_output_sheet_columns(
         ws.column_dimensions[get_column_letter(col)].width = width
 
 
-SCHEDULE_REQUIRED_HEADERS = [
-    "Class_Name",
-    "Size_From",
-    "Size_To",
-    "Schedule",
-]
-
 REDUCING_TABLE_REQUIRED_HEADERS = [
     "Table_Code",
     "Size1",
     "Size2",
     "Item_Type",
 ]
+
+# RC/RE/RCS/RES는 Reducing_Table에서만 풀고, Fitting_Group 템플릿 행으로는 중복 생성하지 않음.
+REDUCER_ITEM_CODES_FROM_TABLE = frozenset({"RC", "RE", "RCS", "RES"})
 
 MATERIAL_SHEET_CONFIGS = [
     {
@@ -125,87 +138,12 @@ def _get_logger() -> logging.Logger:
         return logger
 
 
-def _to_text(value: object) -> str:
-    if value is None:
-        return ""
-    return str(value).strip()
-
-
-def _to_float(text_value: str) -> Optional[float]:
-    if not text_value:
-        return None
-    try:
-        return float(text_value)
-    except ValueError:
-        return None
-
-
 def _item_code_priority(item_code: str) -> int:
     code = _to_text(item_code)
     try:
         return ITEM_CODE_OUTPUT_ORDER.index(code)
     except ValueError:
         return len(ITEM_CODE_OUTPUT_ORDER)
-
-
-def _explode_size_range(size_from: str, size_to: str) -> list[str]:
-    from_num = _to_float(size_from)
-    to_num = _to_float(size_to)
-    if from_num is None or to_num is None:
-        return []
-
-    nps_index_by_float = {float(nps): idx for idx, nps in enumerate(NPS_LIST)}
-    from_idx = nps_index_by_float.get(from_num)
-    to_idx = nps_index_by_float.get(to_num)
-    if from_idx is None or to_idx is None:
-        return []
-    if from_idx > to_idx:
-        return []
-
-    return NPS_LIST[from_idx : to_idx + 1]
-
-
-def _detect_header_row(ws, expected_headers: list[str], max_scan_rows: int = 10) -> int:
-    for row_idx in range(1, max_scan_rows + 1):
-        row_values = [ws.cell(row=row_idx, column=c).value for c in range(1, ws.max_column + 1)]
-        header_set = {_to_text(v) for v in row_values if _to_text(v)}
-        if all(h in header_set for h in expected_headers):
-            return row_idx
-    raise ValueError(
-        f"Could not detect header row in sheet '{ws.title}'. "
-        f"Expected headers: {', '.join(expected_headers)}"
-    )
-
-
-def _build_header_index(ws, header_row: int) -> dict[str, int]:
-    header_to_col: dict[str, int] = {}
-    for col in range(1, ws.max_column + 1):
-        header = _to_text(ws.cell(row=header_row, column=col).value)
-        if header:
-            header_to_col[header] = col
-    return header_to_col
-
-
-def _get_cell_text(ws, row_idx: int, header_to_col: dict[str, int], header_name: Optional[str]) -> str:
-    if not header_name:
-        return ""
-    col = header_to_col.get(header_name)
-    if not col:
-        return ""
-    return _to_text(ws.cell(row=row_idx, column=col).value)
-
-
-def _pick_first_non_empty(
-    ws,
-    row_idx: int,
-    header_to_col: dict[str, int],
-    candidates: list[str],
-) -> str:
-    for name in candidates:
-        value = _get_cell_text(ws, row_idx, header_to_col, name)
-        if value:
-            return value
-    return ""
 
 
 def _join_tokens(*tokens: str) -> str:
@@ -239,37 +177,6 @@ def _format_size2(size_from: str, size_to: str) -> str:
     if not b or a == b:
         return a
     return f"{a}-{b}"
-
-
-def _load_schedule_rows(workbook) -> list[dict[str, str]]:
-    if "Schedule" not in workbook.sheetnames:
-        return []
-
-    ws = workbook["Schedule"]
-    try:
-        header_row = _detect_header_row(ws, SCHEDULE_REQUIRED_HEADERS)
-    except ValueError:
-        return []
-
-    header_to_col = _build_header_index(ws, header_row)
-    missing = [h for h in SCHEDULE_REQUIRED_HEADERS if h not in header_to_col]
-    if missing:
-        return []
-
-    rows: list[dict[str, str]] = []
-    for row_idx in range(header_row + 1, ws.max_row + 1):
-        class_name = _get_cell_text(ws, row_idx, header_to_col, "Class_Name")
-        if not class_name:
-            continue
-        rows.append(
-            {
-                "Class_Name": class_name,
-                "Size_From": _get_cell_text(ws, row_idx, header_to_col, "Size_From"),
-                "Size_To": _get_cell_text(ws, row_idx, header_to_col, "Size_To"),
-                "Schedule": _get_cell_text(ws, row_idx, header_to_col, "Schedule"),
-            }
-        )
-    return rows
 
 
 def _load_item_code_db(logger: logging.Logger) -> dict[str, dict[str, str]]:
@@ -378,27 +285,6 @@ def _load_class_reducing_table_codes(workbook) -> dict[str, str]:
     return class_to_table
 
 
-def _lookup_schedule_thickness(
-    schedule_rows: list[dict[str, str]],
-    class_name: str,
-    size_nps: str,
-) -> str:
-    if not size_nps or not class_name:
-        return ""
-
-    for row in schedule_rows:
-        if row["Class_Name"] != class_name:
-            continue
-        exploded = _explode_size_range(row["Size_From"], row["Size_To"])
-        if exploded and size_nps in exploded:
-            return row["Schedule"]
-        # 단일 사이즈만 적힌 행 (To 비어 있음)
-        if not row["Size_To"] and row["Size_From"] and size_nps == row["Size_From"]:
-            return row["Schedule"]
-
-    return ""
-
-
 def _build_item_description_by_rule(
     sheet_name: str,
     ws,
@@ -476,13 +362,25 @@ def _build_item_description_by_rule(
 
             side1 = _side_token(end_type_1, sch1)
             side2 = _side_token(end_type_2 or end_type_1, thickness2 or sch1)
-            thickness_pair = side1
-            if side2:
-                thickness_pair = f"{side1} x {side2}" if side1 else side2
+            if side1 and side2 and side1 == side2:
+                thickness_pair = side1
+            elif side1 and side2:
+                thickness_pair = f"{side1} x {side2}"
+            else:
+                thickness_pair = side1 or side2
 
-            end_type_token = end_type_1
-            if end_type_2 and end_type_2 != end_type_1:
-                end_type_token = f"{end_type_1}/{end_type_2}"
+            et1 = end_type_1.strip().upper()
+            et2 = (end_type_2 or "").strip().upper()
+            # RCS·RES + BE/PE: 양쪽 스케줄 토큰이 같으면 PBE, 다르면 BLE/PSE (설명 문자열 규칙)
+            if item_code in {"RCS", "RES"} and et1 == "BE" and et2 == "PE":
+                if side1 and side2:
+                    end_type_token = "PBE" if side1 == side2 else "BLE/PSE"
+                else:
+                    end_type_token = f"{end_type_1}/{end_type_2}".strip("/")
+            else:
+                end_type_token = end_type_1
+                if end_type_2 and end_type_2 != end_type_1:
+                    end_type_token = f"{end_type_1}/{end_type_2}"
 
             return _join_tokens(item_name, mat, method, end_type_token, thickness_pair)
 
@@ -542,6 +440,7 @@ def _iter_output_rows(
     reducing_data: dict[str, dict[tuple[str, str], str]],
     class_reducing_codes: dict[str, str],
     item_code_db: dict[str, dict[str, str]],
+    class_specs: dict[str, ClassSpec],
     logger: logging.Logger,
 ):
     fitting_template_rows: dict[tuple[str, str], int] = {}
@@ -583,6 +482,13 @@ def _iter_output_rows(
             if not class_name:
                 continue
 
+            if sheet_name == "Fitting_Group" and item_code in REDUCER_ITEM_CODES_FROM_TABLE:
+                continue
+
+            log_class_constraint_warnings(
+                logger, sheet_name, class_name, row_idx, ws, header_to_col, class_specs
+            )
+
             db_row: Optional[dict[str, str]] = None
             if item_code:
                 db_row = item_code_db.get(item_code)
@@ -610,14 +516,14 @@ def _iter_output_rows(
             exploded_sizes = _explode_size_range(size_from_1, size_to_1)
             if not exploded_sizes:
                 size1_out = size_from_1 or size_to_1
-                th1 = _lookup_schedule_thickness(schedule_rows, class_name, size1_out)
+                th1 = lookup_schedule_thickness(schedule_rows, class_name, size1_out)
                 th2 = ""
                 if size2_display:
                     if "-" not in size2_display:
-                        th2 = _lookup_schedule_thickness(schedule_rows, class_name, size2_display)
+                        th2 = lookup_schedule_thickness(schedule_rows, class_name, size2_display)
                     else:
                         part = size2_display.split("-", 1)[0].strip()
-                        th2 = _lookup_schedule_thickness(schedule_rows, class_name, part)
+                        th2 = lookup_schedule_thickness(schedule_rows, class_name, part)
 
                 desc = _build_item_description_by_rule(
                     sheet_name,
@@ -645,14 +551,14 @@ def _iter_output_rows(
                 continue
 
             for exploded_size in exploded_sizes:
-                th1 = _lookup_schedule_thickness(schedule_rows, class_name, exploded_size)
+                th1 = lookup_schedule_thickness(schedule_rows, class_name, exploded_size)
                 th2 = ""
                 if size2_display:
                     if "-" not in size2_display:
-                        th2 = _lookup_schedule_thickness(schedule_rows, class_name, size2_display)
+                        th2 = lookup_schedule_thickness(schedule_rows, class_name, size2_display)
                     else:
                         part = size2_display.split("-", 1)[0].strip()
-                        th2 = _lookup_schedule_thickness(schedule_rows, class_name, part)
+                        th2 = lookup_schedule_thickness(schedule_rows, class_name, part)
 
                 desc = _build_item_description_by_rule(
                     sheet_name,
@@ -682,6 +588,8 @@ def _iter_output_rows(
     if fitting_ws is None or not reducing_data:
         return
 
+    reducer_constraint_logged: set[tuple[str, str]] = set()
+
     for class_name, table_code in class_reducing_codes.items():
         size_map = reducing_data.get(table_code, {})
         if not size_map:
@@ -705,11 +613,24 @@ def _iter_output_rows(
                     )
                     continue
 
+                log_key = (class_name, mapped_code)
+                if log_key not in reducer_constraint_logged:
+                    reducer_constraint_logged.add(log_key)
+                    log_class_constraint_warnings(
+                        logger,
+                        "Fitting_Group",
+                        class_name,
+                        template_row_idx,
+                        fitting_ws,
+                        fitting_header_to_col,
+                        class_specs,
+                    )
+
                 db_row = item_code_db.get(mapped_code, {})
                 item_name = _to_text(db_row.get("Item_Name", ""))
                 db_group = _to_text(db_row.get("Group", ""))
-                th1 = _lookup_schedule_thickness(schedule_rows, class_name, size1)
-                th2 = _lookup_schedule_thickness(schedule_rows, class_name, size2)
+                th1 = lookup_schedule_thickness(schedule_rows, class_name, size1)
+                th2 = lookup_schedule_thickness(schedule_rows, class_name, size2)
                 desc = _build_item_description_by_rule(
                     "Fitting_Group",
                     fitting_ws,
@@ -755,7 +676,8 @@ def generate_piping_material_class_data(
     item_code_db = _load_item_code_db(logger)
 
     in_wb = load_workbook(template_path, data_only=True)
-    schedule_rows = _load_schedule_rows(in_wb)
+    schedule_rows = load_schedule_rows(in_wb)
+    class_specs = load_class_specs_from_workbook(in_wb)
     reducing_data = _load_reducing_table(in_wb)
     class_reducing_codes = _load_class_reducing_table_codes(in_wb)
 
@@ -769,12 +691,13 @@ def generate_piping_material_class_data(
     out_row = 2
     rows = list(
         _iter_output_rows(
-        in_wb,
-        schedule_rows,
-        reducing_data,
-        class_reducing_codes,
-        item_code_db,
-        logger,
+            in_wb,
+            schedule_rows,
+            reducing_data,
+            class_reducing_codes,
+            item_code_db,
+            class_specs,
+            logger,
         )
     )
     rows.sort(

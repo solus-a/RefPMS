@@ -19,6 +19,11 @@ def item_code_db_path() -> Path:
     return data_dir() / "Item_Code_DB.xlsx"
 
 
+def class_material_mapping_path() -> Path:
+    """Class_Base_Material → 허용 ASTM/규격 토큰(JSON). 사용자 프로젝트에 맞게 편집."""
+    return data_dir() / "class_material_mapping.json"
+
+
 def project_config_path() -> Path:
     return program_root() / "project_config.json"
 
