@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "description": "부품군(시트)별 템플릿 행 검증 규칙. 컬럼이 시트에 없으면 해당 규칙은 건너뜀.",
+  "sheets": {
+    "Pipe_Group": {
+      "required_non_empty": [
+        "Class_Name",
+        "Item_Code",
+        "Size_From",
+        "Size_To"
+      ]
+    },
+    "Fitting_Group": {
+      "required_non_empty": [
+        "Class_Name",
+        "Item_Code",
+        "Size_From",
+        "Size_To"
+      ],
+      "xor_at_most_one_filled": [
+        [
+          "Schedule",
+          "Rating"
+        ]
+      ]
+    },
+    "Flange": {
+      "required_non_empty": [
+        "Class_Name",
+        "Item_Code",
+        "Size1_From",
+        "Size1_To"
+      ]
+    },
+    "Valve": {
+      "required_non_empty": [
+        "Class_Name",
+        "Item_Code",
+        "Size_From",
+        "Size_To"
+      ]
+    },
+    "Gasket_Group": {
+      "required_non_empty": [
+        "Class_Name",
+        "Item_Code"
+      ],
+      "conditional_required": []
+    }
+  }
+}

@@ -5,6 +5,8 @@ __pycache__/
 .venv/
 output/
 template/
+build-output/
+.vscode/
 ~$*.xlsx
 
 # Local chat logs and SpecStory

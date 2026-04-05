@@ -1,5 +1,5 @@
 {
-  "description": "Class_Define Class_Base_Material 키(대문자) → 부품 Mat 조합 문자열에 포함될 토큰. 프로젝트·MTR 기준으로 편집.",
+  "description": "Class_Base_Material 키(로드 시 대문자) → 부품 Mat 문자열에 포함될 허용 토큰.",
   "base_material_allowlist": {
     "KCS": [
       "A106",

@@ -24,6 +24,11 @@ def class_material_mapping_path() -> Path:
     return data_dir() / "class_material_mapping.json"
 
 
+def component_mapping_path() -> Path:
+    """부품군별 필수·조건부·배타 속성 규칙(JSON). Phase 3 동적 Validator 입력."""
+    return data_dir() / "component_mapping.json"
+
+
 def project_config_path() -> Path:
     return program_root() / "project_config.json"
 

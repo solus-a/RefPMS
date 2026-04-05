@@ -43,8 +43,10 @@
       "P",
       "JN",
       "JNP",
+      "JNT",
       "JN1",
       "JNP1",
+      "JNT1",
       "E",
       "ES",
       "E4",
@@ -52,7 +54,9 @@
       "RC",
       "RE",
       "RCS",
-      "RES"
+      "RES",
+      "T",
+      "RT"
     ]
   },
   "coding_rules": {

@@ -24,7 +24,7 @@
 1. [x] **`ClassSpec` 모델 구현**: `class_spec.py` — `Class_Define` 시트에서 Design Code, Class_Rating, Corrosion Allowance, P/T 범위 등 로드 (`TypedDict`).
 2. [x] **`ThicknessEngine` 정형화**: `thickness_engine.py` — Schedule 시트 룩업, `project_config.json`의 `nps_master`; 행 전개는 NPS 리스트 연속 구간, **Schedule 룩업**은 From~To **숫자 구간** 폴백(Reducing 등 nps_list에 없는 NPS).
 3. [x] **제약 조건 검증(1차)**: `log_class_constraint_warnings` — `Class_Rating` vs 부품 `Rating`(ASME **B16.5 P-T Class** vs **B16.11** 단조 등급은 교차 비교 안 함), 재질은 **`data/class_material_mapping.json`** allowlist(키=Class_Base_Material). 경고만, 행 스킵 없음.
-4. [x] **출력 규칙 정합**: RC/RE/RCS/RES는 `Reducing_Table`에서만 전개; RCS·RES 설명 BE+PE → 스케줄 동일 시 `PBE`, 상이 시 `BLE/PSE`.
+4. [x] **출력 규칙 정합**: RC/RE/RCS/RES는 `Reducing_Table`에서만 전개; RCS·RES 이음은 NPS 대·소(L/S) 및 양끝 동일 시 BBE/PBE/TBE 등(`_rcs_res_end_type_token`).
 
 ---
 
@@ -32,11 +32,13 @@
 **Goal:** 부품군별 속성 매핑을 설정화하여 엔진을 범용화.
 
 ### Key Tasks:
-1. **`component_mapping.json` 생성**:
-    - 부품군별 필수/선택 속성 정의.
-    - **Gasket 서브타입 로직**: Gasket_Type에 따른 조건부 속성 활성화.
-    - **Fitting XOR 로직**: Schedule vs Rating 배타적 선택 처리.
-2. **Dynamic Validator**: 각 레코드가 부품군별 필수 속성을 갖추었는지 검증.
+1. [x] **`component_mapping.json` 생성** (`data/component_mapping.json`):
+    - 부품군별 필수 속성(`required_non_empty`) — Pipe / Fitting / Flange / Valve.
+    - **Fitting XOR**: 동일 행에 `Schedule`·`Rating` 컬럼이 둘 다 있으면 둘 다 채우지 않음 (`xor_at_most_one_filled`).
+    - **Gasket**: `Gasket_Group` 플레이스홀더 + `conditional_required`는 템플릿·허용 값 확정 후 편집.
+2. [x] **Dynamic Validator** (`src/validator.py`): `validate_template_row` — 위 규칙 위반 시 경고 로그 후 해당 템플릿 행 스킵 (`pms_generator._iter_output_rows` 연동).
+3. [x] **Item_Code DB 스키마·사이드카:** `Catalog_Item_Name` / `Description_Prefix` 열, 템플릿·PMS 실행 시 `ensure_all_program_data_files()` 로 JSON·DB 보장 및 레거시 시트 정규화.
+4. [x] **Branch_Table:** `Branch_Table` 시트·`Class_Define.Branch_Table_1` 로 T/RT 분기 전개 (`pms_generator`).
 
 ---
 

@@ -34,8 +34,8 @@ def create_controller(root: tk.Tk) -> None:
 
         status_setter("템플릿 생성 중...")
         try:
-            # 선택 폴더 / template / YYYYMMDDHHMMSS / 템플릿.xlsx
-            stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            # 선택 폴더 / template / YYYYMMDD_HHMMSS / 템플릿.xlsx
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             out_dir = Path(save_dir) / "template" / stamp
             out_dir.mkdir(parents=True, exist_ok=True)
             out_path = out_dir / DEFAULT_TEMPLATE_FILENAME
@@ -64,8 +64,8 @@ def create_controller(root: tk.Tk) -> None:
             status_setter("대기중")
             return
 
-        # 선택 폴더 / output / YYYYMMDDHHMMSS / 자재 클래스 xlsx
-        out_stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        # 선택 폴더 / output / YYYYMMDD_HHMMSS / 자재 클래스 xlsx
+        out_stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         out_dir = Path(save_root) / "output" / out_stamp
         out_dir.mkdir(parents=True, exist_ok=True)
         output_path = out_dir / pms_generator.OUTPUT_FILENAME
