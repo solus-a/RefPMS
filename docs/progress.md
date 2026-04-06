@@ -1,5 +1,23 @@
 # Project Progress Report
 
+## 현재 상태 (plan.md 동기화)
+
+- **Current Phase:** Phase 3 완료 수준(운영 보완 진행 중)
+- **다음 우선순위:** `Gasket_Group` `conditional_required` 실값 반영 후 Phase 4(원자 속성/formatter) 착수
+- **미착수 범위:** Phase 5(Flat Data 통합 출력, GUI 진행률/검증 리포트)
+
+## 세션 요약 (2026-04-06)
+
+- **템플릿 플랜지 헤더 정리:** `template_generator`에서 플랜지 시트 기본 헤더를 `End_Type` → `Flange_Type`으로 변경하고, 생성 문서 주석의 시트명도 `Flange_Group`으로 통일.
+- **시트명 변경 반영:** 플랜지 시트 명칭을 `Flange` → `Flange_Group`으로 통일. 반영 파일: `pms_generator`(생성/설명 규칙), `class_spec`(제약 경고), `template_generator`(신규 템플릿 시트명), `data/component_mapping.json`·`data_defaults`(검증 키). `template/20260405_142914/Class_Define_Template.xlsx` 재생성 정상 확인.
+- **출력 Item 순서 갱신:** `project_config.json` `output_settings.item_order`를 운영 기준으로 재정렬 — `P, JN, JN1, JNP, JNP1, JNT, JNT1, E, ES, E4, ES4, T, RT, RC, RE, RCS, RES, JF, TH, CP, CPT, PL, F`.
+- **Flange_Type 레거시 매핑 제거:** 혼동 방지를 위해 `SOCKET WELD`/`WELDING NECK`/`THREADED`/`THD`/`SLIP ON`/`LAP JOINT` 자동 변환을 제거. 템플릿에는 운영 약어(`SW`,`WN`,`THRD`,`SO`,`LJ`)를 직접 입력하는 정책으로 고정.
+- **Flange 타입 열 반영:** `Flange` 시트에서 `End_Type` 대신 `Flange_Type`(SW/WN/THD/SO/RTJ/RSO/LJ/BL 및 풀네임)을 우선 읽도록 수정. 설명 토큰은 약어로 정규화해 출력.
+- **Flange SCH 표기 규칙 보강:** 도메인 규칙에 맞춰 **SW/WN만** `Item_Description`에 스케줄(`SCH`)을 포함하고, THD/SO/RTJ/RSO/LJ/BL은 스케줄을 붙이지 않음. `template/20260405_142914` 재생성 기준 SW(0.5~1.5)·WN(2~24) 행 모두 기대대로 SCH 반영.
+- **Branch_Table TH 처리 보강:** `Item_Type=TH`(Half Coupling)를 브랜치 전개 항목으로 인식하도록 수정. TH는 주배관 `Size1`에 따라 실치수가 바뀌지 않는 도메인 규칙을 반영해 **`Size2`(분기관) 기준으로만 1회 전개**하며, 클래스에 Branch_Table가 있으면 `Fitting_Group`의 TH 행은 중복 전개하지 않음. 결과: `template/20260405_142914` 실행 시 `Branch_Table unknown Item_Type 'TH'` 경고 제거, 출력 TH/JF 행수 및 설명은 기존 의도와 동일.
+- **Thread 표기 규칙(설명):** `project_config.json` `project_info.thread_method`(현재 `NPT`) 기준. Pipe/Nipple은 End Type 뒤에 괄호 표기(`PE/TE(NPT)`, `TBE(NPT)`), Fitting은 Thread End(`TE`)를 설명에서 thread method만 표기(`NPT`). 두께/등급 토큰은 **ASME B16.11일 때만** `Rating` 우선 사용(그 외는 기존 Schedule). 기준: `template/20260405_142914` → `output/20260406_211736` 정합.
+- **출력 양식/PLUG 반영:** 출력 열은 `Remarks` 삭제 9열(`Class_Name`~`Item_Name`)로 고정. 설명 조합에서 `Remarks`는 규격(`Dim_Standard`)보다 앞에 둠. `PL`(PLUG, ASME B16.11)은 thread method(`NPT`) 표기만 사용하고 설명에서 두께/등급 토큰(`SCH`/`Rating`)은 생략. 기준: `template/20260405_142914` → `output/20260406_222143` 정합.
+
 ## 세션 요약 (2026-04-05, Item_Code DB·니플)
 
 - **Item_Code_DB.xlsx:** `Catalog_Item_Name`(출력 `Item_Name`), `Description_Prefix`(설명 선두), 레거시 `Item_Name` 단일 열은 로드 시 카탈로그·접두 동일 처리. `template_generator.ensure_item_code_db` 가 누락 열이면 시트를 표준 4열로 재배치 후 기본 코드 행 병합.
@@ -20,7 +38,7 @@
 - **Phase 3 착수:** `data/component_mapping.json`(시트별 필수 필드, Fitting `Schedule`/`Rating` 배타), `src/validator.py`(`load_component_mapping`, `validate_template_row`), `config.component_mapping_path()`.
 - **연동:** `pms_generator._iter_output_rows`에서 행 단위 검증 — 실패 시 경고 후 스킵; Reducing_Table 전개 시에도 해당 Fitting 템플릿 행 검증.
 - **스모크:** 빈 템플릿 생성 → PMS 출력까지 통과.
-- **다음:** Gasket 시트·`conditional_required` 실값 반영, `dropdown_values.xlsx` 연동(승인된 값만), Phase 4 원자 속성.
+- **다음:** Gasket 시트·`conditional_required` 실값 반영, Phase 4 원자 속성.
 
 ## 세션 마감 요약 (2026-04-04)
 
@@ -28,7 +46,7 @@
 - **데이터:** `data/class_material_mapping.json`(재질 allowlist), `project_config.json` NPS/출력 설정.
 - **검증:** 템플릿·PMS 생성 스모크 통과.
 - **규칙:** `.cursor/rules/docs-workflow.mdc`, `folder-naming.mdc`.
-- **다음:** Phase 3 나머지(Gasket 조건·드롭다운) 또는 Phase 4/5.
+- **다음:** Phase 3 나머지(Gasket 조건) 또는 Phase 4/5.
 
 ## 2026-04-02: Phase 1 Completion & Infrastructure Setup
 
@@ -50,7 +68,7 @@
 
 ### **3. Current Status** (롤링 요약)
 - **Current Phase:** Phase 2 baseline 완료 (위 세션 마감 요약 참고).
-- **Next Step:** Phase 3 보완(Gasket·드롭다운) 또는 Phase 4.
+- **Next Step:** Phase 3 보완(Gasket 조건) 또는 Phase 4.
 - **Blockers:** 없음.
 
 ## 2026-04-04: Cursor 프로젝트 규칙 추가
@@ -85,4 +103,4 @@
 - **변경:** GUI「템플릿 생성」시 선택 폴더 아래 `template/YYYYMMDD_HHMMSS/` 에 `Class_Define_Template.xlsx` 저장. GUI「자재 클래스 생성」시 선택 폴더 아래 `output/YYYYMMDD_HHMMSS/` 에 `Piping_Material_Class_Data.xlsx` 저장 (`controller`).
 
 ---
-*Last Updated: 2026-04-05 (Branch_Table 22×10 정리, gitignore·동기화)*
+*Last Updated: 2026-04-06 (Remarks 열 제거·PLUG 규칙 반영)*

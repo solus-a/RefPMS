@@ -24,7 +24,7 @@
         ]
       ]
     },
-    "Flange": {
+    "Flange_Group": {
       "required_non_empty": [
         "Class_Name",
         "Item_Code",

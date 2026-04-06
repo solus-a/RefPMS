@@ -28,7 +28,7 @@
 
 ---
 
-## Phase 3: Layer 3 - Group Logic Generalization
+## Phase 3: Layer 3 - Group Logic Generalization (Mostly done)
 **Goal:** 부품군별 속성 매핑을 설정화하여 엔진을 범용화.
 
 ### Key Tasks:
@@ -65,8 +65,13 @@
 
 ---
 
+## Current Status (Reality Check)
+- **Current Phase:** Phase 3 완료 수준(운영 보완 진행 중)
+- **In Progress:** Gasket 규칙 구체화(conditional_required 확정), Flange_Group 네이밍/컬럼 정리 반영
+- **Not Started (Plan):** Phase 4 원자 속성 구조화, Phase 5 통합 출력/GUI 리포트
+
 ## Success Criteria (Updated)
 - [x] 프로젝트 단위 체계 설정 지원 (Mixed Unit 예외 포함).
 - [x] 전사 표준 기반의 고정 아이템 코드 규칙 적용.
-- [x] 원자적 속성 기반의 데이터 구조 (Description 자동 생성).
-- [x] 부품군별 분리 및 통합 출력 동시 지원.
+- [ ] 원자적 속성 기반의 데이터 구조 (Description 자동 생성).
+- [ ] 부품군별 분리 및 통합 출력 동시 지원.

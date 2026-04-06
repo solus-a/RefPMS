@@ -52,7 +52,7 @@ class ProjectConfig:
         else:
             # 기본값 (파일이 없을 경우 대비)
             self._config = {
-                "project_info": {"unit_system": "Inch"},
+                "project_info": {"unit_system": "Inch", "thread_method": "NPT"},
                 "nps_master": {"nps_list": []},
                 "output_settings": {
                     "filename": "Piping_Material_Class_Data.xlsx",

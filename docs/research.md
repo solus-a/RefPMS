@@ -30,12 +30,12 @@
 ### 4.1 핵심 엔진: `pms_generator.py` 및 분리 모듈
 *   **NPS Master:** `project_config.json`의 `nps_master.nps_list` 사용 (`thickness_engine.nps_list` / `explode_size_range`).
 *   **Size Explosion:** `thickness_engine.explode_size_range` 및 `pms_generator`에서 L5(Atomic) 행 생성.
-*   **Flange 설명:** `Bore_Schedule` 컬럼 없음; WN은 클래스 Schedule 룩업 두께(`sch1`)만 사용. 문구 순서: `{Item_Name 또는 FLANGE} {재질} {End_Type} {등급: CL150→150#} {Facing} [WN일 때 SCH] {Dim_Standard}`.
+*   **Flange_Group 설명:** 플랜지 시트명은 `Flange_Group`. 타입 컬럼은 `Flange_Type`(없으면 `End_Type` 폴백). 문구 순서: `{Item_Name 또는 FLANGE} {재질} {Flange_Type} {등급: CL150→150#} {Facing} [SW/WN일 때만 SCH] {Dim_Standard}`. 즉, **socket weld/welding neck만** 파이프 조인트 보어 매칭용 스케줄을 설명에 포함하고, THRD/SO/LJ(및 FB/FR 계열)는 SCH를 붙이지 않음.
 *   **Schedule 룩업:** `thickness_engine.load_schedule_rows`, `lookup_schedule_thickness` — NPS 리스트 매칭 후 **From~To 숫자 구간** 폴백.
 *   **Reducing_Table:** `Item_Type` RD→RC/RE, SN→RCS/RES; **RC/RE/RCS/RES는 Fitting_Group 템플릿 행으로는 전개하지 않음**(중복 방지). **관례:** `Size1`(대단) > `Size2`(소단) — 동일·역전 NPS는 축관 개념과 맞지 않음. **RCS·RES 이음 표기:** `L`/`S`는 Large/Small 단면(NPS로 판별, `Size1`↔`End_Type_1`, `Size2`↔`End_Type_2`). 가운데 `B`는 Both — 양끝 종류가 같으면 `BBE`·`PBE`·`TBE` 등. 종류가 다르면 대단 `BLE`/`PLE`/…, 소단 `BSE`/`PSE`/… 조합(예: 대단 BE·소단 PE → `BLE/PSE` — 제작 시 어느 쪽이 BW/PE인지 명시). THD·미매핑 조합은 대·소단 원문 순으로 폴백. **설명 끝 규격:** RC/RE/RCS/RES는 `Dim_Standard`를 설명에 포함; **`Dim_Standard`에는 이음(BW 등)을 적지 않고** 규격명만(예: `ASME B16.9`, `MSS SP-95`). 잘못 `ASME B16.9 BW`로 들어온 구 템플릿만 코드에서 `ASME B16.9`로 정규화.
-*   **Branch_Table:** `Class_Define.Branch_Table_1` → 테이블 코드; `Item_Type` **T**(등경)·**RT**(이경)만 전개. 클래스에 브랜치 테이블이 매핑되면 Fitting_Group 의 T/RT는 테이블 전용(리듀서와 동일 패턴). `Size1`/`Size2`는 Reducing_Table 과 같이 대단/소단 관례; RT 설명은 `fitting_dual_schedule` 로 대단·소단 스케줄 조합. 템플릿 행 선택은 NPS 구간 매칭 + `_branch_rt_template_reference_nps`·`_find_rt_fitting_template_row`(소단 SW·대단 BW 혼합 시 BW 행 우선).
+*   **Branch_Table:** `Class_Define.Branch_Table_1` → 테이블 코드; `Item_Type` **T**(등경)·**RT**(이경)·**TH**(Half Coupling) 전개. 클래스에 브랜치 테이블이 매핑되면 Fitting_Group 의 T/RT/TH는 테이블 전용(리듀서와 동일 패턴). `Size1`/`Size2`는 Reducing_Table 과 같이 대단/소단 관례를 따르되, **TH는 주배관 Size1 영향이 없어 Size2 기준으로만 1회 전개**. RT 설명은 `fitting_dual_schedule` 로 대단·소단 스케줄 조합. 템플릿 행 선택은 NPS 구간 매칭 + `_branch_rt_template_reference_nps`·`_find_rt_fitting_template_row`(소단 SW·대단 BW 혼합 시 BW 행 우선).
 *   **클래스 봉투:** `class_spec.load_class_specs_from_workbook`, `log_class_constraint_warnings`. 재질: `data/class_material_mapping.json` allowlist. Rating: B16.5 Class 집합 vs B16.11(3000# 등) 집합 **교차 비교 생략**.
-*   **Description 생성:** 현재 문자열 결합 방식 -> Phase 4에서 원자 속성 기반 템플릿 방식으로 전환 예정.
+*   **Description 생성:** 현재 문자열 결합 방식. Thread End 표기는 프로젝트 관용(`project_info.thread_method`, 현재 `NPT`)을 사용하며 Pipe/Nipple은 `EndType(THREAD)` 형태, Fitting은 Thread End(`TE`)를 관용 토큰(`NPT`/`PT`)으로 단순 표기. Fitting의 등급/두께 토큰은 **ASME B16.11일 때만** `Rating` 우선이나, `PL`(PLUG)은 예외로 토큰을 생략(Plugs/Bushings는 class designation 비적용). `Remarks` 토큰은 규격(`Dim_Standard`)보다 앞에 배치. Phase 4에서 원자 속성 기반 템플릿 방식으로 전환 예정.
 *   **Item_Code_DB (`data/Item_Code_DB.xlsx`):** `Catalog_Item_Name` → PMS `Item_Name`; `Description_Prefix` → 설명 선두(레거시 `Item_Name` 단일 열은 둘 다 동일 값으로 로드). Pipe 니플(JN/JNP 계열): 길이는 `Length` 열만 사용, 카탈로그명 끝 `NNNmm` 을 길이로 치환해 발주명 정합.
 *   **엘보 E/ES/E4/ES4:** B16.9(BW)는 LR/SR를 **설명**에 유지. B16.11은 ASME B16.11상 LR/SR 구분이 없어 **설명 선두**에서 LR/SR 제거. **Item_Name**은 B16.9·B16.11 공통으로 LR/SR 접미사 없이 `ELBOW 90 DEG`/`ELBOW 45 DEG` 형태로 통일.
 
@@ -48,4 +48,9 @@
 3. 검증 로직 부재 -> Validator 모듈 구축.
 4. 확장성 한계 -> `component_mapping.json` 도입.
 5. B16.5/B16.11 등급 집합은 코드 상수(`class_spec`) — **사용 중 ASME 판본과 불일치 시 수정 필요**.
+
+## 6. 구현 성숙도 (Plan 정합)
+- **완료:** Phase 1, Phase 2, Phase 3(주요 기능)
+- **부분완료:** Gasket 세부 규칙(`conditional_required`)은 플레이스홀더 상태
+- **미착수:** Phase 4(원자 속성/formatter), Phase 5(Flat Data 통합 출력 + GUI 리포트)
 

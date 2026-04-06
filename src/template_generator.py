@@ -40,6 +40,7 @@ ITEM_CODE_DB_DEFAULT_ROWS = [
     ("ES", "ELBOW 90 DEG SR", "ELBOW 90 DEG SR", "Fitting_Group"),
     ("E4", "ELBOW 45 DEG LR", "ELBOW 45 DEG LR", "Fitting_Group"),
     ("ES4", "ELBOW 45 DEG SR", "ELBOW 45 DEG SR", "Fitting_Group"),
+    ("PL", "PLUG", "PLUG", "Fitting_Group"),
     ("F", "FLANGE", "FLANGE", "Flange_Group"),
 ]
 
@@ -135,7 +136,7 @@ FLANGE_HEADERS = [
     "Mat_Class",
     "Rating",
     "Facing",
-    "End_Type",
+    "Flange_Type",
     "Dim_Standard",
     "Remarks",
 ]
@@ -364,7 +365,7 @@ def generate_class_define_template(
     - Branch_Table
     - Pipe_Group
     - Fitting_Group
-    - Flange
+    - Flange_Group
     - Valve
 
     동시에 data/Item_Code_DB.xlsx 가 없으면 생성합니다(기존 파일은 유지).
@@ -404,7 +405,7 @@ def generate_class_define_template(
     ws_fitting = wb.create_sheet(title="Fitting_Group")
     _set_headers_and_widths(ws_fitting, FITTING_HEADERS)
 
-    ws_flange = wb.create_sheet(title="Flange")
+    ws_flange = wb.create_sheet(title="Flange_Group")
     _set_headers_and_widths(ws_flange, FLANGE_HEADERS)
 
     ws_valve = wb.create_sheet(title="Valve")

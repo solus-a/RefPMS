@@ -1,6 +1,7 @@
 {
   "project_info": {
-    "unit_system": "Inch"
+    "unit_system": "Inch",
+    "thread_method": "NPT"
   },
   "nps_master": {
     "nps_list": [
@@ -36,27 +37,32 @@
       "Thickness2",
       "Commodity_Code",
       "Item_Description",
-      "Item_Name",
-      "Remarks"
+      "Item_Name"
     ],
     "item_order": [
       "P",
       "JN",
-      "JNP",
-      "JNT",
       "JN1",
+      "JNP",
       "JNP1",
+      "JNT",
       "JNT1",
       "E",
       "ES",
       "E4",
       "ES4",
+      "T",
+      "RT",
       "RC",
       "RE",
       "RCS",
       "RES",
-      "T",
-      "RT"
+      "JF",
+      "TH",
+      "CP",
+      "CPT",
+      "PL",
+      "F"
     ]
   },
   "coding_rules": {

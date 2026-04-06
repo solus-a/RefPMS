@@ -2,11 +2,11 @@
   "description": "Class_Base_Material 키(로드 시 대문자) → 부품 Mat 문자열에 포함될 허용 토큰.",
   "base_material_allowlist": {
     "KCS": [
-      "A106",
+      "A106-B",
       "A105",
-      "A234",
+      "A234-WPB",
       "A333",
-      "A672",
+      "A672-C60-CL13",
       "A420",
       "A694",
       "A53"

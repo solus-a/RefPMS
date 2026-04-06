@@ -39,7 +39,7 @@ DEFAULT_COMPONENT_MAPPING: dict = {
             ],
             "xor_at_most_one_filled": [["Schedule", "Rating"]],
         },
-        "Flange": {
+        "Flange_Group": {
             "required_non_empty": [
                 "Class_Name",
                 "Item_Code",
