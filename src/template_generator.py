@@ -42,6 +42,7 @@ ITEM_CODE_DB_DEFAULT_ROWS = [
     ("ES4", "ELBOW 45 DEG SR", "ELBOW 45 DEG SR", "Fitting_Group"),
     ("PL", "PLUG", "PLUG", "Fitting_Group"),
     ("F", "FLANGE", "FLANGE", "Flange_Group"),
+    ("G", "GASKET", "GASKET", "Gasket_Group"),
 ]
 
 CLASS_DEFINE_HEADERS = [
@@ -137,6 +138,23 @@ FLANGE_HEADERS = [
     "Rating",
     "Facing",
     "Flange_Type",
+    "Dim_Standard",
+    "Remarks",
+]
+
+GASKET_HEADERS = [
+    "Class_Name",
+    "Item_Code",
+    "Size_From",
+    "Size_To",
+    "Gasket_Type",
+    "Material_Primary",
+    "Material_Secondary",
+    "Material_Inner_Ring",
+    "Material_Outer_Ring",
+    "Rating",
+    "Facing",
+    "Thickness",
     "Dim_Standard",
     "Remarks",
 ]
@@ -366,6 +384,7 @@ def generate_class_define_template(
     - Pipe_Group
     - Fitting_Group
     - Flange_Group
+    - Gasket_Group
     - Valve
 
     동시에 data/Item_Code_DB.xlsx 가 없으면 생성합니다(기존 파일은 유지).
@@ -407,6 +426,9 @@ def generate_class_define_template(
 
     ws_flange = wb.create_sheet(title="Flange_Group")
     _set_headers_and_widths(ws_flange, FLANGE_HEADERS)
+
+    ws_gasket = wb.create_sheet(title="Gasket_Group")
+    _set_headers_and_widths(ws_gasket, GASKET_HEADERS)
 
     ws_valve = wb.create_sheet(title="Valve")
     _set_headers_and_widths(ws_valve, VALVE_HEADERS)

@@ -158,6 +158,19 @@ MATERIAL_SHEET_CONFIGS = [
         "size_to_2": "Size2_To",
     },
     {
+        "sheet_name": "Gasket_Group",
+        "required_headers": [
+            "Class_Name",
+            "Item_Code",
+            "Size_From",
+            "Size_To",
+        ],
+        "size_from_1": "Size_From",
+        "size_to_1": "Size_To",
+        "size_from_2": None,
+        "size_to_2": None,
+    },
+    {
         "sheet_name": "Valve",
         "required_headers": [
             "Class_Name",
@@ -437,6 +450,25 @@ def _normalize_flange_type_token(raw_flange_type: str) -> str:
     # 운영 약어(SW/WN/THRD/SO/LJ)를 템플릿에 그대로 입력해 사용한다.
     # BL/RTJ/RSO 등은 현재 운영 입력 대상이 아니며, FB/FR은 Item_Code로 관리한다.
     return upper
+
+
+def _gasket_material_token(gasket_type: str, mat_primary: str, mat_secondary: str) -> str:
+    gt = _to_text(gasket_type).strip().upper()
+    p = _to_text(mat_primary).strip()
+    s = _to_text(mat_secondary).strip()
+    if not p and not s:
+        return ""
+    if not s:
+        return p
+    if gt in {"SPIRAL WOUND", "ENVELOPED", "JACKETED"}:
+        return f"{p}+{s}" if p else s
+    return _join_tokens(p, s)
+
+
+def _normalize_gasket_thickness(gasket_type: str, thickness: str) -> str:
+    raw = _to_text(thickness).strip()
+    # 가스켓 두께는 템플릿 입력값을 그대로 출력한다.
+    return raw
 
 
 def _load_item_code_db(logger: logging.Logger) -> dict[str, dict[str, str]]:
@@ -936,6 +968,36 @@ def _build_item_description_by_rule(
             title, mat, flange_type, rating_disp, facing, sch_from_table, dim_standard
         )
 
+    if sheet_name == "Gasket_Group":
+        gasket_type = _get_cell_text(ws, row_idx, header_to_col, "Gasket_Type")
+        mat_primary = _get_cell_text(ws, row_idx, header_to_col, "Material_Primary")
+        mat_secondary = _get_cell_text(ws, row_idx, header_to_col, "Material_Secondary")
+        mat_ir = _get_cell_text(ws, row_idx, header_to_col, "Material_Inner_Ring")
+        mat_or = _get_cell_text(ws, row_idx, header_to_col, "Material_Outer_Ring")
+        rating = _pick_first_non_empty(ws, row_idx, header_to_col, ["Rating"])
+        facing = _get_cell_text(ws, row_idx, header_to_col, "Facing")
+        thickness_raw = _get_cell_text(ws, row_idx, header_to_col, "Thickness")
+        thickness = _normalize_gasket_thickness(gasket_type, thickness_raw)
+        remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
+        title = description_lead if _to_text(description_lead) else "GASKET"
+        mat_token = _gasket_material_token(gasket_type, mat_primary, mat_secondary)
+        ring_token = _join_tokens(
+            f"IR-{mat_ir}" if mat_ir else "",
+            f"OR-{mat_or}" if mat_or else "",
+        )
+        rating_disp = _flange_rating_display(rating)
+        return _join_tokens(
+            title,
+            gasket_type,
+            mat_token,
+            ring_token,
+            rating_disp,
+            facing,
+            thickness,
+            remarks,
+            dim_standard,
+        )
+
     if sheet_name == "Valve":
         body_mat = _get_cell_text(ws, row_idx, header_to_col, "Body_Mat")
         trim_mat = _get_cell_text(ws, row_idx, header_to_col, "Trim_Mat")
@@ -1108,6 +1170,11 @@ def _iter_output_rows(
                 if nip:
                     desc, out_item_name, out_remarks = nip
                 else:
+                    if sheet_name == "Gasket_Group":
+                        gasket_type = _get_cell_text(ws, row_idx, header_to_col, "Gasket_Type")
+                        thickness_raw = _get_cell_text(ws, row_idx, header_to_col, "Thickness")
+                        th1 = _normalize_gasket_thickness(gasket_type, thickness_raw)
+                        th2 = ""
                     desc = _build_item_description_by_rule(
                         sheet_name,
                         ws,
@@ -1161,6 +1228,11 @@ def _iter_output_rows(
                 if nip:
                     desc, out_item_name, out_remarks = nip
                 else:
+                    if sheet_name == "Gasket_Group":
+                        gasket_type = _get_cell_text(ws, row_idx, header_to_col, "Gasket_Type")
+                        thickness_raw = _get_cell_text(ws, row_idx, header_to_col, "Thickness")
+                        th1 = _normalize_gasket_thickness(gasket_type, thickness_raw)
+                        th2 = ""
                     desc = _build_item_description_by_rule(
                         sheet_name,
                         ws,

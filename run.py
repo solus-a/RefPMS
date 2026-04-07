@@ -11,4 +11,12 @@ if src_path not in sys.path:
 from main import main
 
 if __name__ == "__main__":
+    # Command mode:
+    # - `python run.py harness ...` -> run automated result-validation harness
+    # - no args -> launch GUI
+    if len(sys.argv) >= 2 and sys.argv[1].lower() == "harness":
+        from tests.harness_runner import main as harness_main
+
+        sys.argv = [sys.argv[0], *sys.argv[2:]]
+        raise SystemExit(harness_main())
     main()

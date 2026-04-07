@@ -1,56 +1,110 @@
-# RefPMS 프로젝트 심층 분석 및 역설계 보고서 (Detailed Analysis & Reverse Engineering Report)
+# RefPMS 아키텍처/설계 정리 (Research)
 
-## 1. 개요 (Introduction)
-본 보고서는 `RefPMS` 프로젝트의 현재 구현 상태를 정밀 분석하고, **5단계 계층 스키마(5-Layer Hierarchical Schema)**로의 진화 과정을 역설계(Reverse Engineering) 관점에서 정리합니다. 
-
-## 2. 핵심 설계 원칙 및 의사결정 (Core Design Principles)
-사용자와의 Q&A를 통해 확정된 핵심 아키텍처 방향입니다.
-
-*   **L1: 단위 체계 (Unit System):** 프로젝트별 단일 단위(Inch 또는 Metric)를 원칙으로 함. 단, Tube류 등 혼합 규격은 **Size 필드의 다형성(Direction B: string | object)**을 통해 처리하며, `formatter.py`에서 렌더링을 담당함.
-*   **L3: 아이템 코드 규칙:** 전사 표준 기반의 **'완전 고정 불변(Intelligent Code)'** 규칙을 적용함.
-*   **L4: 원자적 속성 (Atomic Attributes):** 모든 부품군은 6개의 **Abstract Base Attributes**를 상속받음.
-    1. `Item_Code`, 2. `Commodity_Group`, 3. `Primary_Size`, 4. `Base_Material_Category`, 5. `Short/Long_Description`, 6. `Remarks`
-*   **데이터 출력:** 엔지니어링 검토용(부품군별 분리) 및 시스템 인터페이스용(Flat Data 통합)을 모두 지원함.
-
-## 3. 부품군별 상세 원자 속성 정의 (Specific Atomic Attributes)
-각 부품군이 가져야 할 L4 레벨의 상세 속성 리스트입니다. (상세 내용은 `plan.md` 및 원본 답변 참조)
-
-*   **Pipe:** Material Spec/Grade, Method, Schedule, End Type 등
-*   **Fitting:** 단일 `Size_From`/`Size_To`(Pipe와 동일), Material Spec/Grade, Schedule or Rating (XOR 적용) 등
-*   **Flange:** Rating, Facing, Bore Schedule 등
-*   **Gasket:** Type별 조건부 속성 (Winding, Filler, Inner/Outer Ring 등)
-*   **Valve:** Trim Number(발주용) 및 상세 Trim 재질(3D/데이터용) 병렬 보유
-
-## 4. 코드 및 데이터 구조 정밀 분석 (Current Implementation Analysis)
-
-### 4.0 부품군 매핑·검증 (Phase 3)
-*   **`data/component_mapping.json`**: 시트별 `required_non_empty`, `xor_at_most_one_filled`(예: Fitting `Schedule`/`Rating`), 확장용 `conditional_required`.
-*   **`validator.py`**: 템플릿 행 단위 검증; 위반 시 로그 후 해당 행 출력 제외.
-
-### 4.1 핵심 엔진: `pms_generator.py` 및 분리 모듈
-*   **NPS Master:** `project_config.json`의 `nps_master.nps_list` 사용 (`thickness_engine.nps_list` / `explode_size_range`).
-*   **Size Explosion:** `thickness_engine.explode_size_range` 및 `pms_generator`에서 L5(Atomic) 행 생성.
-*   **Flange_Group 설명:** 플랜지 시트명은 `Flange_Group`. 타입 컬럼은 `Flange_Type`(없으면 `End_Type` 폴백). 문구 순서: `{Item_Name 또는 FLANGE} {재질} {Flange_Type} {등급: CL150→150#} {Facing} [SW/WN일 때만 SCH] {Dim_Standard}`. 즉, **socket weld/welding neck만** 파이프 조인트 보어 매칭용 스케줄을 설명에 포함하고, THRD/SO/LJ(및 FB/FR 계열)는 SCH를 붙이지 않음.
-*   **Schedule 룩업:** `thickness_engine.load_schedule_rows`, `lookup_schedule_thickness` — NPS 리스트 매칭 후 **From~To 숫자 구간** 폴백.
-*   **Reducing_Table:** `Item_Type` RD→RC/RE, SN→RCS/RES; **RC/RE/RCS/RES는 Fitting_Group 템플릿 행으로는 전개하지 않음**(중복 방지). **관례:** `Size1`(대단) > `Size2`(소단) — 동일·역전 NPS는 축관 개념과 맞지 않음. **RCS·RES 이음 표기:** `L`/`S`는 Large/Small 단면(NPS로 판별, `Size1`↔`End_Type_1`, `Size2`↔`End_Type_2`). 가운데 `B`는 Both — 양끝 종류가 같으면 `BBE`·`PBE`·`TBE` 등. 종류가 다르면 대단 `BLE`/`PLE`/…, 소단 `BSE`/`PSE`/… 조합(예: 대단 BE·소단 PE → `BLE/PSE` — 제작 시 어느 쪽이 BW/PE인지 명시). THD·미매핑 조합은 대·소단 원문 순으로 폴백. **설명 끝 규격:** RC/RE/RCS/RES는 `Dim_Standard`를 설명에 포함; **`Dim_Standard`에는 이음(BW 등)을 적지 않고** 규격명만(예: `ASME B16.9`, `MSS SP-95`). 잘못 `ASME B16.9 BW`로 들어온 구 템플릿만 코드에서 `ASME B16.9`로 정규화.
-*   **Branch_Table:** `Class_Define.Branch_Table_1` → 테이블 코드; `Item_Type` **T**(등경)·**RT**(이경)·**TH**(Half Coupling) 전개. 클래스에 브랜치 테이블이 매핑되면 Fitting_Group 의 T/RT/TH는 테이블 전용(리듀서와 동일 패턴). `Size1`/`Size2`는 Reducing_Table 과 같이 대단/소단 관례를 따르되, **TH는 주배관 Size1 영향이 없어 Size2 기준으로만 1회 전개**. RT 설명은 `fitting_dual_schedule` 로 대단·소단 스케줄 조합. 템플릿 행 선택은 NPS 구간 매칭 + `_branch_rt_template_reference_nps`·`_find_rt_fitting_template_row`(소단 SW·대단 BW 혼합 시 BW 행 우선).
-*   **클래스 봉투:** `class_spec.load_class_specs_from_workbook`, `log_class_constraint_warnings`. 재질: `data/class_material_mapping.json` allowlist. Rating: B16.5 Class 집합 vs B16.11(3000# 등) 집합 **교차 비교 생략**.
-*   **Description 생성:** 현재 문자열 결합 방식. Thread End 표기는 프로젝트 관용(`project_info.thread_method`, 현재 `NPT`)을 사용하며 Pipe/Nipple은 `EndType(THREAD)` 형태, Fitting은 Thread End(`TE`)를 관용 토큰(`NPT`/`PT`)으로 단순 표기. Fitting의 등급/두께 토큰은 **ASME B16.11일 때만** `Rating` 우선이나, `PL`(PLUG)은 예외로 토큰을 생략(Plugs/Bushings는 class designation 비적용). `Remarks` 토큰은 규격(`Dim_Standard`)보다 앞에 배치. Phase 4에서 원자 속성 기반 템플릿 방식으로 전환 예정.
-*   **Item_Code_DB (`data/Item_Code_DB.xlsx`):** `Catalog_Item_Name` → PMS `Item_Name`; `Description_Prefix` → 설명 선두(레거시 `Item_Name` 단일 열은 둘 다 동일 값으로 로드). Pipe 니플(JN/JNP 계열): 길이는 `Length` 열만 사용, 카탈로그명 끝 `NNNmm` 을 길이로 치환해 발주명 정합.
-*   **엘보 E/ES/E4/ES4:** B16.9(BW)는 LR/SR를 **설명**에 유지. B16.11은 ASME B16.11상 LR/SR 구분이 없어 **설명 선두**에서 LR/SR 제거. **Item_Name**은 B16.9·B16.11 공통으로 LR/SR 접미사 없이 `ELBOW 90 DEG`/`ELBOW 45 DEG` 형태로 통일.
+본 문서는 현재 구현의 설계 의도와 기술 선택을 설명합니다.
+진행 이력은 `docs/progress.md`, 일정/우선순위는 `docs/plan.md`를 기준으로 합니다.
 
 ---
 
-## 5. 아키텍처적 결함 및 해결 방안 (Technical Debt & Solutions)
-(기존 분석 내용 유지)
-1. 속성 데이터의 비구조화 -> 원자적 데이터 필드로 분리.
-2. 하드코딩된 마스터 데이터 -> `project_config.json` 도입.
-3. 검증 로직 부재 -> Validator 모듈 구축.
-4. 확장성 한계 -> `component_mapping.json` 도입.
-5. B16.5/B16.11 등급 집합은 코드 상수(`class_spec`) — **사용 중 ASME 판본과 불일치 시 수정 필요**.
+## 1) 핵심 설계 원칙
 
-## 6. 구현 성숙도 (Plan 정합)
-- **완료:** Phase 1, Phase 2, Phase 3(주요 기능)
-- **부분완료:** Gasket 세부 규칙(`conditional_required`)은 플레이스홀더 상태
-- **미착수:** Phase 4(원자 속성/formatter), Phase 5(Flat Data 통합 출력 + GUI 리포트)
+- **설정 주도형 엔진:** 프로젝트별 규칙은 가능한 `project_config.json`과 데이터 파일로 외부화
+- **룰 기반 검증:** 템플릿 행은 `component_mapping` 규칙으로 검사하고 위반 시 스킵/경고
+- **산출물 정합 우선:** 현재 단계에서는 코드 스타일보다 결과값 일치가 우선
+- **점진적 진화:** 문자열 조합 중심(현재)에서 원자 속성 중심(Phase 4)으로 전환
+
+---
+
+## 2) 현재 구현 구조
+
+### 2.1 입력/검증 계층
+
+- `src/validator.py`
+  - `required_non_empty`
+  - `xor_at_most_one_filled` (예: Fitting `Schedule`/`Rating`)
+  - `conditional_required` (예: Gasket 타입별 필수 컬럼)
+- `data/component_mapping.json`
+  - 시트별 검증 규칙 정의의 단일 소스
+
+### 2.2 생성 계층 (`src/pms_generator.py`)
+
+- 공통 흐름
+  - 시트 로드 -> 행 검증 -> 사이즈 전개 -> 두께 룩업/선택 -> 설명/품목명 조합 -> 정렬/출력
+- 주요 시트
+  - `Pipe_Group`, `Fitting_Group`, `Flange_Group`, `Gasket_Group`, `Valve`
+- 테이블 전개
+  - `Reducing_Table`: RD/SN -> RC/RE/RCS/RES 매핑
+  - `Branch_Table`: T/RT/TH 분기 전개
+
+### 2.3 데이터/보조 파일 계층
+
+- `src/template_generator.py`
+  - 템플릿 시트/헤더 생성
+  - JSON/DB 사이드카 보장 (`ensure_all_program_data_files`)
+- `data/Item_Code_DB.xlsx`
+  - `Catalog_Item_Name`, `Description_Prefix`, `Group` 기준으로 설명/품목명 조합
+
+---
+
+## 3) 시트별 핵심 규칙 요약
+
+### 3.1 Flange_Group
+
+- 타입 입력은 `Flange_Type` 우선 (`End_Type` 폴백)
+- 설명의 SCH 토큰은 SW/WN일 때만 포함
+- 등급 표시는 `CL150 -> 150#` 변환
+
+### 3.2 Gasket_Group
+
+- 설명 토큰 순서:
+  - `Gasket_Type` + 재질 조합 + `IR-/OR-` + `Rating` + `Facing` + `Thickness` + `Remarks` + `Dim_Standard`
+- `Thickness1`은 `Schedule` 룩업이 아니라 입력 `Thickness`를 그대로 사용
+- `conditional_required`는 타입별 필수값 강제
+
+### 3.3 Fitting_Group (요약)
+
+- 리듀서/스웨이지는 `Reducing_Table` 기반 전개로 중복 방지
+- RT/TH는 `Branch_Table` 규칙에 따라 전개
+- Thread 표기는 `project_info.thread_method`(현재 `NPT`) 기준
+
+---
+
+## 4) 자동화 검증 하네스
+
+### 4.1 목적
+
+- 수동 엑셀 대조를 줄이고, 결과값 기준 Pass/Fail 자동 판정
+
+### 4.2 구성
+
+- 입력: `tests/input/<case>/Class_Define_Template.xlsx`
+- 기대결과: `tests/expected/<case>/Piping_Material_Class_Data.xlsx`
+- 실행기:
+  - `python -m tests.harness_runner --all`
+  - `python -m tests.harness_runner --case <name>`
+  - `python run.py harness ...`
+
+### 4.3 판정
+
+- 시트명, 행 수, 셀값 비교
+- 종료코드:
+  - 성공 `0`
+  - 실패 `1`
+  - 사용 오류 `2`
+
+---
+
+## 5) 기술 부채 / 다음 연구 주제
+
+1. **설명 문자열의 비구조화**  
+   -> Phase 4에서 원자 속성 + formatter 계층으로 전환
+2. **룰 파일 확장성**  
+   -> 도메인 규칙 증가 시 스키마 버전 전략 필요
+3. **검증 커버리지 확대**  
+   -> 하네스 실케이스(정상/오류/경계) 추가 필요
+4. **규격 집합 유지보수**  
+   -> B16.5/B16.11 기준값의 판본 동기화 관리 필요
+
+---
+
+*Last Updated: 2026-04-07*
 
