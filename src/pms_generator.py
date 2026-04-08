@@ -183,6 +183,25 @@ MATERIAL_SHEET_CONFIGS = [
         "size_from_2": None,
         "size_to_2": None,
     },
+    {
+        "sheet_name": "Bolt_Group",
+        "required_headers": [
+            "Class_Name",
+            "Item_Code",
+            "Size_From",
+            "Size_To",
+            "Bolt_Type",
+            "Bolt_Mat_Code",
+            "Nut_Type",
+            "Nut_Mat_Code",
+            "Bolt_Dim_Standard",
+            "Nut_Dim_Standard",
+        ],
+        "size_from_1": "Size_From",
+        "size_to_1": "Size_To",
+        "size_from_2": None,
+        "size_to_2": None,
+    },
 ]
 
 
@@ -463,6 +482,19 @@ def _gasket_material_token(gasket_type: str, mat_primary: str, mat_secondary: st
     if gt in {"SPIRAL WOUND", "ENVELOPED", "JACKETED"}:
         return f"{p}+{s}" if p else s
     return _join_tokens(p, s)
+
+
+def _bolt_dim_standard_token(bolt_dim_standard: str, nut_dim_standard: str) -> str:
+    b = _to_text(bolt_dim_standard).strip()
+    n = _to_text(nut_dim_standard).strip()
+    if not b and not n:
+        return ""
+    if not n:
+        return b
+    n_upper = n.upper()
+    if n_upper.startswith("ASME "):
+        n = n[5:].strip()
+    return f"{b} / {n}".strip()
 
 
 def _normalize_gasket_thickness(gasket_type: str, thickness: str) -> str:
@@ -1020,6 +1052,40 @@ def _build_item_description_by_rule(
             dim_standard,
         )
 
+    if sheet_name == "Bolt_Group":
+        bolt_type_raw = _get_cell_text(ws, row_idx, header_to_col, "Bolt_Type").strip().upper()
+        # 출력 기준 산출물과 호환을 위해 STUD는 STUB로 표기 유지.
+        bolt_type_token = "STUB" if bolt_type_raw == "STUD" else bolt_type_raw
+        bolt_code = _get_cell_text(ws, row_idx, header_to_col, "Bolt_Mat_Code")
+        bolt_class = _get_cell_text(ws, row_idx, header_to_col, "Bolt_Mat_Class")
+        bolt_mat = (
+            f"{bolt_code}-{bolt_class}".strip("-")
+            if bolt_code and bolt_class
+            else (bolt_code or bolt_class)
+        )
+        nut_type = _get_cell_text(ws, row_idx, header_to_col, "Nut_Type")
+        nut_code = _get_cell_text(ws, row_idx, header_to_col, "Nut_Mat_Code")
+        nut_class = _get_cell_text(ws, row_idx, header_to_col, "Nut_Mat_Class")
+        nut_mat = (
+            f"{nut_code}-{nut_class}".strip("-")
+            if nut_code and nut_class
+            else (nut_code or nut_class)
+        )
+        dim_token = _bolt_dim_standard_token(
+            _get_cell_text(ws, row_idx, header_to_col, "Bolt_Dim_Standard"),
+            _get_cell_text(ws, row_idx, header_to_col, "Nut_Dim_Standard"),
+        )
+        return _join_tokens(
+            bolt_type_token,
+            "BOLT",
+            bolt_mat,
+            "/",
+            nut_type,
+            "NUT",
+            nut_mat,
+            dim_token,
+        )
+
     return ""
 
 
@@ -1147,6 +1213,9 @@ def _iter_output_rows(
                 size1_out = size_from_1 or size_to_1
                 th1 = lookup_schedule_thickness(schedule_rows, class_name, size1_out)
                 th2 = ""
+                if sheet_name == "Bolt_Group":
+                    th1 = ""
+                    th2 = ""
                 if size2_display:
                     if "-" not in size2_display:
                         th2 = lookup_schedule_thickness(schedule_rows, class_name, size2_display)
@@ -1187,6 +1256,8 @@ def _iter_output_rows(
                         db_group=db_group,
                     )
                     out_item_name = catalog_item_name
+                    if sheet_name == "Bolt_Group" and not out_item_name:
+                        out_item_name = "BOLT&NUT"
                     out_remarks = remarks
                 yield {
                     "Class_Name": class_name,
@@ -1199,12 +1270,16 @@ def _iter_output_rows(
                     "Item_Description": desc,
                     "Item_Name": out_item_name,
                     "Remarks": out_remarks,
+                    "__template_row_idx": row_idx,
                 }
                 continue
 
             for exploded_size in exploded_sizes:
                 th1 = lookup_schedule_thickness(schedule_rows, class_name, exploded_size)
                 th2 = ""
+                if sheet_name == "Bolt_Group":
+                    th1 = ""
+                    th2 = ""
                 if size2_display:
                     if "-" not in size2_display:
                         th2 = lookup_schedule_thickness(schedule_rows, class_name, size2_display)
@@ -1245,6 +1320,8 @@ def _iter_output_rows(
                         db_group=db_group,
                     )
                     out_item_name = catalog_item_name
+                    if sheet_name == "Bolt_Group" and not out_item_name:
+                        out_item_name = "BOLT&NUT"
                     out_remarks = remarks
                 yield {
                     "Class_Name": class_name,
@@ -1257,6 +1334,7 @@ def _iter_output_rows(
                     "Item_Description": desc,
                     "Item_Name": out_item_name,
                     "Remarks": out_remarks,
+                    "__template_row_idx": row_idx,
                 }
 
     if fitting_ws is None or fitting_header_row is None:
@@ -1554,13 +1632,22 @@ def generate_piping_material_class_data(
             return (0, f2 if f2 is not None else -1.0, t2)
         return (1, t2)
 
+    def _sort_size1_key(r: dict[str, Any]) -> tuple:
+        ic = _to_text(r.get("Item_Code"))
+        s1 = _to_text(r.get("Size1"))
+        f1 = _to_float(s1)
+        if ic == "B":
+            desc = _to_text(r.get("Item_Description")).upper()
+            bolt_desc_key = (0, desc) if desc.startswith("STUB BOLT ") else (1, desc)
+            return (0, bolt_desc_key, f1 if f1 is not None else 10**9, s1)
+        return (1, f1 if f1 is not None else 10**9, s1)
+
     rows.sort(
         key=lambda r: (
             _to_text(r.get("Class_Name")),
             _item_code_priority(_to_text(r.get("Item_Code"))),
             _to_text(r.get("Item_Code")),
-            _to_float(_to_text(r.get("Size1"))) if _to_float(_to_text(r.get("Size1"))) is not None else 10**9,
-            _to_text(r.get("Size1")),
+            _sort_size1_key(r),
             _sort_size2_key(r),
         )
     )

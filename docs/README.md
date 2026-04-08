@@ -1,15 +1,13 @@
 # Docs Guide
 
-문서 역할을 분리해 유지합니다.
+| 파일 | 용도 |
+|------|------|
+| `plan.md` | 로드맵·Phase·우선순위 |
+| `changelog.md` | 사용자 영향 있는 변경 요약(짧게) |
+| `research.md` | 아키텍처·시트 규칙·기술 부채 |
 
-- `docs/plan.md`: 앞으로의 단계/우선순위/완료 기준
-- `docs/progress.md`: 실제 작업 이력(날짜별)
-- `docs/research.md`: 설계 의도/기술 선택/부채 정리
+운영 규칙·모듈 경계·v1 범위는 **`.cursor/rules/refpms-context.mdc`** (항상 적용).
 
-업데이트 원칙:
+갱신 정책은 **`.cursor/rules/docs-workflow.mdc`** 참고. `progress.md`는 사용하지 않음.
 
-1. 의미 있는 코드 변경 후 문서 3종 동기화
-2. 일정 변경은 `plan.md` 우선 반영
-3. 구현 사실은 `progress.md`에 기록
-4. 설계 관점 변경은 `research.md`에 반영
-
+회귀 검증은 **`tests/input` / `tests/expected`** 하네스 케이스 추가를 문서 장문보다 우선한다.

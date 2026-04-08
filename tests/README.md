@@ -4,6 +4,7 @@
 
 ## 목적
 
+- **출력 동작이 바뀌는 변경**은 `docs/` 장문 기록보다 **여기에 케이스 추가·expected 갱신**을 우선합니다.
 - 사람이 엑셀 결과를 눈으로 비교하는 수동 테스트를 줄입니다.
 - `input -> generator -> actual output` 과 `expected output` 을 자동 비교합니다.
 - 비교 결과를 Pass/Fail로 즉시 판단합니다.

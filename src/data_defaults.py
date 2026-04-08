@@ -99,5 +99,19 @@ DEFAULT_COMPONENT_MAPPING: dict = {
                 },
             ],
         },
+        "Bolt_Group": {
+            "required_non_empty": [
+                "Class_Name",
+                "Item_Code",
+                "Size_From",
+                "Size_To",
+                "Bolt_Type",
+                "Bolt_Mat_Code",
+                "Nut_Type",
+                "Nut_Mat_Code",
+                "Bolt_Dim_Standard",
+                "Nut_Dim_Standard",
+            ]
+        },
     },
 }
