@@ -13,19 +13,9 @@ RefPMS is a transformation engine that takes project information, PMC informatio
 - Excel: **openpyxl**
 - Executable Packaging: **PyInstaller**
 
+## Output Policy
 
-- 템플릿 로드
-- 행 단위 검증 (`validator.py`, `component_mapping.json`)
-- 사이즈 전개 (`nps_list` 기반)
-- 두께 룩업 (`Schedule`)
-- 설명/품목명 조합
-- 정렬/출력
-
-
-
-## 출력 정책
-
-- `Piping_Material_Class_Data.xlsx` (Micro DB 지향)
+- `Piping_Material_Class_Data.xlsx` (Micro DB-oriented)
 
 ## SSOT for Micro DB Output
 
@@ -34,10 +24,3 @@ RefPMS is a transformation engine that takes project information, PMC informatio
 - `data/class_material_mapping.json` — class-level material constraints
 - `data/Item_Code_DB.xlsx` — item code catalog, description prefix, and group mapping
 - `Item_Code` ordering must come only from `project_config.json > output_settings.item_order` (no hardcoded sort exceptions in `pms_generator`)
-
-## 작업 전 체크리스트
-
-1. 책임 모듈이 `.cursor/rules/module-roles.mdc`의 경계를 지키는가?
-2. 검증 규칙은 `component_mapping.json`으로 관리 가능한가?
-3. 출력 시트/열/정렬 계약이 `project_config.json`과 일치하는가?
-4. v1 금지 사항(예외 추정, 컬럼 구조 임의 변경)을 위반하지 않는가?
