@@ -40,6 +40,14 @@
         "Size_To"
       ]
     },
+    "Valve_Group": {
+      "required_non_empty": [
+        "Class_Name",
+        "Item_Code",
+        "Size1_From",
+        "Size1_To"
+      ]
+    },
     "Gasket_Group": {
       "required_non_empty": [
         "Class_Name",
