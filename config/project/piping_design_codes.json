@@ -1,0 +1,5 @@
+{
+  "allowed": ["ASME B31.3", "ASME B31.4"],
+  "selected": "ASME B31.3",
+  "notes": "Under typical ASME B31.3/B31.4 scope, dimensions of socket-welded and screwed forged fittings conform to ASME B16.11; Fitting_Group uses End_Type (SW/TE/NPT/PT/BW) — no separate Dim_Standard column for that."
+}

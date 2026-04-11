@@ -65,7 +65,6 @@ DEFAULT_COMPONENT_MAPPING: dict = {
                 "Material_Primary",
                 "Rating",
                 "Facing",
-                "Dim_Standard",
             ],
             "conditional_required": [
                 {
@@ -109,8 +108,6 @@ DEFAULT_COMPONENT_MAPPING: dict = {
                 "Bolt_Mat_Code",
                 "Nut_Type",
                 "Nut_Mat_Code",
-                "Bolt_Dim_Standard",
-                "Nut_Dim_Standard",
             ]
         },
     },

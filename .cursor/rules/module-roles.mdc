@@ -12,10 +12,11 @@ alwaysApply: true
 | `validator.py` | Template row validation (`data/component_mapping.json` rules) |
 | `class_spec.py` | `Class_Define` to class technical envelope |
 | `thickness_engine.py` | Thickness lookup from `Schedule` sheet |
+| `project_constraints.py` | Merged project-level config validation (before generation) |
 | `controller.py` | Orchestration between GUI and generation/validation engine |
 | `gui.py`, `main.py` | UI and entrypoint only; no business logic |
 
 ## Boundary Rule
 
-- Keep business logic in engine modules (`pms_generator.py`, `validator.py`, `class_spec.py`, `thickness_engine.py`).
+- Keep business logic in engine modules (`pms_generator.py`, `validator.py`, `class_spec.py`, `thickness_engine.py`, `project_constraints.py`).
 - Do not implement domain/business rules in `gui.py` or `main.py`.

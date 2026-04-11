@@ -1,8 +1,8 @@
 """
 사이즈·클래스별 Schedule(두께) 룩업.
 
-NPS 마스터는 project_config.json의 nps_list를 사용합니다.
-행(파이프 등) **사이즈 전개**는 nps_list 연속 구간만 사용합니다.
+config/project/nps_master.json 의 nps_list·dn_list 중,
+**unit_system.selected 가 Imperial 이면 nps_list**, **Metric 이면 dn_list**로 사이즈 전개·스케줄 구간 매칭을 합니다.
 **Schedule 룩업**은 우선 동일 규칙으로 매칭하고, 리스트에 없는 NPS라도
 From~To **숫자 구간**에 들어가면 해당 Schedule을 씁니다(Reducing 등).
 """
@@ -33,8 +33,24 @@ def nps_list() -> list[str]:
     return list(cfg.get("nps_master.nps_list", []) or [])
 
 
+def dn_list() -> list[str]:
+    """프로젝트에서 사용하는 DN(mm 호칭) 문자열 목록."""
+    return list(cfg.get("nps_master.dn_list", []) or [])
+
+
+def nominal_size_master() -> list[str]:
+    """
+    Imperial → NPS 마스터(nps_list), Metric → DN 마스터(dn_list).
+    unit_system.selected 가 비어 있으면 Imperial 과 동일하게 nps_list 를 씁니다.
+    """
+    sel = str(cfg.get("units_notation.unit_system.selected", "")).strip()
+    if sel == "Metric":
+        return dn_list()
+    return nps_list()
+
+
 def explode_size_range(size_from: str, size_to: str) -> list[str]:
-    master = nps_list()
+    master = nominal_size_master()
     from_num = to_float(to_text(size_from))
     to_num = to_float(to_text(size_to))
     if from_num is None or to_num is None:

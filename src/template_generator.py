@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.styles import Alignment, Font
 
 import config
 from data_defaults import DEFAULT_CLASS_MATERIAL_MAPPING, DEFAULT_COMPONENT_MAPPING
@@ -247,7 +247,6 @@ PIPE_HEADERS = [
     "End_Type_1",
     "End_Type_2",
     "Length",
-    "Dim_Standard",
     "Remarks",
 ]
 
@@ -262,7 +261,6 @@ FITTING_HEADERS = [
     "Rating",
     "End_Type_1",
     "End_Type_2",
-    "Dim_Standard",
     "Remarks",
 ]
 
@@ -278,7 +276,6 @@ FLANGE_HEADERS = [
     "Rating",
     "Facing",
     "Flange_Type",
-    "Dim_Standard",
     "Remarks",
 ]
 
@@ -295,7 +292,6 @@ GASKET_HEADERS = [
     "Rating",
     "Facing",
     "Thickness",
-    "Dim_Standard",
     "Remarks",
 ]
 
@@ -310,8 +306,6 @@ BOLT_HEADERS = [
     "Nut_Type",
     "Nut_Mat_Code",
     "Nut_Mat_Class",
-    "Bolt_Dim_Standard",
-    "Nut_Dim_Standard",
     "Bolt_Length_Table",
     "Remarks",
 ]
@@ -320,73 +314,23 @@ VALVE_HEADERS = [
     "Class_Name",
     "Item_Code",
     "Valve_Type",
-    "Size_From",
-    "Size_To",
+    "Size1_From",
+    "Size1_To",
+    "Size2_From",
+    "Size2_To",
     "Body_Mat",
-    "Trim_Mat",
+    "Stem/Disc/Ball_Mat",
+    "Seat_Mat",
     "Rating",
     "End_Type",
-    "Operation",
     "Bonnet_Type",
-    "Valve_Feature",
-    "Dim_Standard",
+    "Operation",
+    "Disc_Type",
     "Remarks",
 ]
 
 HEADER_FONT = Font(bold=True)
 HEADER_ALIGNMENT = Alignment(horizontal="center", vertical="center", wrap_text=True)
-# PMS 파이프라인이 읽는 템플릿 열만 표시 (pms_generator + class_spec.Class_Define + thickness_engine.Schedule).
-HEADER_HIGHLIGHT_FILL = PatternFill(
-    start_color="FFFF00", end_color="FFFF00", fill_type="solid"
-)
-PMS_PIPELINE_HIGHLIGHT_BY_SHEET: dict[str, frozenset[str]] = {
-    "Class_Define": frozenset(CLASS_DEFINE_HEADERS),
-    "Fluid_Service": frozenset(),
-    "Joint": frozenset(),
-    "Schedule": frozenset(SCHEDULE_HEADERS),
-    "Reducing_Table": frozenset(
-        ["Table_Code", "Size1", "Size2", "Item_Type"]
-    ),
-    "Branch_Table": frozenset(["Table_Code", "Size1", "Size2", "Item_Type"]),
-    "Pipe_Group": frozenset(
-        [
-            "Class_Name",
-            "Item_Code",
-            "Size_From",
-            "Size_To",
-            "Mat_Code",
-            "Mat_Class",
-            "Manufacturing_Method",
-            "End_Type_1",
-            "End_Type_2",
-            "Length",
-            "Dim_Standard",
-            "Remarks",
-        ]
-    ),
-    "Fitting_Group": frozenset(FITTING_HEADERS),
-    "Flange_Group": frozenset(FLANGE_HEADERS),
-    "Gasket_Group": frozenset(GASKET_HEADERS),
-    "Bolt_Group": frozenset(
-        [
-            "Class_Name",
-            "Item_Code",
-            "Size_From",
-            "Size_To",
-            "Bolt_Type",
-            "Bolt_Mat_Code",
-            "Bolt_Mat_Class",
-            "Nut_Type",
-            "Nut_Mat_Code",
-            "Nut_Mat_Class",
-            "Bolt_Dim_Standard",
-            "Nut_Dim_Standard",
-            "Remarks",
-        ]
-    ),
-    "Valve": frozenset(VALVE_HEADERS),
-}
-ITEM_CODE_DB_HIGHLIGHT_HEADERS = frozenset(ITEM_CODE_DB_HEADERS)
 FREEZE_PANES = "A2"
 
 
@@ -420,18 +364,11 @@ def _col_letter(col_index_1_based: int) -> str:
     return result
 
 
-def _set_headers_and_widths(
-    ws,
-    headers: list[str],
-    *,
-    highlight_headers: frozenset[str],
-) -> None:
+def _set_headers_and_widths(ws, headers: list[str]) -> None:
     for col_idx, header in enumerate(headers, start=1):
         cell = ws.cell(row=1, column=col_idx, value=header)
         cell.font = HEADER_FONT
         cell.alignment = HEADER_ALIGNMENT
-        if header in highlight_headers:
-            cell.fill = HEADER_HIGHLIGHT_FILL
         ws.column_dimensions[_col_letter(col_idx)].width = min(
             40, max(12, len(header) + 2)
         )
@@ -543,8 +480,6 @@ def _rewrite_item_code_db_to_standard_layout(ws) -> None:
         cell = ws.cell(row=1, column=col_idx, value=header)
         cell.font = HEADER_FONT
         cell.alignment = HEADER_ALIGNMENT
-        if header in ITEM_CODE_DB_HIGHLIGHT_HEADERS:
-            cell.fill = HEADER_HIGHLIGHT_FILL
         ws.column_dimensions[_col_letter(col_idx)].width = min(
             40, max(12, len(header) + 2)
         )
@@ -620,8 +555,6 @@ def ensure_item_code_db() -> Path:
         cell = ws.cell(row=1, column=col_idx, value=header)
         cell.font = HEADER_FONT
         cell.alignment = HEADER_ALIGNMENT
-        if header in ITEM_CODE_DB_HIGHLIGHT_HEADERS:
-            cell.fill = HEADER_HIGHLIGHT_FILL
         ws.column_dimensions[_col_letter(col_idx)].width = min(
             40, max(12, len(header) + 2)
         )
@@ -656,7 +589,7 @@ def generate_class_define_template(
     - Flange_Group
     - Gasket_Group
     - Bolt_Group
-    - Valve
+    - Valve_Group
 
     동시에 data/Item_Code_DB.xlsx 가 없으면 생성합니다(기존 파일은 유지).
     """
@@ -672,90 +605,42 @@ def generate_class_define_template(
 
     ws_define = wb.active
     ws_define.title = "Class_Define"
-    _set_headers_and_widths(
-        ws_define,
-        CLASS_DEFINE_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Class_Define"],
-    )
+    _set_headers_and_widths(ws_define, CLASS_DEFINE_HEADERS)
 
     ws_fluid = wb.create_sheet(title="Fluid_Service")
-    _set_headers_and_widths(
-        ws_fluid,
-        FLUID_SERVICE_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Fluid_Service"],
-    )
+    _set_headers_and_widths(ws_fluid, FLUID_SERVICE_HEADERS)
 
     ws_joint = wb.create_sheet(title="Joint")
-    _set_headers_and_widths(
-        ws_joint,
-        JOINT_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Joint"],
-    )
+    _set_headers_and_widths(ws_joint, JOINT_HEADERS)
 
     ws_schedule = wb.create_sheet(title="Schedule")
-    _set_headers_and_widths(
-        ws_schedule,
-        SCHEDULE_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Schedule"],
-    )
+    _set_headers_and_widths(ws_schedule, SCHEDULE_HEADERS)
 
     ws_branch_table = wb.create_sheet(title="Branch_Table")
-    _set_headers_and_widths(
-        ws_branch_table,
-        BRANCH_TABLE_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Branch_Table"],
-    )
+    _set_headers_and_widths(ws_branch_table, BRANCH_TABLE_HEADERS)
     _prefill_size_pairs(ws_branch_table, _build_branch_table_size_pairs())
 
     ws_reducing_table = wb.create_sheet(title="Reducing_Table")
-    _set_headers_and_widths(
-        ws_reducing_table,
-        REDUCING_TABLE_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Reducing_Table"],
-    )
+    _set_headers_and_widths(ws_reducing_table, REDUCING_TABLE_HEADERS)
     _prefill_size_pairs(ws_reducing_table, _template_reducing_pairs_filtered())
 
     ws_pipe = wb.create_sheet(title="Pipe_Group")
-    _set_headers_and_widths(
-        ws_pipe,
-        PIPE_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Pipe_Group"],
-    )
+    _set_headers_and_widths(ws_pipe, PIPE_HEADERS)
 
     ws_fitting = wb.create_sheet(title="Fitting_Group")
-    _set_headers_and_widths(
-        ws_fitting,
-        FITTING_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Fitting_Group"],
-    )
+    _set_headers_and_widths(ws_fitting, FITTING_HEADERS)
 
     ws_flange = wb.create_sheet(title="Flange_Group")
-    _set_headers_and_widths(
-        ws_flange,
-        FLANGE_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Flange_Group"],
-    )
+    _set_headers_and_widths(ws_flange, FLANGE_HEADERS)
 
     ws_gasket = wb.create_sheet(title="Gasket_Group")
-    _set_headers_and_widths(
-        ws_gasket,
-        GASKET_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Gasket_Group"],
-    )
+    _set_headers_and_widths(ws_gasket, GASKET_HEADERS)
 
     ws_bolt = wb.create_sheet(title="Bolt_Group")
-    _set_headers_and_widths(
-        ws_bolt,
-        BOLT_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Bolt_Group"],
-    )
+    _set_headers_and_widths(ws_bolt, BOLT_HEADERS)
 
-    ws_valve = wb.create_sheet(title="Valve")
-    _set_headers_and_widths(
-        ws_valve,
-        VALVE_HEADERS,
-        highlight_headers=PMS_PIPELINE_HIGHLIGHT_BY_SHEET["Valve"],
-    )
+    ws_valve = wb.create_sheet(title="Valve_Group")
+    _set_headers_and_widths(ws_valve, VALVE_HEADERS)
 
     try:
         wb.save(template_path)

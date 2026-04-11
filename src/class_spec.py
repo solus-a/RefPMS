@@ -215,7 +215,7 @@ def row_rating_for_constraint_check(
     """부품 시트에서 클래스 등급 대비 검사에 쓸 Rating 문자열."""
     if sheet_name == "Flange_Group":
         return pick_first_non_empty(ws, row_idx, header_to_col, ["Rating", "Rating_Thickness"])
-    if sheet_name == "Valve":
+    if sheet_name in ("Valve", "Valve_Group"):
         return pick_first_non_empty(ws, row_idx, header_to_col, ["Rating", "Rating_Thickness"])
     if sheet_name == "Fitting_Group":
         return get_cell_text(ws, row_idx, header_to_col, "Rating")
@@ -259,7 +259,7 @@ def log_class_constraint_warnings(
         logger.warning(f"{sheet_name} row {row_idx} Class {class_name}: {rmsg}")
 
     class_base = spec.get("class_base_material", "")
-    if sheet_name == "Valve":
+    if sheet_name in ("Valve", "Valve_Group"):
         part_mat = get_cell_text(ws, row_idx, header_to_col, "Body_Mat")
     elif sheet_name in ("Pipe_Group", "Fitting_Group", "Flange_Group"):
         part_mat = mat_code_grade_for_constraint(ws, row_idx, header_to_col)

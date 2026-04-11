@@ -1,0 +1,42 @@
+{
+  "filename": "Piping_Material_Class_Data.xlsx",
+  "sheet_name": "Piping_Material_Class_Data",
+  "columns": [
+    "Class_Name",
+    "Item_Code",
+    "Size1",
+    "Size2",
+    "Thickness1",
+    "Thickness2",
+    "Commodity_Code",
+    "Item_Description",
+    "Item_Name"
+  ],
+  "item_order": [
+    "P",
+    "JN",
+    "JN1",
+    "JNP",
+    "JNP1",
+    "JNT",
+    "JNT1",
+    "E",
+    "ES",
+    "E4",
+    "ES4",
+    "T",
+    "RT",
+    "RC",
+    "RE",
+    "RCS",
+    "RES",
+    "JF",
+    "TH",
+    "CP",
+    "CPT",
+    "PL",
+    "F",
+    "G",
+    "B"
+  ]
+}

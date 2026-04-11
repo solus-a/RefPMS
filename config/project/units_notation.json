@@ -1,0 +1,18 @@
+{
+  "unit_system": {
+    "allowed": ["Metric", "Imperial"],
+    "selected": "Imperial"
+  },
+  "nominal_size": {
+    "allowed": ["NPS", "DN"],
+    "selected": "NPS"
+  },
+  "pipe_thread": {
+    "allowed": ["NPT", "PT"],
+    "selected": "NPT"
+  },
+  "bolt_thread": {
+    "allowed": ["Metric", "Imperial"],
+    "selected": "Imperial"
+  }
+}

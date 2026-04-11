@@ -41,10 +41,14 @@ THREAD_METHOD_DEFAULT = "NPT"
 
 def _thread_method_token() -> str:
     """
-    프로젝트 관용 나사 표기.
-    project_config.json: project_info.thread_method (예: NPT, PT)
+    파이프 밀봉 나사 표기 (배관 PE/TE 등 설명에 붙는 접미).
+    config/project/units_notation.json: pipe_thread.selected (예: NPT, PT). 구형 pipe_thread.standard·thread_method 폴백.
     """
-    raw = _to_text(cfg.get("project_info.thread_method", THREAD_METHOD_DEFAULT)).strip()
+    raw = _to_text(cfg.get("units_notation.pipe_thread.selected", "")).strip()
+    if not raw:
+        raw = _to_text(cfg.get("units_notation.pipe_thread.standard", "")).strip()
+    if not raw:
+        raw = _to_text(cfg.get("units_notation.thread_method", THREAD_METHOD_DEFAULT)).strip()
     return raw.upper() if raw else THREAD_METHOD_DEFAULT
 
 
@@ -185,6 +189,19 @@ MATERIAL_SHEET_CONFIGS = [
         "size_to_2": "Size2_To",
     },
     {
+        "sheet_name": "Valve",
+        "required_headers": [
+            "Class_Name",
+            "Item_Code",
+            "Size_From",
+            "Size_To",
+        ],
+        "size_from_1": "Size_From",
+        "size_to_1": "Size_To",
+        "size_from_2": None,
+        "size_to_2": None,
+    },
+    {
         "sheet_name": "Bolt_Group",
         "required_headers": [
             "Class_Name",
@@ -195,8 +212,6 @@ MATERIAL_SHEET_CONFIGS = [
             "Bolt_Mat_Code",
             "Nut_Type",
             "Nut_Mat_Code",
-            "Bolt_Dim_Standard",
-            "Nut_Dim_Standard",
         ],
         "size_from_1": "Size_From",
         "size_to_1": "Size_To",
@@ -247,14 +262,56 @@ def _get_cell_text_any(ws, row_idx: int, header_to_col: dict[str, int], fields: 
     return ""
 
 
-# B16.9 BW 엘보는 LR/SR를 설명에 둠; B16.11(단조·SW/TE)은 LR/SR 구분 없음(ASME B16.11).
-# 발주 Item_Name 은 엘보 코드(E/ES/E4/ES4) 전부에서 LR/SR 접미사 제거(기대 출력과 동일).
+# B16.9 BW 엘보는 설명에 LR/SR 유지. 소켓·나사 단조(전형적으로 ASME B16.11 치수)는 LR/SR 생략.
+# B16.11 적용은 Fitting_Group 의 Dim_Standard 컬럼이 아니라 프로젝트 설계코드(B31.3/B31.4) + End_Type 으로 전제.
+# 발주 Item_Name 은 엘보 코드(E/ES/E4/ES4) 전부에서 LR/SR 접미사 제거.
 ELBOW_LR_SR_ITEM_CODES = frozenset({"E", "ES", "E4", "ES4"})
 
 
 def _strip_trailing_lr_sr(label: str) -> str:
     """문자열 끝의 ' LR' / ' SR' 토큰 제거(대소문자 무시)."""
     return re.sub(r"\s+\b(LR|SR)\s*$", "", _to_text(label), flags=re.I).strip()
+
+
+def _rating_looks_forged_socket_class(rating_raw: str) -> bool:
+    """ASME B16.11 단조 이음관 등급(CL2000/3000/6000/9000 등). 플랜지 CL150~2500 과 구분."""
+    r = _to_text(rating_raw).upper().replace(" ", "")
+    if not r:
+        return False
+    return bool(re.match(r"^CL(2000|3000|6000|9000)\b", r))
+
+
+def _piping_design_implies_socket_screwed_b16_11_fitting_dims() -> bool:
+    """
+    프로젝트 설계코드가 소켓·나사 단조이음관 치수에 ASME B16.11 계열을 전제로 할 때
+    (예: ASME B31.3 / B31.4). 컴포넌트 시트의 Dim_Standard 대신 End_Type 으로 구분.
+    """
+    sel = _to_text(cfg.get("piping_design_codes.selected", "")).upper()
+    return "B31.3" in sel or "B31.4" in sel
+
+
+def _fitting_elbow_should_strip_lr_sr(
+    item_code: str, dim_standard: str, end_type_1: str, rating: str
+) -> bool:
+    """
+    BW(순수 Butt Weld) 엘보는 End_Type 만으로 LR/SR 유지. 소켓·나사는 설계코드(B31.3/4) 전제로 생략.
+    레거시 시트에만 남은 Dim_Standard 의 B16.11 문자열은 참고용으로 생략 허용.
+    """
+    if _to_text(item_code).upper() not in ELBOW_LR_SR_ITEM_CODES:
+        return False
+    du = _to_text(dim_standard).upper()
+    if "B16.11" in du:
+        return True
+    if _rating_looks_forged_socket_class(rating):
+        return True
+    e1 = _to_text(end_type_1).upper()
+    if _piping_design_implies_socket_screwed_b16_11_fitting_dims() and any(
+        k in e1 for k in ("SW", "TE", "NPT", "PT")
+    ):
+        return True
+    if "BW" in e1 and "SW" not in e1 and "TE" not in e1 and "NPT" not in e1 and "PT" not in e1:
+        return False
+    return False
 
 
 def _reducer_description_dim_standard(dim_standard: str) -> str:
@@ -870,15 +927,20 @@ def _build_item_description_by_rule(
         end_type_2 = _get_cell_text(ws, row_idx, header_to_col, "End_Type_2")
         end_type_upper = end_type_1.strip().upper()
         is_plug_item = item_code.upper() == "PL"
-        is_b16_11 = "B16.11" in dim_standard.upper()
+        dim_has_b16_11 = "B16.11" in dim_standard.upper()
+        implicit_socket_dims = _piping_design_implies_socket_screwed_b16_11_fitting_dims()
+        rating_cell = _get_cell_text(ws, row_idx, header_to_col, "Rating")
+        forged_socket_rating = _rating_looks_forged_socket_class(rating_cell)
         fitting_thickness_or_rating = sch1
         if is_plug_item:
             # ASME B16.11 PLUG는 class/rating으로 식별하지 않으므로 설명 토큰에서 두께·등급을 생략.
             fitting_thickness_or_rating = ""
         if end_type_upper == "SW" or (
-            end_type_upper in {"TE", "NPT", "PT"} and is_b16_11 and not is_plug_item
+            end_type_upper in {"TE", "NPT", "PT"}
+            and not is_plug_item
+            and (implicit_socket_dims or dim_has_b16_11 or forged_socket_rating)
         ):
-            sw_rating = _get_cell_text(ws, row_idx, header_to_col, "Rating")
+            sw_rating = rating_cell
             if sw_rating.strip().upper().startswith("CL"):
                 converted = sw_rating.strip()[2:].strip()
                 fitting_thickness_or_rating = f"{converted}#" if converted else ""
@@ -983,7 +1045,6 @@ def _build_item_description_by_rule(
             )
 
         remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
-        remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
         tokens = [
             description_lead,
             mat,
@@ -1077,6 +1138,9 @@ def _build_item_description_by_rule(
                 size1_num = _to_float(size1_value or "")
                 disc_token = "FB" if size1_num is not None and size1_num >= 2.0 else "RB"
             rating_disp = _flange_rating_display(rating)
+            design_std = _get_cell_text(ws, row_idx, header_to_col, "Design_Standard")
+            test_std = _get_cell_text(ws, row_idx, header_to_col, "Test_Standard")
+            dim_std_v = _get_cell_text(ws, row_idx, header_to_col, "Dim_Standard")
             return _join_tokens(
                 _join_tokens(valve_type, "VALVE"),
                 body_mat,
@@ -1088,6 +1152,9 @@ def _build_item_description_by_rule(
                 disc_token,
                 operation_token,
                 go_token,
+                design_std,
+                test_std,
+                dim_std_v,
             )
         trim_segment = f"/ TRIM {trim_mat}" if trim_mat else ""
         return _join_tokens(
@@ -1177,12 +1244,6 @@ def _iter_output_rows(
 
     for sheet_config in MATERIAL_SHEET_CONFIGS:
         sheet_name = sheet_config["sheet_name"]
-        if _is_valve_sheet(sheet_name):
-            sheet_name = (
-                "Valve_Group"
-                if "Valve_Group" in workbook.sheetnames
-                else ("Valve" if "Valve" in workbook.sheetnames else sheet_name)
-            )
 
         if sheet_name not in workbook.sheetnames:
             continue
@@ -1254,7 +1315,9 @@ def _iter_output_rows(
             if sheet_name == "Fitting_Group" and code_u in ELBOW_LR_SR_ITEM_CODES:
                 catalog_item_name = _strip_trailing_lr_sr(catalog_item_name)
                 dim_std = _get_cell_text(ws, row_idx, header_to_col, "Dim_Standard")
-                if "B16.11" in _to_text(dim_std).upper():
+                end_t1 = _get_cell_text(ws, row_idx, header_to_col, "End_Type_1")
+                rating_c = _get_cell_text(ws, row_idx, header_to_col, "Rating")
+                if _fitting_elbow_should_strip_lr_sr(code_u, dim_std, end_t1, rating_c):
                     description_prefix = _strip_trailing_lr_sr(description_prefix)
 
             desc_lead = description_prefix

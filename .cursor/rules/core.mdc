@@ -15,12 +15,14 @@ RefPMS is a transformation engine that takes project information, PMC informatio
 
 ## Output Policy
 
-- `Piping_Material_Class_Data.xlsx` (Micro DB-oriented)
+- `Piping_Material_Class_Data.xlsx`
 
 ## SSOT for Micro DB Output
 
-- `project_config.json` — output filename/sheet/columns, `nps_list`, and `item_order`
-- `data/component_mapping.json` — sheet-level validation rules
-- `data/class_material_mapping.json` — class-level material constraints
-- `data/Item_Code_DB.xlsx` — item code catalog, description prefix, and group mapping
-- `Item_Code` ordering must come only from `project_config.json > output_settings.item_order` (no hardcoded sort exceptions in `pms_generator`)
+- `config/project/`: `units_notation.json`, `piping_design_codes.json`, `nps_master.json`
+- `config/generator/`: `output_settings.json`, `coding_rules.json`
+- Template `Class_Define` sheet (and linked template sheets)
+- `data/class_material_mapping.json`
+- `data/component_mapping.json`
+- `data/Item_Code_DB.xlsx`
+- `Item_Code` ordering only from `config/generator/output_settings.json` > `item_order`

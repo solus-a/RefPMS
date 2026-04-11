@@ -7,9 +7,11 @@ from typing import Callable, Optional
 import tkinter as tk
 
 import gui
+import config
 from template_generator import DEFAULT_TEMPLATE_FILENAME, generate_class_define_template
 import file_handler
 import pms_generator
+from project_constraints import validate_project_constraints
 
 
 def create_controller(root: tk.Tk) -> None:
@@ -69,6 +71,14 @@ def create_controller(root: tk.Tk) -> None:
         out_dir = Path(save_root) / "output" / out_stamp
         out_dir.mkdir(parents=True, exist_ok=True)
         output_path = out_dir / pms_generator.OUTPUT_FILENAME
+
+        constraint_errors = validate_project_constraints(config.config_manager.merged())
+        if constraint_errors:
+            preview = "; ".join(constraint_errors[:3])
+            if len(constraint_errors) > 3:
+                preview += f" … 외 {len(constraint_errors) - 3}건"
+            status_setter(f"프로젝트 설정 검증 실패: {preview}")
+            return
 
         status_setter("Piping Material Class Data 생성 중...")
         try:

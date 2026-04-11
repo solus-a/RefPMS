@@ -57,8 +57,7 @@
         "Gasket_Type",
         "Material_Primary",
         "Rating",
-        "Facing",
-        "Dim_Standard"
+        "Facing"
       ],
       "conditional_required": [
         {
@@ -116,9 +115,7 @@
         "Bolt_Type",
         "Bolt_Mat_Code",
         "Nut_Type",
-        "Nut_Mat_Code",
-        "Bolt_Dim_Standard",
-        "Nut_Dim_Standard"
+        "Nut_Mat_Code"
       ]
     }
   }
