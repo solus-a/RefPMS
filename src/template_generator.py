@@ -10,6 +10,11 @@ from openpyxl.styles import Alignment, Font
 
 import config
 from class_level_model import ClassLevelBundle, NamedSizeTable
+from units_notation_headers import (
+    class_define_headers,
+    fluid_service_headers,
+    read_design_units_from_merged,
+)
 from data_defaults import DEFAULT_CLASS_MATERIAL_MAPPING, DEFAULT_COMPONENT_MAPPING
 from excel_sheet_utils import build_header_index, detect_header_row, to_text as _cell_to_text
 
@@ -47,37 +52,11 @@ ITEM_CODE_DB_DEFAULT_ROWS = [
     ("B", "BOLT&NUT", "BOLT", "Bolt_Group"),
 ]
 
-CLASS_DEFINE_HEADERS = [
-    "Revision_No",
-    "Class_Name",
-    "Design_Code",
-    "Class_Base_Material",
-    "Class_Rating",
-    "Corrosion_Allowance",
-    "Design_Temperature_From",
-    "Design_Temperature_To",
-    "Design_Pressure_From",
-    "Design_Pressure_To",
-    "Fluid_Service",
-    "Branch_Table_1",
-    "Branch_Table_2",
-    "Reducing_Table_1",
-    "Reducing_Table_2",
-    "Global_Special_Req",
-    "Remarks",
-]
+def _class_and_fluid_sheet_headers() -> tuple[list[str], list[str]]:
+    merged = config.config_manager.merged()
+    dt, dp = read_design_units_from_merged(merged)
+    return class_define_headers(dt, dp), fluid_service_headers(dt, dp)
 
-FLUID_SERVICE_HEADERS = [
-    "Class_Name",
-    "Fluid_Service_Code",
-    "Fluid_Service_Name",
-    "Min_Design_Temperature",
-    "Max_Design_Temperature",
-    "Min_Design_Pressure",
-    "Max_Design_Pressure",
-    "NDE",
-    "PWHT",
-]
 
 JOINT_HEADERS = [
     "Class_Name",
@@ -236,6 +215,8 @@ REDUCING_TABLE_SIZE_PAIRS: tuple[tuple[str, str], ...] = (
 # 템플릿 Branch/Reducing 선입력 시 제외: NPS 24 초과, 비표준 분수 0.375·1.25·2.5·3.5
 TEMPLATE_SIZE_MAX_NPS = 24.0
 TEMPLATE_SIZE_EXCLUDED_NUMBERS: frozenset[float] = frozenset({0.375, 1.25, 2.5, 3.5})
+# Reducing 표: Main Size(Size1) 최소값 (size_matrix_editor / _cell_allowed 와 동일)
+MIN_REDUCING_SIZE1_NPS = 0.75
 
 PIPE_HEADERS = [
     "Class_Name",
@@ -381,6 +362,49 @@ def _size_number(size_text: str) -> float:
     return float(size_text.strip())
 
 
+def _nominal_size_selected_is_dn() -> bool:
+    raw = str(config.config_manager.get("units_notation.nominal_size.selected", "") or "").strip().upper()
+    return raw == "DN"
+
+
+def _sorted_nominal_labels_for_prefill() -> list[str]:
+    """NPS 또는 DN 목록(프로젝트 nps_master)을 숫자 순으로."""
+    if _nominal_size_selected_is_dn():
+        lst = config.config_manager.get("nps_master.dn_list", []) or []
+    else:
+        lst = config.config_manager.get("nps_master.nps_list", []) or []
+    raw = [str(x).strip() for x in lst if str(x).strip()]
+    return sorted(raw, key=_size_number)
+
+
+def _branch_pairs_from_sorted_sizes(sizes: list[str]) -> list[tuple[str, str]]:
+    out: list[tuple[str, str]] = []
+    for s1 in sizes:
+        for s2 in sizes:
+            if _size_number(s1) >= _size_number(s2):
+                out.append((s1, s2))
+    return _sorted_size_pairs(out)
+
+
+def _reducing_pairs_from_sorted_sizes(sizes: list[str]) -> list[tuple[str, str]]:
+    """dn_list / nps_list 기준: Size1 > Size2 이고 Size1 이 최소 인치와 동일 규칙(MIN_REDUCING_SIZE1_NPS)."""
+    out: list[tuple[str, str]] = []
+    for s1 in sizes:
+        n1 = _size_number(s1)
+        if n1 < MIN_REDUCING_SIZE1_NPS:
+            continue
+        for s2 in sizes:
+            if _size_number(s2) < n1:
+                out.append((s1, s2))
+    return _sorted_size_pairs(out)
+
+
+def _prefill_reducing_pairs() -> list[tuple[str, str]]:
+    if _nominal_size_selected_is_dn():
+        return _reducing_pairs_from_sorted_sizes(_sorted_nominal_labels_for_prefill())
+    return _template_reducing_pairs_filtered()
+
+
 def _template_size_allowed(size_text: str) -> bool:
     n = _size_number(size_text)
     if n > TEMPLATE_SIZE_MAX_NPS:
@@ -405,6 +429,8 @@ def _template_reducing_pairs_filtered() -> list[tuple[str, str]]:
 
 
 def _build_branch_table_size_pairs() -> list[tuple[str, str]]:
+    if _nominal_size_selected_is_dn():
+        return _branch_pairs_from_sorted_sizes(_sorted_nominal_labels_for_prefill())
     filtered = _template_reducing_pairs_filtered()
     sizes_set: set[str] = set()
     for a, b in filtered:
@@ -654,12 +680,14 @@ def generate_class_define_template(
 
     wb = Workbook()
 
+    class_headers, fluid_headers = _class_and_fluid_sheet_headers()
+
     ws_define = wb.active
     ws_define.title = "Class_Define"
-    _set_headers_and_widths(ws_define, CLASS_DEFINE_HEADERS)
+    _set_headers_and_widths(ws_define, class_headers)
 
     ws_fluid = wb.create_sheet(title="Fluid_Service")
-    _set_headers_and_widths(ws_fluid, FLUID_SERVICE_HEADERS)
+    _set_headers_and_widths(ws_fluid, fluid_headers)
 
     ws_joint = wb.create_sheet(title="Joint")
     _set_headers_and_widths(ws_joint, JOINT_HEADERS)
@@ -675,10 +703,10 @@ def generate_class_define_template(
 
     if class_level is None:
         _prefill_size_pairs(ws_branch_table, _build_branch_table_size_pairs())
-        _prefill_size_pairs(ws_reducing_table, _template_reducing_pairs_filtered())
+        _prefill_size_pairs(ws_reducing_table, _prefill_reducing_pairs())
     else:
-        _write_dict_rows(ws_define, CLASS_DEFINE_HEADERS, class_level.class_define_rows)
-        _write_dict_rows(ws_fluid, FLUID_SERVICE_HEADERS, class_level.fluid_service_rows)
+        _write_dict_rows(ws_define, class_headers, class_level.class_define_rows)
+        _write_dict_rows(ws_fluid, fluid_headers, class_level.fluid_service_rows)
         _write_dict_rows(ws_joint, JOINT_HEADERS, class_level.joint_rows)
         _write_dict_rows(ws_schedule, SCHEDULE_HEADERS, class_level.schedule_rows)
         _write_named_size_tables(ws_branch_table, class_level.branch_tables)

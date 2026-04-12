@@ -83,11 +83,27 @@ class ProjectConfig:
             or {
                 "unit_system": {
                     "allowed": ["Metric", "Imperial"],
-                    "selected": "Imperial",
+                    "selected": "Metric",
+                    "design_units": {
+                        "Metric": {
+                            "temperature": {"allowed": ["°C"], "selected": "°C"},
+                            "pressure": {
+                                "allowed": ["bar", "barg", "kPa", "MPa"],
+                                "selected": "bar",
+                            },
+                        },
+                        "Imperial": {
+                            "temperature": {"allowed": ["°F"], "selected": "°F"},
+                            "pressure": {
+                                "allowed": ["psig", "psi", "psia"],
+                                "selected": "psig",
+                            },
+                        },
+                    },
                 },
-                "nominal_size": {"allowed": ["NPS", "DN"], "selected": "NPS"},
+                "nominal_size": {"allowed": ["NPS", "DN"], "selected": "DN"},
                 "pipe_thread": {"allowed": ["NPT", "PT"], "selected": "NPT"},
-                "bolt_thread": {"allowed": ["Metric", "Imperial"], "selected": "Imperial"},
+                "bolt_thread": {"allowed": ["Metric", "Imperial"], "selected": "Metric"},
             },
             "nps_master": _read_json_dict(proj / "nps_master.json", logger)
             or {"nps_list": [], "dn_list": []},

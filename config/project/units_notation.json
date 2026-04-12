@@ -1,11 +1,33 @@
 {
   "unit_system": {
     "allowed": ["Metric", "Imperial"],
-    "selected": "Imperial"
+    "selected": "Metric",
+    "design_units": {
+      "Metric": {
+        "temperature": {
+          "allowed": ["°C"],
+          "selected": "°C"
+        },
+        "pressure": {
+          "allowed": ["bar", "barg", "kPa", "MPa"],
+          "selected": "bar"
+        }
+      },
+      "Imperial": {
+        "temperature": {
+          "allowed": ["°F"],
+          "selected": "°F"
+        },
+        "pressure": {
+          "allowed": ["psig", "psi", "psia"],
+          "selected": "psig"
+        }
+      }
+    }
   },
   "nominal_size": {
     "allowed": ["NPS", "DN"],
-    "selected": "NPS"
+    "selected": "DN"
   },
   "pipe_thread": {
     "allowed": ["NPT", "PT"],
@@ -13,6 +35,6 @@
   },
   "bolt_thread": {
     "allowed": ["Metric", "Imperial"],
-    "selected": "Imperial"
+    "selected": "Metric"
   }
 }

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tkinter import messagebox, simpledialog
+from tkinter import messagebox
 from typing import Literal
 
 import tkinter as tk
@@ -12,8 +12,8 @@ import config
 from class_level_model import NamedSizeTable, SizeTableRow
 from template_generator import (
     _build_branch_table_size_pairs,
+    _prefill_reducing_pairs,
     _size_number,
-    _template_reducing_pairs_filtered,
 )
 
 MIN_REDUCING_SIZE1_NPS = 0.75
@@ -43,6 +43,17 @@ def _load_axis_allowlist() -> frozenset[str]:
     return frozenset(out)
 
 
+def _sorted_nominal_master_list() -> list[str]:
+    """nps_master 순서(숫자 정렬) — Edit Size 대화상자 행과 매트릭스 축의 기준."""
+    mode = _nominal_size_mode()
+    key = "nps_master.dn_list" if mode == "DN" else "nps_master.nps_list"
+    lst = config.config_manager.get(key, []) or []
+    if not isinstance(lst, list):
+        return []
+    raw = [str(x).strip() for x in lst if str(x).strip()]
+    return sorted(set(raw), key=_size_number)
+
+
 def _filter_to_allowlist(seq: list[str], allowed: frozenset[str]) -> list[str]:
     if not allowed:
         return list(seq)
@@ -52,7 +63,7 @@ def _filter_to_allowlist(seq: list[str], allowed: frozenset[str]) -> list[str]:
 def _default_size1_rows(pair_kind: Literal["reducing", "branch"]) -> list[str]:
     allowed = _load_axis_allowlist()
     if pair_kind == "reducing":
-        pairs = _template_reducing_pairs_filtered()
+        pairs = _prefill_reducing_pairs()
         raw = sorted(
             {a for a, _ in pairs if _size_number(a) >= MIN_REDUCING_SIZE1_NPS},
             key=_size_number,
@@ -66,7 +77,7 @@ def _default_size1_rows(pair_kind: Literal["reducing", "branch"]) -> list[str]:
 def _default_size2_cols(pair_kind: Literal["reducing", "branch"]) -> list[str]:
     allowed = _load_axis_allowlist()
     if pair_kind == "reducing":
-        pairs = _template_reducing_pairs_filtered()
+        pairs = _prefill_reducing_pairs()
         raw = sorted({b for _, b in pairs}, key=_size_number)
     else:
         pairs = _build_branch_table_size_pairs()
@@ -126,7 +137,10 @@ def _matrix_help_text(pair_kind: Literal["reducing", "branch"], nominal: str) ->
         "Ctrl+Enter copies the active cell value into all selected cells. "
         "Ctrl+C / Ctrl+V copy and paste TSV blocks.\n\n"
         "Item_Type is stored in UPPERCASE.\n"
-        "Reset clears every editable cell's Item_Type value; row/column axes are unchanged.\n"
+        "Edit Size opens a list (one row per nominal from nps_master): two checkboxes per row — "
+        "whether that label is enabled on the Size1 axis (rows) and on the Size2 axis (columns). "
+        "Unchecked axis greys the entire corresponding row or column in the matrix (geometry rules still apply).\n"
+        "Reset clears every editable cell's Item_Type value; axis enable flags are unchanged.\n"
     )
     if pair_kind == "reducing":
         return (
@@ -178,14 +192,31 @@ class MatrixTableDialog(tk.Toplevel):
             pass
         self._pair_kind = pair_kind
         self._table_code = table.table_code.strip()
-        self._size1_rows, self._size2_cols = _axes_from_rows(table.rows, pair_kind)
         self._allowed_sizes = _load_axis_allowlist()
         self._nominal_mode = _nominal_size_mode()
+        base1, base2 = _axes_from_rows(table.rows, pair_kind)
+        self._nominal_master = _sorted_nominal_master_list()
+        extra_sizes = {s for s in base1} | {s for s in base2}
+        if self._nominal_master:
+            axis_set = sorted(
+                set(self._nominal_master) | extra_sizes,
+                key=_size_number,
+            )
+            self._nominal_dialog_rows = list(self._nominal_master)
+        else:
+            axis_set = sorted(set(base1) | set(base2), key=_size_number)
+            self._nominal_dialog_rows = list(axis_set)
+        self._size1_rows = list(axis_set)
+        self._size2_cols = list(axis_set)
+
         self._values: dict[tuple[str, str], str] = {}
         for r in table.rows:
             k = (r.size1.strip(), r.size2.strip())
             if r.item_type.strip():
                 self._values[k] = r.item_type.strip().upper()
+
+        self._axis_enabled_size1: dict[str, bool] = {s: True for s in self._size1_rows}
+        self._axis_enabled_size2: dict[str, bool] = {s: True for s in self._size2_cols}
 
         self._labels: dict[tuple[int, int], tk.Label] = {}
         self._anchor_rc: tuple[int, int] | None = None
@@ -243,10 +274,9 @@ class MatrixTableDialog(tk.Toplevel):
 
         ax = ttk.Frame(self)
         ax.grid(row=2, column=0, sticky="ew", padx=4, pady=2)
-        ttk.Button(ax, text="Add Size1 row…", command=self._add_size1_row).pack(side="left", padx=2)
-        ttk.Button(ax, text="Remove Size1 row…", command=self._rem_size1_row).pack(side="left", padx=2)
-        ttk.Button(ax, text="Add Size2 column…", command=self._add_size2_col).pack(side="left", padx=2)
-        ttk.Button(ax, text="Remove Size2 column…", command=self._rem_size2_col).pack(side="left", padx=2)
+        ttk.Button(ax, text="Edit Size", command=self._open_edit_size_dialog).pack(
+            side="left", padx=2
+        )
         ttk.Button(ax, text="Reset", command=self._reset_template).pack(side="left", padx=8)
 
         bf = ttk.Frame(self)
@@ -262,6 +292,111 @@ class MatrixTableDialog(tk.Toplevel):
 
     def _col_axis_title(self) -> str:
         return "Branch Size" if self._pair_kind == "branch" else "Reducing Size"
+
+    def _edit_size_col_headers(self) -> tuple[str, str]:
+        if self._pair_kind == "branch":
+            return ("Size1 (Header)", "Size2 (Branch)")
+        return ("Size1 (Main)", "Size2 (Reducing)")
+
+    def _open_edit_size_dialog(self) -> None:
+        self._end_edit(commit=True)
+        win = tk.Toplevel(self)
+        win.title("Edit Size")
+        win.transient(self)
+        had_grab = self._own_grab
+        if had_grab:
+            try:
+                self.grab_release()
+            except tk.TclError:
+                pass
+        try:
+            win.grab_set()
+        except tk.TclError:
+            pass
+
+        def dismiss() -> None:
+            try:
+                win.grab_release()
+            except tk.TclError:
+                pass
+            try:
+                win.destroy()
+            except tk.TclError:
+                pass
+            if had_grab and self.winfo_exists():
+                try:
+                    self.grab_set()
+                except tk.TclError:
+                    pass
+
+        outer = ttk.Frame(win, padding=8)
+        outer.pack(fill="both", expand=True)
+        h1, h2 = self._edit_size_col_headers()
+        ttk.Label(
+            outer,
+            text=(
+                f"One row per {self._nominal_mode} from nps_master. "
+                f"Checkboxes turn that label on or off for the matrix row axis ({h1}) "
+                f"and column axis ({h2}). Unchecked greys the whole row or column."
+            ),
+            wraplength=560,
+        ).pack(anchor="w", pady=(0, 6))
+
+        scroll_area = ttk.Frame(outer)
+        scroll_area.pack(fill="both", expand=True)
+        scroll_area.rowconfigure(0, weight=1)
+        scroll_area.columnconfigure(0, weight=1)
+
+        canvas = tk.Canvas(scroll_area, highlightthickness=0, height=420, width=520)
+        vsb = ttk.Scrollbar(scroll_area, orient="vertical", command=canvas.yview)
+        hsb = ttk.Scrollbar(scroll_area, orient="horizontal", command=canvas.xview)
+        canvas.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        grid_fr = ttk.Frame(canvas)
+        canvas.create_window((0, 0), window=grid_fr, anchor="nw")
+
+        def _cfg_inner(_e=None) -> None:
+            canvas.configure(scrollregion=canvas.bbox("all") or (0, 0, 0, 0))
+
+        grid_fr.bind("<Configure>", _cfg_inner)
+
+        canvas.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+
+        vars1: dict[str, tk.BooleanVar] = {}
+        vars2: dict[str, tk.BooleanVar] = {}
+        tk.Label(grid_fr, text=self._nominal_mode, width=8, font=("", 9, "bold")).grid(
+            row=0, column=0, sticky="nsew", padx=2, pady=2
+        )
+        ttk.Label(grid_fr, text=h1, width=16).grid(row=0, column=1, sticky="nsew", padx=2, pady=2)
+        ttk.Label(grid_fr, text=h2, width=18).grid(row=0, column=2, sticky="nsew", padx=2, pady=2)
+        for ri, s in enumerate(self._nominal_dialog_rows):
+            tk.Label(grid_fr, text=s, width=10, anchor="e").grid(
+                row=ri + 1, column=0, sticky="nsew", padx=2, pady=1
+            )
+            v1 = tk.BooleanVar(value=self._axis_enabled_size1.get(s, True))
+            v2 = tk.BooleanVar(value=self._axis_enabled_size2.get(s, True))
+            vars1[s] = v1
+            vars2[s] = v2
+            ttk.Checkbutton(grid_fr, variable=v1).grid(row=ri + 1, column=1)
+            ttk.Checkbutton(grid_fr, variable=v2).grid(row=ri + 1, column=2)
+
+        bf = ttk.Frame(outer)
+        bf.pack(pady=(10, 0))
+
+        def on_ok() -> None:
+            for s in self._nominal_dialog_rows:
+                self._axis_enabled_size1[s] = bool(vars1[s].get())
+                self._axis_enabled_size2[s] = bool(vars2[s].get())
+            self._rebuild_grid()
+            dismiss()
+
+        def on_cancel() -> None:
+            dismiss()
+
+        ttk.Button(bf, text="OK", command=on_ok).pack(side="left", padx=6)
+        ttk.Button(bf, text="Cancel", command=on_cancel).pack(side="left", padx=6)
+        win.protocol("WM_DELETE_WINDOW", on_cancel)
 
     def _show_help(self) -> None:
         win = tk.Toplevel(self)
@@ -434,6 +569,13 @@ class MatrixTableDialog(tk.Toplevel):
                     )
                     continue
                 key = (s1, s2)
+                axis1_on = self._axis_enabled_size1.get(s1, True)
+                axis2_on = self._axis_enabled_size2.get(s2, True)
+                if not axis1_on or not axis2_on:
+                    tk.Label(inner, text="", width=6, relief="flat", bg="#d8d8d8").grid(
+                        row=gr0 + ri, column=ci + 1, sticky="nsew"
+                    )
+                    continue
                 txt = self._values.get(key, "")
                 lb = tk.Label(
                     inner,
@@ -761,77 +903,11 @@ class MatrixTableDialog(tk.Toplevel):
                     self._labels[(ri, ci)].config(text=v)
         self._refresh_all_cell_styles()
 
-    def _validate_axis_label(self, raw: str) -> str | None:
-        t = raw.strip()
-        if not t:
-            return None
-        if not self._allowed_sizes:
-            return t
-        if t not in self._allowed_sizes:
-            messagebox.showerror(
-                "Invalid size",
-                f"{t!r} is not allowed for nominal mode {self._nominal_mode} "
-                f"(see units_notation.nominal_size and nps_master).",
-                parent=self,
-            )
-            return None
-        return t
-
-    def _add_size1_row(self) -> None:
-        s = simpledialog.askstring("Add Size1 row", "NPS / DN label (Size1, row):", parent=self)
-        if not s:
-            return
-        t = self._validate_axis_label(s)
-        if t is None:
-            return
-        if t in self._size1_rows:
-            messagebox.showerror("Duplicate", f"Size1 {t!r} already exists.", parent=self)
-            return
-        self._size1_rows = sorted(set(self._size1_rows) | {t}, key=_size_number)
-        self._rebuild_grid()
-
-    def _rem_size1_row(self) -> None:
-        s = simpledialog.askstring("Remove Size1 row", "Size1 label to remove:", parent=self)
-        if not s:
-            return
-        t = s.strip()
-        if t not in self._size1_rows:
-            messagebox.showerror("Not found", f"No row {t!r}.", parent=self)
-            return
-        self._size1_rows = [x for x in self._size1_rows if x != t]
-        self._values = {k: v for k, v in self._values.items() if k[0] != t}
-        self._rebuild_grid()
-
-    def _add_size2_col(self) -> None:
-        s = simpledialog.askstring("Add Size2 column", "NPS / DN label (Size2, column):", parent=self)
-        if not s:
-            return
-        t = self._validate_axis_label(s)
-        if t is None:
-            return
-        if t in self._size2_cols:
-            messagebox.showerror("Duplicate", f"Size2 {t!r} already exists.", parent=self)
-            return
-        self._size2_cols = sorted(set(self._size2_cols) | {t}, key=_size_number)
-        self._rebuild_grid()
-
-    def _rem_size2_col(self) -> None:
-        s = simpledialog.askstring("Remove Size2 column", "Size2 label to remove:", parent=self)
-        if not s:
-            return
-        t = s.strip()
-        if t not in self._size2_cols:
-            messagebox.showerror("Not found", f"No column {t!r}.", parent=self)
-            return
-        self._size2_cols = [x for x in self._size2_cols if x != t]
-        self._values = {k: v for k, v in self._values.items() if k[1] != t}
-        self._rebuild_grid()
-
     def _reset_template(self) -> None:
         if not self._askyesno_modal(
             "Reset",
             "Clear all Item_Type values in the matrix?\n"
-            "Row and column headers are not changed.",
+            "Size1 / Size2 axis enable flags are not changed.",
         ):
             return
         self._values.clear()
@@ -843,9 +919,12 @@ class MatrixTableDialog(tk.Toplevel):
             for ci, s2 in enumerate(self._size2_cols):
                 if not _cell_allowed(s1, s2, self._pair_kind):
                     continue
+                if not self._axis_enabled_size1.get(s1, True):
+                    continue
+                if not self._axis_enabled_size2.get(s2, True):
+                    continue
                 it = self._values.get((s1, s2), "").strip().upper()
-                if it:
-                    out.append(SizeTableRow(s1, s2, it, ""))
+                out.append(SizeTableRow(s1, s2, it, ""))
         return sorted(out, key=lambda r: (_size_number(r.size1), _size_number(r.size2)))
 
     def _on_ok(self) -> None:

@@ -14,29 +14,15 @@ from excel_sheet_utils import (
     pick_first_non_empty,
     to_text,
 )
+from units_notation_headers import class_define_excel_to_spec_key, read_design_units_from_merged
 
 CLASS_DEFINE_REQUIRED_HEADERS = ["Class_Name"]
 
-# 엑셀 열 이름 → ClassSpec 키
-_EXCEL_TO_SPEC_KEY: dict[str, str] = {
-    "Class_Name": "class_name",
-    "Revision_No": "revision_no",
-    "Design_Code": "design_code",
-    "Class_Base_Material": "class_base_material",
-    "Class_Rating": "class_rating",
-    "Corrosion_Allowance": "corrosion_allowance",
-    "Design_Temperature_From": "design_temperature_from",
-    "Design_Temperature_To": "design_temperature_to",
-    "Design_Pressure_From": "design_pressure_from",
-    "Design_Pressure_To": "design_pressure_to",
-    "Fluid_Service": "fluid_service",
-    "Branch_Table_1": "branch_table_1",
-    "Branch_Table_2": "branch_table_2",
-    "Reducing_Table_1": "reducing_table_1",
-    "Reducing_Table_2": "reducing_table_2",
-    "Global_Special_Req": "global_special_req",
-    "Remarks": "remarks",
-}
+
+def _class_define_excel_to_spec_key() -> dict[str, str]:
+    merged = config.config_manager.merged()
+    dt, dp = read_design_units_from_merged(merged)
+    return class_define_excel_to_spec_key(dt, dp)
 
 
 class ClassSpec(TypedDict, total=False):
@@ -109,6 +95,7 @@ def load_class_specs_from_workbook(workbook) -> dict[str, ClassSpec]:
         return {}
 
     header_to_col = build_header_index(ws, header_row)
+    excel_to_key = _class_define_excel_to_spec_key()
     out: dict[str, ClassSpec] = {}
 
     for row_idx in range(header_row + 1, ws.max_row + 1):
@@ -116,7 +103,7 @@ def load_class_specs_from_workbook(workbook) -> dict[str, ClassSpec]:
         if not name:
             continue
         spec: ClassSpec = {"class_name": name}
-        for excel_header, key in _EXCEL_TO_SPEC_KEY.items():
+        for excel_header, key in excel_to_key.items():
             if excel_header == "Class_Name":
                 continue
             if excel_header not in header_to_col:

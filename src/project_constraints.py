@@ -5,6 +5,68 @@ from __future__ import annotations
 from typing import Any
 
 
+def _validate_design_units_nested(errors: list[str], un: dict[str, Any]) -> None:
+    """
+    ``unit_system.design_units.Metric`` / ``...Imperial`` 에
+    temperature·pressure {{allowed, selected}} 검사.
+    """
+    us_block = un.get("unit_system")
+    if not isinstance(us_block, dict):
+        return
+
+    legacy = un.get("design_units")
+    nested = us_block.get("design_units")
+    if isinstance(legacy, dict) and not isinstance(nested, dict):
+        errors.append(
+            "units_notation: 최상위 design_units 는 사용하지 않습니다. "
+            "unit_system.design_units 로 옮기세요."
+        )
+        return
+
+    du = nested
+    if not isinstance(du, dict):
+        errors.append(
+            "units_notation.unit_system.design_units: "
+            "\"Metric\"·\"Imperial\" 키를 가진 객체가 필요합니다."
+        )
+        return
+
+    active = str(us_block.get("selected", "")).strip()
+
+    for sys_name in ("Metric", "Imperial"):
+        blk = du.get(sys_name)
+        if not isinstance(blk, dict):
+            errors.append(
+                f"units_notation.unit_system.design_units.{sys_name}: 객체가 필요합니다."
+            )
+            continue
+        for axis in ("temperature", "pressure"):
+            sub = blk.get(axis)
+            prefix = f"units_notation.unit_system.design_units.{sys_name}.{axis}"
+            if not isinstance(sub, dict):
+                errors.append(
+                    f'{prefix}: {{ "allowed": [...], "selected": "..." }} 형태여야 합니다.'
+                )
+                continue
+            allowed = sub.get("allowed")
+            if not isinstance(allowed, list) or not allowed:
+                errors.append(f"{prefix}.allowed: 비어 있지 않은 배열이 필요합니다.")
+            chosen = str(sub.get("selected", "") or "").strip()
+            if not chosen:
+                errors.append(f"{prefix}.selected: 비어 있으면 안 됩니다.")
+            elif isinstance(allowed, list) and allowed and chosen not in allowed:
+                errors.append(
+                    f"{prefix}.selected: 허용 목록 {allowed!r} 안에 없습니다: {chosen!r}"
+                )
+
+    if active in ("Metric", "Imperial") and isinstance(du, dict):
+        if not isinstance(du.get(active), dict):
+            errors.append(
+                "units_notation.unit_system.design_units: "
+                f"unit_system.selected 가 {active!r} 인데 해당 블록이 없습니다."
+            )
+
+
 def validate_project_constraints(merged: dict[str, Any]) -> list[str]:
     """
     config 병합 결과 전체를 검사합니다.
@@ -19,7 +81,8 @@ def validate_project_constraints(merged: dict[str, Any]) -> list[str]:
         us_block = un.get("unit_system")
         if not isinstance(us_block, dict):
             errors.append(
-                "units_notation.unit_system: { \"allowed\": [...], \"selected\": ... } 형태여야 합니다."
+                'units_notation.unit_system: { "allowed": [...], "selected": ..., '
+                '"design_units": { "Metric": {...}, "Imperial": {...} } } 형태여야 합니다.'
             )
         else:
             allowed_us = us_block.get("allowed")
@@ -103,6 +166,8 @@ def validate_project_constraints(merged: dict[str, Any]) -> list[str]:
                 errors.append(
                     "units_notation: unit_system 이 Metric 이면 nominal_size.selected 는 DN 이어야 합니다."
                 )
+
+        _validate_design_units_nested(errors, un)
 
     # piping_design_codes.selected (e.g. ASME B31.3) 전제로 소켓·나사 단조이음관 치수는 ASME B16.11 계열을
     # 엔진에서 암시 적용(pms_generator: End_Type 기준). 별도 component Dim_Standard 열로 중복 정의하지 않음.

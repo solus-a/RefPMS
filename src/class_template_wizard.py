@@ -11,12 +11,16 @@ import config
 from class_level_model import ClassLevelBundle, NamedSizeTable, row_dict_for_headers
 from class_spec import class_base_material_group_keys, flange_pt_class_rating_options
 from size_matrix_editor import run_size_matrix_editor
-from template_generator import (
-    CLASS_DEFINE_HEADERS,
-    FLUID_SERVICE_HEADERS,
-    JOINT_HEADERS,
-    SCHEDULE_HEADERS,
+from template_generator import JOINT_HEADERS, SCHEDULE_HEADERS
+from units_notation_headers import (
+    bracket_unit_header,
+    class_define_headers,
+    fluid_service_headers,
+    read_design_units_from_merged,
 )
+
+_CLASS_DETAIL_LABEL_WIDTH = 28
+_CLASS_DETAIL_VALUE_PADX = (8, 0)
 
 # Light-theme list / sheet visuals (zebra ≈ thin row separation)
 _STRIPE_A = "#ffffff"
@@ -28,19 +32,6 @@ def _project_selected_design_code() -> str:
     """Single source: ``config/project/piping_design_codes.json`` → ``selected``."""
     raw = config.config_manager.get("piping_design_codes.selected", "")
     return str(raw or "").strip()
-
-
-def _default_bundle() -> ClassLevelBundle:
-    blank_class = row_dict_for_headers(CLASS_DEFINE_HEADERS)
-    blank_class["Design_Code"] = _project_selected_design_code()
-    return ClassLevelBundle(
-        class_define_rows=[blank_class],
-        fluid_service_rows=[],
-        joint_rows=[],
-        schedule_rows=[],
-        reducing_tables=[],
-        branch_tables=[],
-    )
 
 
 def _all_codes(bundle: ClassLevelBundle) -> set[str]:
@@ -333,11 +324,31 @@ class ClassLevelWizard(tk.Toplevel):
         self.transient(parent)
         self.grab_set()
         self.result: ClassLevelBundle | None = None
-        self._bundle = _default_bundle()
         self._fixed_design_code = _project_selected_design_code()
         self._material_combo_values = ["", *class_base_material_group_keys()]
         self._rating_combo_values = ["", *flange_pt_class_rating_options()]
         self._last_shown_class_idx: int | None = None
+
+        merged = config.config_manager.merged()
+        _dt, _dp = read_design_units_from_merged(merged)
+        self._class_define_headers = class_define_headers(_dt, _dp)
+        self._fluid_service_headers = fluid_service_headers(_dt, _dp)
+        self._class_design_temp_u, self._class_design_press_u = _dt, _dp
+        (
+            self._class_temp_from_h,
+            self._class_temp_to_h,
+            self._class_press_from_h,
+            self._class_press_to_h,
+        ) = ClassLevelWizard._resolve_temperature_pressure_header_keys(self._class_define_headers)
+        blank = row_dict_for_headers(self._class_define_headers)
+        self._bundle = ClassLevelBundle(
+            class_define_rows=[{**blank, "Design_Code": self._fixed_design_code}],
+            fluid_service_rows=[],
+            joint_rows=[],
+            schedule_rows=[],
+            reducing_tables=[],
+            branch_tables=[],
+        )
 
         _configure_sheet_treeview_style()
 
@@ -345,7 +356,7 @@ class ClassLevelWizard(tk.Toplevel):
         nb.pack(fill="both", expand=True, padx=8, pady=8)
 
         self._tab_class(nb)
-        self._tab_sheet(nb, "Fluid_Service", FLUID_SERVICE_HEADERS, "fluid")
+        self._tab_sheet(nb, "Fluid_Service", self._fluid_service_headers, "fluid")
         self._tab_sheet(nb, "Joint", JOINT_HEADERS, "joint")
         self._tab_sheet(nb, "Schedule", SCHEDULE_HEADERS, "schedule")
 
@@ -353,13 +364,13 @@ class ClassLevelWizard(tk.Toplevel):
         bt.pack(fill="x", padx=8, pady=(0, 4))
         ttk.Button(
             bt,
-            text="Manage reducing tables…",
-            command=self._open_reducing_manager,
+            text="Manage branch tables…",
+            command=self._open_branch_manager,
         ).pack(side="left", padx=4)
         ttk.Button(
             bt,
-            text="Manage branch tables…",
-            command=self._open_branch_manager,
+            text="Manage reducing tables…",
+            command=self._open_reducing_manager,
         ).pack(side="left", padx=4)
 
         bf = ttk.Frame(self)
@@ -372,6 +383,60 @@ class ClassLevelWizard(tk.Toplevel):
 
     def _branch_names(self) -> tuple[str, ...]:
         return ("", *tuple(t.table_code.strip() for t in self._bundle.branch_tables if t.table_code.strip()))
+
+    @staticmethod
+    def _resolve_temperature_pressure_header_keys(
+        headers: list[str],
+    ) -> tuple[str, str, str, str]:
+        tf = tt = pf = pt = ""
+        for x in headers:
+            if x.startswith("Design_Temperature_From"):
+                tf = x
+            elif x.startswith("Design_Temperature_To"):
+                tt = x
+            elif x.startswith("Design_Pressure_From"):
+                pf = x
+            elif x.startswith("Design_Pressure_To"):
+                pt = x
+        return tf, tt, pf, pt
+
+    def _use_combined_temperature_pressure_rows(self) -> bool:
+        return bool(
+            self._class_temp_from_h
+            and self._class_temp_to_h
+            and self._class_press_from_h
+            and self._class_press_to_h
+        )
+
+    def _on_revision_no_focus_out(self, _event: tk.Event | None = None) -> None:
+        v = self._class_entries.get("Revision_No")
+        if v is None:
+            return
+        cur = v.get() or ""
+        up = cur.upper()
+        if cur != up:
+            v.set(up)
+
+    def _on_class_name_focus_out(self, _event: tk.Event | None = None) -> None:
+        try:
+            if not self.winfo_exists():
+                return
+        except tk.TclError:
+            return
+        idx = self._current_class_idx()
+        if idx is None:
+            return
+        name_var = self._class_entries.get("Class_Name")
+        if name_var is None:
+            return
+        row = self._bundle.class_define_rows[idx]
+        row["Class_Name"] = name_var.get() or ""
+        self._refresh_class_listbox()
+        self._class_list.selection_clear(0, "end")
+        self._class_list.selection_set(idx)
+        self._class_list.activate(idx)
+        self._class_list.see(idx)
+        _listbox_apply_stripes(self._class_list)
 
     def _tab_class(self, nb: ttk.Notebook) -> None:
         tab = ttk.Frame(nb)
@@ -422,12 +487,68 @@ class ClassLevelWizard(tk.Toplevel):
         self._class_combos: dict[str, ttk.Combobox] = {}
         rows_f = ttk.Frame(rf)
         rows_f.pack(fill="both", expand=True)
-        for i, h in enumerate(CLASS_DEFINE_HEADERS):
-            ttk.Label(rows_f, text=h, width=22).grid(row=i, column=0, sticky="w", pady=1)
+
+        pair_skip: set[str] = set()
+        if self._use_combined_temperature_pressure_rows():
+            pair_skip.add(self._class_temp_to_h)
+            pair_skip.add(self._class_press_to_h)
+
+        lw = _CLASS_DETAIL_LABEL_WIDTH
+        px = _CLASS_DETAIL_VALUE_PADX
+        grid_row = 0
+        for h in self._class_define_headers:
+            if h in pair_skip:
+                continue
+
+            if self._use_combined_temperature_pressure_rows() and h == self._class_temp_from_h:
+                ttk.Label(
+                    rows_f,
+                    text=bracket_unit_header("Design Temperature", self._class_design_temp_u),
+                    width=lw,
+                ).grid(row=grid_row, column=0, sticky="w", pady=1)
+                sub = ttk.Frame(rows_f)
+                sub.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
+                v_tf = tk.StringVar()
+                v_tt = tk.StringVar()
+                self._class_entries[self._class_temp_from_h] = v_tf
+                self._class_entries[self._class_temp_to_h] = v_tt
+                e_tf = ttk.Entry(sub, textvariable=v_tf, width=18)
+                ttk.Label(sub, text="~").grid(row=0, column=1, padx=6)
+                e_tt = ttk.Entry(sub, textvariable=v_tt, width=18)
+                e_tf.grid(row=0, column=0, sticky="ew")
+                e_tt.grid(row=0, column=2, sticky="ew")
+                sub.columnconfigure(0, weight=1)
+                sub.columnconfigure(2, weight=1)
+                grid_row += 1
+                continue
+
+            if self._use_combined_temperature_pressure_rows() and h == self._class_press_from_h:
+                ttk.Label(
+                    rows_f,
+                    text=bracket_unit_header("Design Pressure", self._class_design_press_u),
+                    width=lw,
+                ).grid(row=grid_row, column=0, sticky="w", pady=1)
+                subp = ttk.Frame(rows_f)
+                subp.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
+                v_pf = tk.StringVar()
+                v_pt = tk.StringVar()
+                self._class_entries[self._class_press_from_h] = v_pf
+                self._class_entries[self._class_press_to_h] = v_pt
+                e_pf = ttk.Entry(subp, textvariable=v_pf, width=18)
+                ttk.Label(subp, text="~").grid(row=0, column=1, padx=6)
+                e_pt = ttk.Entry(subp, textvariable=v_pt, width=18)
+                e_pf.grid(row=0, column=0, sticky="ew")
+                e_pt.grid(row=0, column=2, sticky="ew")
+                subp.columnconfigure(0, weight=1)
+                subp.columnconfigure(2, weight=1)
+                grid_row += 1
+                continue
+
+            ttk.Label(rows_f, text=h, width=lw).grid(row=grid_row, column=0, sticky="w", pady=1)
             if h == "Design_Code":
                 dc_text = self._fixed_design_code or "(piping_design_codes.selected is empty)"
                 ttk.Label(rows_f, text=dc_text, width=44, anchor="w").grid(
-                    row=i, column=1, sticky="ew", pady=1
+                    row=grid_row, column=1, sticky="ew", pady=1, padx=px
                 )
             elif h == "Class_Base_Material":
                 cb = ttk.Combobox(
@@ -436,7 +557,7 @@ class ClassLevelWizard(tk.Toplevel):
                     state="readonly",
                     values=self._material_combo_values,
                 )
-                cb.grid(row=i, column=1, sticky="ew", pady=1)
+                cb.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
                 self._class_combos[h] = cb
             elif h == "Class_Rating":
                 cb = ttk.Combobox(
@@ -445,21 +566,26 @@ class ClassLevelWizard(tk.Toplevel):
                     state="readonly",
                     values=self._rating_combo_values,
                 )
-                cb.grid(row=i, column=1, sticky="ew", pady=1)
+                cb.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
                 self._class_combos[h] = cb
             elif h in ("Branch_Table_1", "Branch_Table_2"):
                 cb = ttk.Combobox(rows_f, width=42, state="readonly", values=list(self._branch_names()))
-                cb.grid(row=i, column=1, sticky="ew", pady=1)
+                cb.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
                 self._class_combos[h] = cb
             elif h in ("Reducing_Table_1", "Reducing_Table_2"):
                 cb = ttk.Combobox(rows_f, width=42, state="readonly", values=list(self._reducing_names()))
-                cb.grid(row=i, column=1, sticky="ew", pady=1)
+                cb.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
                 self._class_combos[h] = cb
             else:
                 v = tk.StringVar()
                 e = ttk.Entry(rows_f, textvariable=v, width=44)
-                e.grid(row=i, column=1, sticky="ew", pady=1)
+                e.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
                 self._class_entries[h] = v
+                if h == "Class_Name":
+                    e.bind("<FocusOut>", self._on_class_name_focus_out, add="+")
+                elif h == "Revision_No":
+                    e.bind("<FocusOut>", self._on_revision_no_focus_out, add="+")
+            grid_row += 1
         rows_f.columnconfigure(1, weight=1)
 
         self._refresh_class_listbox()
@@ -534,7 +660,7 @@ class ClassLevelWizard(tk.Toplevel):
 
     def _add_class_row(self) -> None:
         self._save_class_detail_to_row()
-        nr = row_dict_for_headers(CLASS_DEFINE_HEADERS)
+        nr = row_dict_for_headers(self._class_define_headers)
         nr["Design_Code"] = self._fixed_design_code
         self._bundle.class_define_rows.append(nr)
         self._refresh_class_listbox()

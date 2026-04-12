@@ -294,23 +294,9 @@ def _fitting_elbow_should_strip_lr_sr(
     item_code: str, dim_standard: str, end_type_1: str, rating: str
 ) -> bool:
     """
-    BW(순수 Butt Weld) 엘보는 End_Type 만으로 LR/SR 유지. 소켓·나사는 설계코드(B31.3/4) 전제로 생략.
-    레거시 시트에만 남은 Dim_Standard 의 B16.11 문자열은 참고용으로 생략 허용.
+    When True, also strip LR/SR from Description_Prefix (Fitting_Group elbows). Reserved; currently always off.
     """
-    if _to_text(item_code).upper() not in ELBOW_LR_SR_ITEM_CODES:
-        return False
-    du = _to_text(dim_standard).upper()
-    if "B16.11" in du:
-        return True
-    if _rating_looks_forged_socket_class(rating):
-        return True
-    e1 = _to_text(end_type_1).upper()
-    if _piping_design_implies_socket_screwed_b16_11_fitting_dims() and any(
-        k in e1 for k in ("SW", "TE", "NPT", "PT")
-    ):
-        return True
-    if "BW" in e1 and "SW" not in e1 and "TE" not in e1 and "NPT" not in e1 and "PT" not in e1:
-        return False
+    _ = (item_code, dim_standard, end_type_1, rating)
     return False
 
 
@@ -360,7 +346,7 @@ NIPPLE_PIPE_CODES = frozenset({"JN", "JN1", "JNP", "JNP1", "JNT", "JNT1"})
 
 
 def _apply_length_to_catalog_nipple_name(catalog: str, length_val: str) -> str:
-    """카탈로그명 끝의 `75mm` 등을 Length 열 값으로 치환; 끝에 mm 패턴이 없으면 길이를 덧붙임."""
+    """Swap trailing NNmm suffix in catalog name for Length; append length if no mm suffix."""
     c = _to_text(catalog)
     lv = _to_text(length_val)
     if not c:
