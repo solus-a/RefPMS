@@ -269,3 +269,17 @@ def log_class_constraint_warnings(
     mmsg = base_material_hint_message(part_mat, class_base, _load_base_material_allowlist())
     if mmsg:
         logger.warning(f"{sheet_name} row {row_idx} Class {class_name}: {mmsg}")
+
+
+def class_base_material_group_keys() -> list[str]:
+    """
+    Keys of ``base_material_allowlist`` in ``class_material_mapping.json``
+    (e.g. KCS). These are the class-level material *group* tokens, not ASTM
+    grade rows under each key.
+    """
+    return sorted(_load_base_material_allowlist().keys())
+
+
+def flange_pt_class_rating_options() -> list[str]:
+    """ASME B16.5 flange pressure–temperature class numbers as strings (150, 300, …)."""
+    return [str(x) for x in sorted(_B16_5_PRESSURE_CLASSES)]

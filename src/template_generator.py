@@ -9,6 +9,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font
 
 import config
+from class_level_model import ClassLevelBundle, NamedSizeTable
 from data_defaults import DEFAULT_CLASS_MATERIAL_MAPPING, DEFAULT_COMPONENT_MAPPING
 from excel_sheet_utils import build_header_index, detect_header_row, to_text as _cell_to_text
 
@@ -573,8 +574,53 @@ def ensure_all_program_data_files() -> None:
     ensure_item_code_db()
 
 
+def _write_dict_rows(
+    ws,
+    headers: list[str],
+    rows: list[dict[str, str]],
+) -> None:
+    for row_idx, row in enumerate(rows, start=2):
+        for col_idx, header in enumerate(headers, start=1):
+            ws.cell(row=row_idx, column=col_idx, value=row.get(header, ""))
+
+
+def _write_named_size_tables(ws, tables: list[NamedSizeTable]) -> None:
+    """Reducing_Table / Branch_Table: 각 행에 Table_Code를 반복 기록."""
+    row_idx = 2
+    for tbl in tables:
+        code = tbl.table_code.strip()
+        for sr in tbl.rows:
+            ws.cell(row=row_idx, column=1, value=code)
+            ws.cell(row=row_idx, column=2, value=sr.size1)
+            ws.cell(row=row_idx, column=3, value=sr.size2)
+            ws.cell(row=row_idx, column=4, value=sr.item_type)
+            ws.cell(row=row_idx, column=5, value=sr.remarks)
+            row_idx += 1
+
+
+def _append_component_group_sheets(wb: Workbook) -> None:
+    ws_pipe = wb.create_sheet(title="Pipe_Group")
+    _set_headers_and_widths(ws_pipe, PIPE_HEADERS)
+
+    ws_fitting = wb.create_sheet(title="Fitting_Group")
+    _set_headers_and_widths(ws_fitting, FITTING_HEADERS)
+
+    ws_flange = wb.create_sheet(title="Flange_Group")
+    _set_headers_and_widths(ws_flange, FLANGE_HEADERS)
+
+    ws_gasket = wb.create_sheet(title="Gasket_Group")
+    _set_headers_and_widths(ws_gasket, GASKET_HEADERS)
+
+    ws_bolt = wb.create_sheet(title="Bolt_Group")
+    _set_headers_and_widths(ws_bolt, BOLT_HEADERS)
+
+    ws_valve = wb.create_sheet(title="Valve_Group")
+    _set_headers_and_widths(ws_valve, VALVE_HEADERS)
+
+
 def generate_class_define_template(
     output_path: Optional[Path | str] = None,
+    class_level: Optional[ClassLevelBundle] = None,
 ) -> Path:
     """
     Create `Class_Define_Template.xlsx` with required sheets:
@@ -592,6 +638,11 @@ def generate_class_define_template(
     - Valve_Group
 
     동시에 data/Item_Code_DB.xlsx 가 없으면 생성합니다(기존 파일은 유지).
+
+    class_level:
+        GUI에서 수집한 클래스 수준 데이터. 지정 시 Class_Define·Fluid_Service·Joint·Schedule·
+        Branch_Table·Reducing_Table 내용을 이 값으로 채웁니다. None 이면 기존처럼
+        Branch/Reducing 시트만 표준 사이즈 쌍으로 선입력합니다.
     """
     logger = _get_logger()
 
@@ -618,29 +669,22 @@ def generate_class_define_template(
 
     ws_branch_table = wb.create_sheet(title="Branch_Table")
     _set_headers_and_widths(ws_branch_table, BRANCH_TABLE_HEADERS)
-    _prefill_size_pairs(ws_branch_table, _build_branch_table_size_pairs())
 
     ws_reducing_table = wb.create_sheet(title="Reducing_Table")
     _set_headers_and_widths(ws_reducing_table, REDUCING_TABLE_HEADERS)
-    _prefill_size_pairs(ws_reducing_table, _template_reducing_pairs_filtered())
 
-    ws_pipe = wb.create_sheet(title="Pipe_Group")
-    _set_headers_and_widths(ws_pipe, PIPE_HEADERS)
+    if class_level is None:
+        _prefill_size_pairs(ws_branch_table, _build_branch_table_size_pairs())
+        _prefill_size_pairs(ws_reducing_table, _template_reducing_pairs_filtered())
+    else:
+        _write_dict_rows(ws_define, CLASS_DEFINE_HEADERS, class_level.class_define_rows)
+        _write_dict_rows(ws_fluid, FLUID_SERVICE_HEADERS, class_level.fluid_service_rows)
+        _write_dict_rows(ws_joint, JOINT_HEADERS, class_level.joint_rows)
+        _write_dict_rows(ws_schedule, SCHEDULE_HEADERS, class_level.schedule_rows)
+        _write_named_size_tables(ws_branch_table, class_level.branch_tables)
+        _write_named_size_tables(ws_reducing_table, class_level.reducing_tables)
 
-    ws_fitting = wb.create_sheet(title="Fitting_Group")
-    _set_headers_and_widths(ws_fitting, FITTING_HEADERS)
-
-    ws_flange = wb.create_sheet(title="Flange_Group")
-    _set_headers_and_widths(ws_flange, FLANGE_HEADERS)
-
-    ws_gasket = wb.create_sheet(title="Gasket_Group")
-    _set_headers_and_widths(ws_gasket, GASKET_HEADERS)
-
-    ws_bolt = wb.create_sheet(title="Bolt_Group")
-    _set_headers_and_widths(ws_bolt, BOLT_HEADERS)
-
-    ws_valve = wb.create_sheet(title="Valve_Group")
-    _set_headers_and_widths(ws_valve, VALVE_HEADERS)
+    _append_component_group_sheets(wb)
 
     try:
         wb.save(template_path)

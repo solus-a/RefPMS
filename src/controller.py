@@ -8,6 +8,7 @@ import tkinter as tk
 
 import gui
 import config
+from class_template_wizard import run_class_level_wizard
 from template_generator import DEFAULT_TEMPLATE_FILENAME, generate_class_define_template
 import file_handler
 import pms_generator
@@ -34,6 +35,12 @@ def create_controller(root: tk.Tk) -> None:
             status_setter("대기중")
             return
 
+        status_setter("클래스 수준 입력…")
+        bundle = run_class_level_wizard(root)
+        if bundle is None:
+            status_setter("대기중")
+            return
+
         status_setter("템플릿 생성 중...")
         try:
             # 선택 폴더 / template / YYYYMMDD_HHMMSS / 템플릿.xlsx
@@ -41,7 +48,7 @@ def create_controller(root: tk.Tk) -> None:
             out_dir = Path(save_dir) / "template" / stamp
             out_dir.mkdir(parents=True, exist_ok=True)
             out_path = out_dir / DEFAULT_TEMPLATE_FILENAME
-            generate_class_define_template(output_path=out_path)
+            generate_class_define_template(output_path=out_path, class_level=bundle)
             status_setter(f"템플릿 생성 완료: {out_path}")
         except Exception as exc:
             status_setter(f"템플릿 생성 실패: {exc}")
