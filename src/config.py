@@ -116,6 +116,44 @@ class ProjectConfig:
             },
             "coding_rules": _read_json_dict(gen / "coding_rules.json", logger)
             or {"commodity_code_logic": "fixed_corporate_standard"},
+            "validation_policy": _read_json_dict(gen / "validation_policy.json", logger)
+            or {
+                "corrosion_allowance": {
+                    "default_value": "0.0",
+                    "empty_value_policy": "warning",
+                    "reference_values": {
+                        "metric_mm": [
+                            "0.0",
+                            "0.3",
+                            "0.5",
+                            "0.8",
+                            "1.0",
+                            "1.5",
+                            "2.0",
+                            "3.0",
+                            "4.5",
+                            "6.0",
+                            "9.0",
+                            "12.0",
+                        ],
+                        "imperial_inch": [
+                            "0.0",
+                            "0.012",
+                            "0.020",
+                            "0.031",
+                            "0.039",
+                            "0.050",
+                            "0.0625",
+                            "0.100",
+                            "0.125",
+                            "0.188",
+                            "0.250",
+                            "0.375",
+                            "0.500",
+                        ],
+                    },
+                }
+            },
             "piping_design_codes": _read_json_dict(
                 proj / "piping_design_codes.json", logger
             )

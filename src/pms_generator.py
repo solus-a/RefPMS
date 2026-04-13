@@ -11,6 +11,7 @@ from openpyxl.utils import get_column_letter
 import config
 from class_spec import (
     ClassSpec,
+    corrosion_allowance_validation_messages,
     load_class_specs_from_workbook,
     log_class_constraint_warnings,
 )
@@ -1112,9 +1113,6 @@ def _build_item_description_by_rule(
                 size1_num = _to_float(size1_value or "")
                 disc_token = "FB" if size1_num is not None and size1_num >= 2.0 else "RB"
             rating_disp = _flange_rating_display(rating)
-            design_std = _get_cell_text(ws, row_idx, header_to_col, "Design_Standard")
-            test_std = _get_cell_text(ws, row_idx, header_to_col, "Test_Standard")
-            dim_std_v = _get_cell_text(ws, row_idx, header_to_col, "Dim_Standard")
             return _join_tokens(
                 _join_tokens(valve_type, "VALVE"),
                 body_mat,
@@ -1126,9 +1124,6 @@ def _build_item_description_by_rule(
                 disc_token,
                 operation_token,
                 go_token,
-                design_std,
-                test_std,
-                dim_std_v,
             )
         trim_segment = f"/ TRIM {trim_mat}" if trim_mat else ""
         return _join_tokens(
@@ -1707,6 +1702,11 @@ def generate_piping_material_class_data(
     in_wb = load_workbook(template_path, data_only=True)
     schedule_rows = load_schedule_rows(in_wb)
     class_specs = load_class_specs_from_workbook(in_wb)
+    ca_errors, ca_warnings = corrosion_allowance_validation_messages(in_wb)
+    for msg in ca_warnings:
+        logger.warning(msg)
+    if ca_errors:
+        raise ValueError("; ".join(ca_errors))
     reducing_data = _load_reducing_table(in_wb)
     class_reducing_codes = _load_class_reducing_table_codes(in_wb)
     branch_data = _load_branch_table(in_wb)

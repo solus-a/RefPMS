@@ -1,7 +1,7 @@
 {
   "unit_system": {
     "allowed": ["Metric", "Imperial"],
-    "selected": "Metric",
+    "selected": "Imperial",
     "design_units": {
       "Metric": {
         "temperature": {

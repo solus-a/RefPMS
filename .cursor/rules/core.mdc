@@ -26,3 +26,9 @@ RefPMS is a transformation engine that takes project information, PMC informatio
 - `data/component_mapping.json`
 - `data/Item_Code_DB.xlsx`
 - `Item_Code` ordering only from `config/generator/output_settings.json` > `item_order`
+
+## Config Boundary (Critical)
+
+- `config/project/*` must contain project-level constraints (SSOT) only.
+- Do not place generator behavior, validation policy, UI defaults, or runtime toggles under `config/project/*`.
+- Put generation/validation execution policy under `config/generator/*` (for example `validation_policy.json`).

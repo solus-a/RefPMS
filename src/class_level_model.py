@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+import config
+
 
 @dataclass
 class SizeTableRow:
@@ -72,7 +74,42 @@ class ClassLevelBundle:
                     errs.append(
                         f"{label}: {col} value {v!r} is not a registered branch table name."
                     )
+            ca_raw = str(row.get("Corrosion_Allowance", "") or "").strip()
+            if ca_raw:
+                try:
+                    float(ca_raw)
+                except ValueError:
+                    errs.append(f"{label}: Corrosion_Allowance must be numeric; got {ca_raw!r}.")
+            else:
+                policy = str(
+                    config.config_manager.get(
+                        "validation_policy.corrosion_allowance.empty_value_policy",
+                        "warning",
+                    )
+                    or "warning"
+                ).strip().lower()
+                if policy == "error":
+                    errs.append(f"{label}: Corrosion_Allowance is required.")
         return errs
+
+    def validation_warnings(self) -> list[str]:
+        warns: list[str] = []
+        policy = str(
+            config.config_manager.get(
+                "validation_policy.corrosion_allowance.empty_value_policy",
+                "warning",
+            )
+            or "warning"
+        ).strip().lower()
+        if policy != "warning":
+            return warns
+        for i, row in enumerate(self.class_define_rows):
+            ca_raw = str(row.get("Corrosion_Allowance", "") or "").strip()
+            if ca_raw:
+                continue
+            label = f"Class_Define row {i + 1}"
+            warns.append(f"{label}: Corrosion_Allowance is empty.")
+        return warns
 
 
 def row_dict_for_headers(headers: list[str], data: dict[str, Any] | None = None) -> dict[str, str]:

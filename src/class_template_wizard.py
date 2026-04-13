@@ -28,6 +28,48 @@ _STRIPE_B = "#f0f1f4"
 _LIST_HOVER = "#dceaf7"
 
 _LAST_CLASS_LEVEL_BUNDLE: ClassLevelBundle | None = None
+_CORROSION_ALLOWANCE_KEY = "Corrosion_Allowance"
+
+
+def _project_selected_unit_system(merged: dict) -> str:
+    un = merged.get("units_notation")
+    if not isinstance(un, dict):
+        return "Metric"
+    us = un.get("unit_system")
+    if not isinstance(us, dict):
+        return "Metric"
+    sel = str(us.get("selected", "Metric") or "Metric").strip()
+    return "Imperial" if sel == "Imperial" else "Metric"
+
+
+def _corrosion_allowance_unit_symbol(unit_system: str) -> str:
+    return "inch" if unit_system == "Imperial" else "mm"
+
+
+def _corrosion_reference_values(merged: dict) -> list[str]:
+    vp = merged.get("validation_policy")
+    if not isinstance(vp, dict):
+        return []
+    ca = vp.get("corrosion_allowance")
+    if not isinstance(ca, dict):
+        return []
+    ref = ca.get("reference_values")
+    if not isinstance(ref, dict):
+        return []
+
+    metric_raw = ref.get("metric_mm") if isinstance(ref.get("metric_mm"), list) else []
+    imperial_raw = ref.get("imperial_inch") if isinstance(ref.get("imperial_inch"), list) else []
+
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for source in (metric_raw, imperial_raw):
+        for v in source:
+            sv = str(v or "").strip()
+            if not sv or sv in seen:
+                continue
+            seen.add(sv)
+            ordered.append(sv)
+    return ordered
 
 
 def _project_selected_design_code() -> str:
@@ -332,6 +374,14 @@ class ClassLevelWizard(tk.Toplevel):
         self._last_shown_class_idx: int | None = None
 
         merged = config.config_manager.merged()
+        self._corrosion_default_value = str(
+            config.config_manager.get("validation_policy.corrosion_allowance.default_value", "0.0")
+            or "0.0"
+        ).strip() or "0.0"
+        self._corrosion_unit_symbol = _corrosion_allowance_unit_symbol(
+            _project_selected_unit_system(merged)
+        )
+        self._corrosion_combo_values = _corrosion_reference_values(merged)
         _dt, _dp = read_design_units_from_merged(merged)
         self._class_define_headers = class_define_headers(_dt, _dp)
         self._fluid_service_headers = fluid_service_headers(_dt, _dp)
@@ -345,7 +395,13 @@ class ClassLevelWizard(tk.Toplevel):
         if initial_bundle is None:
             blank = row_dict_for_headers(self._class_define_headers)
             self._bundle = ClassLevelBundle(
-                class_define_rows=[{**blank, "Design_Code": self._fixed_design_code}],
+                class_define_rows=[
+                    {
+                        **blank,
+                        "Design_Code": self._fixed_design_code,
+                        _CORROSION_ALLOWANCE_KEY: self._corrosion_default_value,
+                    }
+                ],
                 fluid_service_rows=[],
                 joint_rows=[],
                 schedule_rows=[],
@@ -359,6 +415,8 @@ class ClassLevelWizard(tk.Toplevel):
                 self._bundle.class_define_rows = [{**blank, "Design_Code": self._fixed_design_code}]
             for row in self._bundle.class_define_rows:
                 row["Design_Code"] = self._fixed_design_code
+                if not str(row.get(_CORROSION_ALLOWANCE_KEY, "") or "").strip():
+                    row[_CORROSION_ALLOWANCE_KEY] = self._corrosion_default_value
 
         _configure_sheet_treeview_style()
 
@@ -555,6 +613,19 @@ class ClassLevelWizard(tk.Toplevel):
                 grid_row += 1
                 continue
 
+            if h == _CORROSION_ALLOWANCE_KEY:
+                ca_label = bracket_unit_header("Corrosion_Allowance", self._corrosion_unit_symbol)
+                ttk.Label(rows_f, text=ca_label, width=lw).grid(row=grid_row, column=0, sticky="w", pady=1)
+                cb = ttk.Combobox(
+                    rows_f,
+                    width=42,
+                    state="normal",
+                    values=self._corrosion_combo_values,
+                )
+                cb.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
+                self._class_combos[h] = cb
+                grid_row += 1
+                continue
             ttk.Label(rows_f, text=h, width=lw).grid(row=grid_row, column=0, sticky="w", pady=1)
             if h == "Design_Code":
                 dc_text = self._fixed_design_code or "(piping_design_codes.selected is empty)"
@@ -674,6 +745,7 @@ class ClassLevelWizard(tk.Toplevel):
         self._save_class_detail_to_row()
         nr = row_dict_for_headers(self._class_define_headers)
         nr["Design_Code"] = self._fixed_design_code
+        nr[_CORROSION_ALLOWANCE_KEY] = self._corrosion_default_value
         self._bundle.class_define_rows.append(nr)
         self._refresh_class_listbox()
         self._class_list.selection_clear(0, "end")
@@ -824,7 +896,8 @@ class ClassLevelWizard(tk.Toplevel):
 
         hint = (
             "Select a class, then type directly in cells. "
-            "Double-click/Enter to edit, Insert adds a row, Delete removes selected row."
+            "Use Add row/Delete row buttons (or Insert/Delete keys). "
+            "Double-click/Enter edits a cell."
         )
         ttk.Label(right, text=hint, wraplength=620).grid(row=0, column=0, sticky="w", pady=(0, 6))
 
@@ -934,6 +1007,30 @@ class ClassLevelWizard(tk.Toplevel):
 
         class_lb.bind("<<ListboxSelect>>", on_class_select)
 
+        def add_row_for_selected() -> bool:
+            nm = selected_class["name"]
+            if not nm:
+                messagebox.showinfo("Selection", "Select a class first.", parent=self)
+                return False
+            self._bundle.schedule_rows.append(
+                {"Class_Name": nm, "Size_From": "", "Size_To": "", "Schedule": ""}
+            )
+            new_iid = f"r{len(self._bundle.schedule_rows) - 1}"
+            refill_rows(select_iid=new_iid)
+            start_edit(new_iid, "#1", None)
+            return True
+
+        def delete_selected_row() -> bool:
+            sel = tree.selection()
+            if not sel:
+                return False
+            src_idx = int(str(sel[0])[1:])
+            if 0 <= src_idx < len(self._bundle.schedule_rows):
+                self._bundle.schedule_rows.pop(src_idx)
+                refill_rows()
+                return True
+            return False
+
         def start_edit(iid: str, col_id: str, first_char: str | None = None) -> None:
             if editor["w"] is not None:
                 try:
@@ -1012,24 +1109,10 @@ class ClassLevelWizard(tk.Toplevel):
             if editor["w"] is not None:
                 return None
             if e.keysym == "Insert":
-                nm = selected_class["name"]
-                if not nm:
-                    return "break"
-                self._bundle.schedule_rows.append(
-                    {"Class_Name": nm, "Size_From": "", "Size_To": "", "Schedule": ""}
-                )
-                new_iid = f"r{len(self._bundle.schedule_rows) - 1}"
-                refill_rows(select_iid=new_iid)
-                start_edit(new_iid, "#1", None)
+                add_row_for_selected()
                 return "break"
             if e.keysym == "Delete":
-                sel = tree.selection()
-                if not sel:
-                    return "break"
-                src_idx = int(str(sel[0])[1:])
-                if 0 <= src_idx < len(self._bundle.schedule_rows):
-                    self._bundle.schedule_rows.pop(src_idx)
-                    refill_rows()
+                delete_selected_row()
                 return "break"
             ch = e.char
             if ch and len(ch) == 1 and ch.isprintable() and not ch.isspace():
@@ -1043,6 +1126,15 @@ class ClassLevelWizard(tk.Toplevel):
         tree.bind("<Double-1>", on_double_click)
         tree.bind("<Return>", on_return)
         tree.bind("<KeyPress>", on_keypress)
+
+        row_btns = ttk.Frame(right)
+        row_btns.grid(row=2, column=0, sticky="w", pady=(6, 0))
+        ttk.Button(row_btns, text="Add row", command=add_row_for_selected).pack(
+            side="left", padx=(0, 6)
+        )
+        ttk.Button(row_btns, text="Delete row", command=delete_selected_row).pack(
+            side="left"
+        )
 
         self._schedule_refresh_class_list = refill_class_list
         refill_class_list()
@@ -1087,6 +1179,9 @@ class ClassLevelWizard(tk.Toplevel):
         if errs:
             messagebox.showerror("Validation", "\n".join(errs), parent=self)
             return
+        warns = self._bundle.validation_warnings()
+        if warns:
+            messagebox.showwarning("Validation Warning", "\n".join(warns), parent=self)
         self.result = copy.deepcopy(self._bundle)
         self.destroy()
 

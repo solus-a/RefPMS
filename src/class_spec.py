@@ -116,6 +116,63 @@ def load_class_specs_from_workbook(workbook) -> dict[str, ClassSpec]:
     return out
 
 
+def corrosion_allowance_validation_messages(workbook) -> tuple[list[str], list[str]]:
+    """
+    Class_Define.Corrosion_Allowance 검증.
+    반환: (errors, warnings)
+    - 빈값은 validation_policy.corrosion_allowance.empty_value_policy에 따라 warning/error
+    - 비어있지 않은 값은 숫자여야 함
+    """
+    errors: list[str] = []
+    warnings: list[str] = []
+    if "Class_Define" not in workbook.sheetnames:
+        return errors, warnings
+
+    ws = workbook["Class_Define"]
+    required = ["Class_Name", "Corrosion_Allowance"]
+    try:
+        header_row = detect_header_row(ws, required)
+    except ValueError:
+        return errors, warnings
+    header_to_col = build_header_index(ws, header_row)
+    if any(h not in header_to_col for h in required):
+        return errors, warnings
+
+    unit_system = str(config.config_manager.get("units_notation.unit_system.selected", "Metric") or "Metric").strip()
+    ca_unit = "inch" if unit_system == "Imperial" else "mm"
+    empty_policy = str(
+        config.config_manager.get(
+            "validation_policy.corrosion_allowance.empty_value_policy",
+            "warning",
+        )
+        or "warning"
+    ).strip().lower()
+
+    for row_idx in range(header_row + 1, ws.max_row + 1):
+        class_name = get_cell_text(ws, row_idx, header_to_col, "Class_Name")
+        if not class_name:
+            continue
+        ca_raw = get_cell_text(ws, row_idx, header_to_col, "Corrosion_Allowance")
+        if not ca_raw:
+            msg = (
+                f"Class_Define row {row_idx} Class {class_name}: "
+                f"Corrosion_Allowance is empty ({ca_unit})."
+            )
+            if empty_policy == "error":
+                errors.append(msg)
+            else:
+                warnings.append(msg)
+            continue
+        try:
+            float(ca_raw)
+        except ValueError:
+            errors.append(
+                f"Class_Define row {row_idx} Class {class_name}: "
+                f"Corrosion_Allowance must be numeric; got {ca_raw!r}."
+            )
+    return errors, warnings
+
+
 def _normalize_rating_token(raw: str) -> str:
     t = to_text(raw).upper().replace(" ", "")
     if t.startswith("CL"):
@@ -239,11 +296,14 @@ def log_class_constraint_warnings(
     spec = class_specs.get(class_name)
     if not spec:
         return
-    class_rating = spec.get("class_rating", "")
-    row_rating = row_rating_for_constraint_check(sheet_name, ws, row_idx, header_to_col)
-    rmsg = rating_mismatch_message(row_rating, class_rating)
-    if rmsg:
-        logger.warning(f"{sheet_name} row {row_idx} Class {class_name}: {rmsg}")
+    # Valve rating은 설계 규격(B16.34/API 602 등) 기반으로 운용하므로
+    # Class_Define Class_Rating(B16.5)과 직접 비교하지 않는다.
+    if sheet_name not in ("Valve", "Valve_Group"):
+        class_rating = spec.get("class_rating", "")
+        row_rating = row_rating_for_constraint_check(sheet_name, ws, row_idx, header_to_col)
+        rmsg = rating_mismatch_message(row_rating, class_rating)
+        if rmsg:
+            logger.warning(f"{sheet_name} row {row_idx} Class {class_name}: {rmsg}")
 
     class_base = spec.get("class_base_material", "")
     if sheet_name in ("Valve", "Valve_Group"):
