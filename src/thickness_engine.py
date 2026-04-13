@@ -2,7 +2,8 @@
 사이즈·클래스별 Schedule(두께) 룩업.
 
 config/project/nps_master.json 의 nps_list·dn_list 중,
-**unit_system.selected 가 Imperial 이면 nps_list**, **Metric 이면 dn_list**로 사이즈 전개·스케줄 구간 매칭을 합니다.
+**units_notation.nominal_size.selected 가 DN 이면 dn_list**, **NPS(또는 비어 있음)이면 nps_list**로
+사이즈 전개·스케줄 구간 매칭을 합니다 (온도·압력용 unit_system 과 무관).
 **Schedule 룩업**은 우선 동일 규칙으로 매칭하고, 리스트에 없는 NPS라도
 From~To **숫자 구간**에 들어가면 해당 Schedule을 씁니다(Reducing 등).
 """
@@ -40,11 +41,11 @@ def dn_list() -> list[str]:
 
 def nominal_size_master() -> list[str]:
     """
-    Imperial → NPS 마스터(nps_list), Metric → DN 마스터(dn_list).
-    unit_system.selected 가 비어 있으면 Imperial 과 동일하게 nps_list 를 씁니다.
+    DN → dn_list, NPS(또는 미설정) → nps_list.
+    명목지름은 ``units_notation.nominal_size.selected`` 만 따릅니다.
     """
-    sel = str(cfg.get("units_notation.unit_system.selected", "")).strip()
-    if sel == "Metric":
+    raw = str(cfg.get("units_notation.nominal_size.selected", "") or "").strip().upper()
+    if raw == "DN":
         return dn_list()
     return nps_list()
 

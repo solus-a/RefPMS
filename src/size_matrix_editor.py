@@ -1,4 +1,4 @@
-"""Matrix editor for reducing/branch size tables (Excel-like: browse + F2/edit)."""
+"""Matrix editor for reducing/branch size tables (Excel-like: browse + F2/edit + Ctrl+click)."""
 
 from __future__ import annotations
 
@@ -10,16 +10,15 @@ from tkinter import ttk
 
 import config
 from class_level_model import NamedSizeTable, SizeTableRow
-from template_generator import (
-    _build_branch_table_size_pairs,
-    _prefill_reducing_pairs,
-    _size_number,
-)
 
 MIN_REDUCING_SIZE1_NPS = 0.75
 
 BRANCH_ITEM_TYPES_OK = frozenset({"T", "RT", "TH"})
 REDUCING_ITEM_TYPES_OK = frozenset({"RD", "SN"})
+
+
+def _size_number(size_text: str) -> float:
+    return float(size_text.strip())
 
 
 def _nominal_size_mode() -> Literal["NPS", "DN"]:
@@ -62,27 +61,15 @@ def _filter_to_allowlist(seq: list[str], allowed: frozenset[str]) -> list[str]:
 
 def _default_size1_rows(pair_kind: Literal["reducing", "branch"]) -> list[str]:
     allowed = _load_axis_allowlist()
+    raw = sorted(set(allowed), key=_size_number)
     if pair_kind == "reducing":
-        pairs = _prefill_reducing_pairs()
-        raw = sorted(
-            {a for a, _ in pairs if _size_number(a) >= MIN_REDUCING_SIZE1_NPS},
-            key=_size_number,
-        )
-    else:
-        pairs = _build_branch_table_size_pairs()
-        raw = sorted({a for a, _ in pairs}, key=_size_number)
-    return _filter_to_allowlist(raw, allowed)
+        raw = [x for x in raw if _size_number(x) >= MIN_REDUCING_SIZE1_NPS]
+    return raw
 
 
 def _default_size2_cols(pair_kind: Literal["reducing", "branch"]) -> list[str]:
     allowed = _load_axis_allowlist()
-    if pair_kind == "reducing":
-        pairs = _prefill_reducing_pairs()
-        raw = sorted({b for _, b in pairs}, key=_size_number)
-    else:
-        pairs = _build_branch_table_size_pairs()
-        raw = sorted({b for _, b in pairs}, key=_size_number)
-    return _filter_to_allowlist(raw, allowed)
+    return sorted(set(allowed), key=_size_number)
 
 
 def _merge_axis(default_axis: list[str], extra: set[str], allowed: frozenset[str]) -> list[str]:
@@ -130,8 +117,12 @@ def _matrix_help_text(pair_kind: Literal["reducing", "branch"], nominal: str) ->
     common = (
         f"Nominal size mode: {nominal} (from units_notation.nominal_size). "
         "Only sizes listed in nps_master for that mode may be used as row/column headers.\n\n"
-        "Navigation: click a cell to select. Shift+click extends the rectangle. "
-        "Arrow keys move the active cell; Shift+arrows extend selection. "
+        "Navigation (Excel-like): click selects a cell; drag a rectangle to replace the selection. "
+        "Ctrl+drag adds a rectangle to the current selection. Shift+click or Shift+drag unions a rectangle "
+        "from the anchor to the pointer with the existing selection (keeps prior Ctrl-added cells). "
+        "Ctrl+click (no drag) toggles a single cell and moves the anchor there. "
+        "Shift+arrows extend the rectangle from the anchor the same way (union). "
+        "Arrow keys move the active cell; plain click or arrows replace the selection with a single cell. "
         "Selection and anchor always stay on editable (white) cells.\n"
         "F2 or typing starts edit. Arrow keys while editing commit the cell and move. "
         "Ctrl+Enter copies the active cell value into all selected cells. "
@@ -221,10 +212,18 @@ class MatrixTableDialog(tk.Toplevel):
         self._labels: dict[tuple[int, int], tk.Label] = {}
         self._anchor_rc: tuple[int, int] | None = None
         self._focus_rc: tuple[int, int] | None = None
+        self._selected_cells: set[tuple[int, int]] = set()
         self._edit_entry: tk.Entry | None = None
         self._edit_rc: tuple[int, int] | None = None
         self._result: NamedSizeTable | None = None
         self._inner_keybindings_done = False
+        self._inner_pointer_binds_done = False
+        self._widget_to_rc: dict[tk.Misc, tuple[int, int]] = {}
+        self._drag_mode: str | None = None
+        self._drag_start_rc: tuple[int, int] | None = None
+        self._drag_snap: frozenset[tuple[int, int]] | None = None
+        self._drag_mouse_moved = False
+        self._drag_last_rc: tuple[int, int] | None = None
 
         self.geometry("960x640")
         self.columnconfigure(0, weight=1)
@@ -416,28 +415,187 @@ class MatrixTableDialog(tk.Toplevel):
             return v in BRANCH_ITEM_TYPES_OK
         return v in REDUCING_ITEM_TYPES_OK
 
-    def _norm_rect(self) -> tuple[int, int, int, int] | None:
-        if self._anchor_rc is None or self._focus_rc is None:
-            return None
-        ar, ac = self._anchor_rc
-        fr, fc = self._focus_rc
-        return min(ar, fr), max(ar, fr), min(ac, fc), max(ac, fc)
+    def _rect_cells_corners(self, a: tuple[int, int], b: tuple[int, int]) -> set[tuple[int, int]]:
+        ar, ac = a
+        br, bc = b
+        r0, r1 = min(ar, br), max(ar, br)
+        c0, c1 = min(ac, bc), max(ac, bc)
+        return {
+            (ri, ci)
+            for ri in range(r0, r1 + 1)
+            for ci in range(c0, c1 + 1)
+            if (ri, ci) in self._labels
+        }
 
-    def _cell_display_bg(self, ri: int, ci: int, rect: tuple[int, int, int, int] | None) -> str:
+    def _rc_at_root(self, x_root: int, y_root: int) -> tuple[int, int] | None:
+        w = self.winfo_containing(x_root, y_root)
+        while w is not None:
+            rc = self._widget_to_rc.get(w)
+            if rc is not None:
+                return rc
+            if w is self:
+                break
+            w = getattr(w, "master", None)
+        return None
+
+    def _toggle_ctrl_cell(self, ri: int, ci: int) -> None:
+        if (ri, ci) not in self._labels:
+            return
+        if (ri, ci) in self._selected_cells:
+            self._selected_cells.discard((ri, ci))
+            if not self._selected_cells:
+                self._selected_cells.add((ri, ci))
+                self._focus_rc = (ri, ci)
+            else:
+                self._focus_rc = min(self._selected_cells)
+        else:
+            self._selected_cells.add((ri, ci))
+            self._focus_rc = (ri, ci)
+        self._anchor_rc = (ri, ci)
+        self._clamp_anchor_focus()
+        self._prune_selected_to_labels()
+
+    def _clear_drag_state(self) -> None:
+        self._drag_mode = None
+        self._drag_start_rc = None
+        self._drag_snap = None
+        self._drag_mouse_moved = False
+        self._drag_last_rc = None
+
+    def _end_label_pointer_gesture(self, event: tk.Event | None) -> None:
+        if self._drag_mode is None:
+            return
+        mode = self._drag_mode
+        moved = self._drag_mouse_moved
+        start = self._drag_start_rc
+        fin: tuple[int, int] | None = None
+        if event is not None:
+            fin = self._rc_at_root(event.x_root, event.y_root)
+        last = fin or self._drag_last_rc or start
+        try:
+            self._inner.grab_release()
+        except tk.TclError:
+            pass
+        if mode == "ctrl" and not moved and start is not None:
+            self._toggle_ctrl_cell(*start)
+        elif moved and start is not None and last is not None:
+            if mode == "replace":
+                self._anchor_rc = start
+                self._focus_rc = last
+            elif mode == "ctrl":
+                self._anchor_rc = start
+                self._focus_rc = last
+            elif mode == "shift":
+                self._focus_rc = last
+        self._clear_drag_state()
+        self._clamp_anchor_focus()
+        self._prune_selected_to_labels()
+        self._refresh_all_cell_styles()
+
+    def _on_label_b1_press(self, event: tk.Event, ri: int, ci: int) -> None:
+        try:
+            self._inner.grab_release()
+        except tk.TclError:
+            pass
+        self._end_edit(commit=True)
+        if (ri, ci) not in self._labels:
+            return
+        shift = bool(event.state & 0x0001)
+        ctrl = bool(event.state & 0x0004)
+        self._clear_drag_state()
+        if ctrl:
+            self._drag_mode = "ctrl"
+            self._drag_snap = frozenset(self._selected_cells)
+            self._drag_start_rc = (ri, ci)
+            self._drag_last_rc = (ri, ci)
+        elif shift and self._anchor_rc is not None:
+            self._drag_mode = "shift"
+            self._drag_snap = frozenset(self._selected_cells)
+            self._drag_start_rc = (ri, ci)
+            self._focus_rc = (ri, ci)
+            self._selected_cells = set(self._drag_snap) | self._rect_cells_corners(
+                self._anchor_rc, self._focus_rc
+            )
+            self._drag_last_rc = (ri, ci)
+        else:
+            self._drag_mode = "replace"
+            self._drag_start_rc = (ri, ci)
+            self._anchor_rc = self._focus_rc = (ri, ci)
+            self._selected_cells = {(ri, ci)}
+            self._drag_last_rc = (ri, ci)
+        self._clamp_anchor_focus()
+        self._prune_selected_to_labels()
+        self._refresh_all_cell_styles()
+        try:
+            self._inner.grab_set()
+        except tk.TclError:
+            pass
+        self._inner.focus_set()
+
+    def _on_inner_b1_motion(self, event: tk.Event) -> None:
+        if self._drag_mode is None or self._drag_start_rc is None:
+            return
+        cur = self._rc_at_root(event.x_root, event.y_root)
+        if cur is None:
+            return
+        if cur != self._drag_start_rc:
+            self._drag_mouse_moved = True
+        self._drag_last_rc = cur
+        if self._drag_mode == "replace":
+            self._selected_cells = self._rect_cells_corners(self._drag_start_rc, cur)
+            self._focus_rc = cur
+        elif self._drag_mode == "ctrl":
+            base = set(self._drag_snap) if self._drag_snap is not None else set()
+            self._selected_cells = base | self._rect_cells_corners(self._drag_start_rc, cur)
+            self._focus_rc = cur
+        elif self._drag_mode == "shift" and self._anchor_rc is not None:
+            self._focus_rc = cur
+            base = set(self._drag_snap) if self._drag_snap is not None else set()
+            self._selected_cells = base | self._rect_cells_corners(self._anchor_rc, cur)
+        self._clamp_anchor_focus()
+        self._prune_selected_to_labels()
+        self._refresh_all_cell_styles()
+
+    def _on_inner_b1_release(self, event: tk.Event) -> None:
+        self._end_label_pointer_gesture(event)
+
+    def _ensure_inner_pointer_bindings(self) -> None:
+        if self._inner_pointer_binds_done:
+            return
+        inn = self._inner
+        cv = getattr(self, "_matrix_canvas", None)
+        inn.bind("<B1-Motion>", self._on_inner_b1_motion)
+        inn.bind("<ButtonRelease-1>", self._on_inner_b1_release)
+        self.bind("<B1-Motion>", self._on_inner_b1_motion)
+        self.bind("<ButtonRelease-1>", self._on_inner_b1_release)
+        if cv is not None and cv.winfo_exists():
+            cv.bind("<B1-Motion>", self._on_inner_b1_motion)
+            cv.bind("<ButtonRelease-1>", self._on_inner_b1_release)
+        self._inner_pointer_binds_done = True
+
+    def _prune_selected_to_labels(self) -> None:
+        if not self._labels:
+            self._selected_cells.clear()
+            return
+        self._selected_cells = {c for c in self._selected_cells if c in self._labels}
+        if self._focus_rc and self._focus_rc in self._labels:
+            if not self._selected_cells:
+                self._selected_cells.add(self._focus_rc)
+            elif self._focus_rc not in self._selected_cells:
+                self._selected_cells.add(self._focus_rc)
+
+    def _cell_display_bg(self, ri: int, ci: int) -> str:
         s1, s2 = self._key(ri, ci)
         val = self._values.get((s1, s2), "")
         ok = self._item_ok(val)
-        in_sel = bool(
-            rect and rect[0] <= ri <= rect[1] and rect[2] <= ci <= rect[3]
-        )
+        in_sel = (ri, ci) in self._selected_cells
         if in_sel:
             return "#fff9c4" if ok else "#ffcc99"
         return "white" if ok else "#ffcccc"
 
     def _refresh_all_cell_styles(self) -> None:
-        rect = self._norm_rect()
         for (ri, ci), lb in self._labels.items():
-            lb.config(bg=self._cell_display_bg(ri, ci, rect))
+            lb.config(bg=self._cell_display_bg(ri, ci))
 
     def _snap_to_label(self, r: int, c: int) -> tuple[int, int] | None:
         if not self._labels:
@@ -508,7 +666,14 @@ class MatrixTableDialog(tk.Toplevel):
 
     def _rebuild_grid(self) -> None:
         self._end_edit(commit=False)
+        try:
+            self._inner.grab_release()
+        except tk.TclError:
+            pass
+        self._clear_drag_state()
+        self._widget_to_rc.clear()
         self._anchor_rc = self._focus_rc = None
+        self._selected_cells.clear()
         for w in self._inner.winfo_children():
             w.destroy()
         self._labels.clear()
@@ -588,21 +753,24 @@ class MatrixTableDialog(tk.Toplevel):
                 )
                 lb.grid(row=gr0 + ri, column=ci + 1, sticky="nsew")
                 self._labels[(ri, ci)] = lb
-                lb.bind("<Button-1>", lambda e, r=ri, c=ci: self._click_cell(r, c, False))
-                lb.bind("<Shift-Button-1>", lambda e, r=ri, c=ci: self._click_cell(r, c, True))
+                self._widget_to_rc[lb] = (ri, ci)
+
+                def _label_b1_press(e: tk.Event, r: int = ri, c: int = ci) -> None:
+                    self._on_label_b1_press(e, r, c)
+
+                def _label_b1_motion(e: tk.Event) -> None:
+                    self._on_inner_b1_motion(e)
+
+                def _label_b1_release(e: tk.Event) -> None:
+                    self._on_inner_b1_release(e)
+
+                lb.bind("<Button-1>", _label_b1_press)
+                lb.bind("<B1-Motion>", _label_b1_motion)
+                lb.bind("<ButtonRelease-1>", _label_b1_release)
 
         self._ensure_inner_keybindings()
+        self._ensure_inner_pointer_bindings()
         self._refresh_all_cell_styles()
-
-    def _click_cell(self, ri: int, ci: int, shift: bool) -> None:
-        self._end_edit(commit=True)
-        if shift and self._anchor_rc is not None:
-            self._focus_rc = (ri, ci)
-        else:
-            self._anchor_rc = self._focus_rc = (ri, ci)
-        self._clamp_anchor_focus()
-        self._refresh_all_cell_styles()
-        self._inner.focus_set()
 
     def _ordered_keys(self) -> list[tuple[int, int]]:
         return sorted(self._labels.keys(), key=lambda t: (t[0], t[1]))
@@ -614,12 +782,14 @@ class MatrixTableDialog(tk.Toplevel):
             return "break"
         if self._focus_rc is None:
             self._anchor_rc = self._focus_rc = keys[0]
+            self._selected_cells = {keys[0]}
             self._clamp_anchor_focus()
             self._refresh_all_cell_styles()
             self._inner.focus_set()
             return "break"
         if self._focus_rc not in keys:
             self._anchor_rc = self._focus_rc = keys[0]
+            self._selected_cells = {keys[0]}
             self._clamp_anchor_focus()
             self._refresh_all_cell_styles()
             return "break"
@@ -627,6 +797,7 @@ class MatrixTableDialog(tk.Toplevel):
         nxt = idx + (1 if delta > 0 else -1)
         if 0 <= nxt < len(keys):
             self._anchor_rc = self._focus_rc = keys[nxt]
+            self._selected_cells = {keys[nxt]}
         self._clamp_anchor_focus()
         self._refresh_all_cell_styles()
         self._inner.focus_set()
@@ -638,6 +809,7 @@ class MatrixTableDialog(tk.Toplevel):
             self._end_edit(commit=True)
             if pos:
                 self._anchor_rc = self._focus_rc = pos
+                self._selected_cells = {pos}
         else:
             self._end_edit(commit=True)
         sym = event.keysym
@@ -647,8 +819,10 @@ class MatrixTableDialog(tk.Toplevel):
 
     def _arrow_move(self, sym: str) -> None:
         if self._focus_rc is None:
-            if self._ordered_keys():
-                self._anchor_rc = self._focus_rc = self._ordered_keys()[0]
+            keys0 = self._ordered_keys()
+            if keys0:
+                self._anchor_rc = self._focus_rc = keys0[0]
+                self._selected_cells = {keys0[0]}
                 self._clamp_anchor_focus()
                 self._refresh_all_cell_styles()
             self._inner.focus_set()
@@ -664,6 +838,7 @@ class MatrixTableDialog(tk.Toplevel):
             nxt = self._move_same_row(ri, ci, 1)
         if nxt:
             self._anchor_rc = self._focus_rc = nxt
+            self._selected_cells = {nxt}
         self._clamp_anchor_focus()
         self._refresh_all_cell_styles()
         self._inner.focus_set()
@@ -686,6 +861,7 @@ class MatrixTableDialog(tk.Toplevel):
                 return "break"
         if self._focus_rc is None:
             self._focus_rc = self._anchor_rc
+        prev = set(self._selected_cells)
         fr, fc = self._focus_rc
         sym = event.keysym
         if sym == "Up":
@@ -697,6 +873,8 @@ class MatrixTableDialog(tk.Toplevel):
         elif sym == "Right":
             self._focus_rc = (fr, min(len(self._size2_cols) - 1, fc + 1))
         self._clamp_anchor_focus()
+        self._selected_cells = prev | self._rect_cells_corners(self._anchor_rc, self._focus_rc)
+        self._prune_selected_to_labels()
         self._refresh_all_cell_styles()
         self._inner.focus_set()
         return "break"
@@ -847,36 +1025,45 @@ class MatrixTableDialog(tk.Toplevel):
     def _ctrl_enter_fill(self) -> str:
         self._end_edit(commit=True)
         self._clamp_anchor_focus()
-        rect = self._norm_rect()
-        if not rect:
+        self._prune_selected_to_labels()
+        targets = [c for c in self._selected_cells if c in self._labels]
+        if not targets:
             return "break"
         val = self._active_cell_value()
-        r0, r1, c0, c1 = rect
-        for ri in range(r0, r1 + 1):
-            for ci in range(c0, c1 + 1):
-                if (ri, ci) not in self._labels:
-                    continue
-                s1, s2 = self._key(ri, ci)
-                self._values[(s1, s2)] = val
-                self._labels[(ri, ci)].config(text=val)
+        for ri, ci in targets:
+            s1, s2 = self._key(ri, ci)
+            self._values[(s1, s2)] = val
+            self._labels[(ri, ci)].config(text=val)
         self._refresh_all_cell_styles()
         return "break"
 
     def _copy_selection(self) -> None:
-        rect = self._norm_rect()
-        if not rect:
+        cells = self._selected_cells & self._labels.keys()
+        if not cells:
             if self._focus_rc and self._focus_rc in self._labels:
                 ri, ci = self._focus_rc
                 self.clipboard_clear()
                 self.clipboard_append(self._values.get(self._key(ri, ci), ""))
             return
-        r0, r1, c0, c1 = rect
+        if len(cells) == 1:
+            ri, ci = next(iter(cells))
+            self.clipboard_clear()
+            self.clipboard_append(self._values.get(self._key(ri, ci), ""))
+            return
+        r0 = min(r for r, _ in cells)
+        r1 = max(r for r, _ in cells)
+        c0 = min(c for _, c in cells)
+        c1 = max(c for _, c in cells)
         lines = []
         for ri in range(r0, r1 + 1):
             row = []
             for ci in range(c0, c1 + 1):
                 if (ri, ci) in self._labels:
-                    row.append(self._values.get(self._key(ri, ci), ""))
+                    row.append(
+                        self._values.get(self._key(ri, ci), "")
+                        if (ri, ci) in cells
+                        else ""
+                    )
                 else:
                     row.append("")
             lines.append("\t".join(row))
@@ -924,6 +1111,8 @@ class MatrixTableDialog(tk.Toplevel):
                 if not self._axis_enabled_size2.get(s2, True):
                     continue
                 it = self._values.get((s1, s2), "").strip().upper()
+                if not it:
+                    continue
                 out.append(SizeTableRow(s1, s2, it, ""))
         return sorted(out, key=lambda r: (_size_number(r.size1), _size_number(r.size2)))
 

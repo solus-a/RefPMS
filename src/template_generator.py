@@ -76,147 +76,6 @@ SCHEDULE_HEADERS = [
 
 REDUCING_TABLE_HEADERS = ["Table_Code", "Size1", "Size2", "Item_Type", "Remarks"]
 BRANCH_TABLE_HEADERS = REDUCING_TABLE_HEADERS
-REDUCING_TABLE_SIZE_PAIRS: tuple[tuple[str, str], ...] = (
-    ("0.75", "0.5"),
-    ("0.75", "0.375"),
-    ("1", "0.75"),
-    ("1", "0.5"),
-    ("1.25", "1"),
-    ("1.25", "0.75"),
-    ("1.25", "0.5"),
-    ("1.5", "1.25"),
-    ("1.5", "1"),
-    ("1.5", "0.75"),
-    ("1.5", "0.5"),
-    ("2", "1.5"),
-    ("2", "1.25"),
-    ("2", "1"),
-    ("2", "0.75"),
-    ("2.5", "2"),
-    ("2.5", "1.5"),
-    ("2.5", "1.25"),
-    ("2.5", "1"),
-    ("3", "2.5"),
-    ("3", "2"),
-    ("3", "1.5"),
-    ("3", "1.25"),
-    ("3.5", "3"),
-    ("3.5", "2.5"),
-    ("3.5", "2"),
-    ("3.5", "1.5"),
-    ("3.5", "1.25"),
-    ("4", "3.5"),
-    ("4", "3"),
-    ("4", "2.5"),
-    ("4", "2"),
-    ("4", "1.5"),
-    ("5", "4"),
-    ("5", "3.5"),
-    ("5", "3"),
-    ("5", "2.5"),
-    ("5", "2"),
-    ("6", "5"),
-    ("6", "4"),
-    ("6", "3.5"),
-    ("6", "3"),
-    ("6", "2.5"),
-    ("8", "6"),
-    ("8", "5"),
-    ("8", "4"),
-    ("8", "3.5"),
-    ("10", "8"),
-    ("10", "6"),
-    ("10", "5"),
-    ("10", "4"),
-    ("12", "10"),
-    ("12", "8"),
-    ("12", "6"),
-    ("12", "5"),
-    ("14", "12"),
-    ("14", "10"),
-    ("14", "8"),
-    ("14", "6"),
-    ("16", "14"),
-    ("16", "12"),
-    ("16", "10"),
-    ("16", "8"),
-    ("18", "16"),
-    ("18", "14"),
-    ("18", "12"),
-    ("18", "10"),
-    ("20", "18"),
-    ("20", "16"),
-    ("20", "14"),
-    ("20", "12"),
-    ("22", "20"),
-    ("22", "18"),
-    ("22", "16"),
-    ("22", "14"),
-    ("24", "22"),
-    ("24", "20"),
-    ("24", "18"),
-    ("24", "16"),
-    ("26", "24"),
-    ("26", "22"),
-    ("26", "20"),
-    ("26", "18"),
-    ("28", "26"),
-    ("28", "24"),
-    ("28", "20"),
-    ("28", "18"),
-    ("30", "28"),
-    ("30", "26"),
-    ("30", "24"),
-    ("30", "20"),
-    ("32", "30"),
-    ("32", "28"),
-    ("32", "26"),
-    ("32", "24"),
-    ("34", "32"),
-    ("34", "30"),
-    ("34", "26"),
-    ("34", "24"),
-    ("36", "34"),
-    ("36", "32"),
-    ("36", "30"),
-    ("36", "26"),
-    ("36", "24"),
-    ("38", "36"),
-    ("38", "34"),
-    ("38", "32"),
-    ("38", "30"),
-    ("38", "28"),
-    ("38", "26"),
-    ("40", "38"),
-    ("40", "36"),
-    ("40", "34"),
-    ("40", "32"),
-    ("40", "30"),
-    ("42", "40"),
-    ("42", "38"),
-    ("42", "36"),
-    ("42", "34"),
-    ("42", "32"),
-    ("42", "30"),
-    ("44", "42"),
-    ("44", "40"),
-    ("44", "38"),
-    ("44", "36"),
-    ("46", "44"),
-    ("46", "42"),
-    ("46", "40"),
-    ("46", "38"),
-    ("48", "46"),
-    ("48", "44"),
-    ("48", "42"),
-    ("48", "40"),
-)
-
-# 템플릿 Branch/Reducing 선입력 시 제외: NPS 24 초과, 비표준 분수 0.375·1.25·2.5·3.5
-TEMPLATE_SIZE_MAX_NPS = 24.0
-TEMPLATE_SIZE_EXCLUDED_NUMBERS: frozenset[float] = frozenset({0.375, 1.25, 2.5, 3.5})
-# Reducing 표: Main Size(Size1) 최소값 (size_matrix_editor / _cell_allowed 와 동일)
-MIN_REDUCING_SIZE1_NPS = 0.75
 
 PIPE_HEADERS = [
     "Class_Name",
@@ -356,100 +215,6 @@ def _set_headers_and_widths(ws, headers: list[str]) -> None:
         )
 
     ws.freeze_panes = FREEZE_PANES
-
-
-def _size_number(size_text: str) -> float:
-    return float(size_text.strip())
-
-
-def _nominal_size_selected_is_dn() -> bool:
-    raw = str(config.config_manager.get("units_notation.nominal_size.selected", "") or "").strip().upper()
-    return raw == "DN"
-
-
-def _sorted_nominal_labels_for_prefill() -> list[str]:
-    """NPS 또는 DN 목록(프로젝트 nps_master)을 숫자 순으로."""
-    if _nominal_size_selected_is_dn():
-        lst = config.config_manager.get("nps_master.dn_list", []) or []
-    else:
-        lst = config.config_manager.get("nps_master.nps_list", []) or []
-    raw = [str(x).strip() for x in lst if str(x).strip()]
-    return sorted(raw, key=_size_number)
-
-
-def _branch_pairs_from_sorted_sizes(sizes: list[str]) -> list[tuple[str, str]]:
-    out: list[tuple[str, str]] = []
-    for s1 in sizes:
-        for s2 in sizes:
-            if _size_number(s1) >= _size_number(s2):
-                out.append((s1, s2))
-    return _sorted_size_pairs(out)
-
-
-def _reducing_pairs_from_sorted_sizes(sizes: list[str]) -> list[tuple[str, str]]:
-    """dn_list / nps_list 기준: Size1 > Size2 이고 Size1 이 최소 인치와 동일 규칙(MIN_REDUCING_SIZE1_NPS)."""
-    out: list[tuple[str, str]] = []
-    for s1 in sizes:
-        n1 = _size_number(s1)
-        if n1 < MIN_REDUCING_SIZE1_NPS:
-            continue
-        for s2 in sizes:
-            if _size_number(s2) < n1:
-                out.append((s1, s2))
-    return _sorted_size_pairs(out)
-
-
-def _prefill_reducing_pairs() -> list[tuple[str, str]]:
-    if _nominal_size_selected_is_dn():
-        return _reducing_pairs_from_sorted_sizes(_sorted_nominal_labels_for_prefill())
-    return _template_reducing_pairs_filtered()
-
-
-def _template_size_allowed(size_text: str) -> bool:
-    n = _size_number(size_text)
-    if n > TEMPLATE_SIZE_MAX_NPS:
-        return False
-    if n in TEMPLATE_SIZE_EXCLUDED_NUMBERS:
-        return False
-    return True
-
-
-def _sorted_size_pairs(
-    pairs: list[tuple[str, str]],
-) -> list[tuple[str, str]]:
-    return sorted(pairs, key=lambda p: (_size_number(p[0]), _size_number(p[1])))
-
-
-def _template_reducing_pairs_filtered() -> list[tuple[str, str]]:
-    pairs: list[tuple[str, str]] = []
-    for a, b in REDUCING_TABLE_SIZE_PAIRS:
-        if _template_size_allowed(a) and _template_size_allowed(b):
-            pairs.append((a, b))
-    return _sorted_size_pairs(pairs)
-
-
-def _build_branch_table_size_pairs() -> list[tuple[str, str]]:
-    if _nominal_size_selected_is_dn():
-        return _branch_pairs_from_sorted_sizes(_sorted_nominal_labels_for_prefill())
-    filtered = _template_reducing_pairs_filtered()
-    sizes_set: set[str] = set()
-    for a, b in filtered:
-        sizes_set.add(a)
-        sizes_set.add(b)
-    sizes = sorted(sizes_set, key=_size_number)
-    out: list[tuple[str, str]] = []
-    for size1 in sizes:
-        for size2 in sizes:
-            if _size_number(size1) >= _size_number(size2):
-                out.append((size1, size2))
-    return _sorted_size_pairs(out)
-
-
-def _prefill_size_pairs(ws, size_pairs: list[tuple[str, str]]) -> None:
-    # Table_Code/Item_Type/Remarks 는 사용자 입력 대상으로 비워 둡니다.
-    for row_idx, (size1, size2) in enumerate(size_pairs, start=2):
-        ws.cell(row=row_idx, column=2, value=size1)  # Size1
-        ws.cell(row=row_idx, column=3, value=size2)  # Size2
 
 
 def _ensure_json_file(path: Path, default_obj: dict) -> None:
@@ -667,8 +432,8 @@ def generate_class_define_template(
 
     class_level:
         GUI에서 수집한 클래스 수준 데이터. 지정 시 Class_Define·Fluid_Service·Joint·Schedule·
-        Branch_Table·Reducing_Table 내용을 이 값으로 채웁니다. None 이면 기존처럼
-        Branch/Reducing 시트만 표준 사이즈 쌍으로 선입력합니다.
+        Branch_Table·Reducing_Table 내용을 이 값으로 채웁니다. None 이면 두 시트는 헤더만
+        생성되고 데이터 행은 비워 둡니다.
     """
     logger = _get_logger()
 
@@ -701,10 +466,7 @@ def generate_class_define_template(
     ws_reducing_table = wb.create_sheet(title="Reducing_Table")
     _set_headers_and_widths(ws_reducing_table, REDUCING_TABLE_HEADERS)
 
-    if class_level is None:
-        _prefill_size_pairs(ws_branch_table, _build_branch_table_size_pairs())
-        _prefill_size_pairs(ws_reducing_table, _prefill_reducing_pairs())
-    else:
+    if class_level is not None:
         _write_dict_rows(ws_define, class_headers, class_level.class_define_rows)
         _write_dict_rows(ws_fluid, fluid_headers, class_level.fluid_service_rows)
         _write_dict_rows(ws_joint, JOINT_HEADERS, class_level.joint_rows)

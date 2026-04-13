@@ -153,20 +153,6 @@ def validate_project_constraints(merged: dict[str, Any]) -> list[str]:
                     f"units_notation.nominal_size.selected: 허용 목록 {allowed!r} 안에 없습니다: {sel!r}"
                 )
 
-        us_block3 = un.get("unit_system")
-        ns3 = un.get("nominal_size")
-        if isinstance(us_block3, dict) and isinstance(ns3, dict):
-            u_sel = str(us_block3.get("selected", "")).strip()
-            n_sel = str(ns3.get("selected", "")).strip()
-            if u_sel == "Imperial" and n_sel and n_sel != "NPS":
-                errors.append(
-                    "units_notation: unit_system 이 Imperial 이면 nominal_size.selected 는 NPS 이어야 합니다."
-                )
-            if u_sel == "Metric" and n_sel and n_sel != "DN":
-                errors.append(
-                    "units_notation: unit_system 이 Metric 이면 nominal_size.selected 는 DN 이어야 합니다."
-                )
-
         _validate_design_units_nested(errors, un)
 
     # piping_design_codes.selected (e.g. ASME B31.3) 전제로 소켓·나사 단조이음관 치수는 ASME B16.11 계열을
@@ -194,16 +180,18 @@ def validate_project_constraints(merged: dict[str, Any]) -> list[str]:
         errors.append("nps_master.nps_list: 배열이어야 합니다.")
     else:
         un_m = merged.get("units_notation")
-        unit_sel = ""
+        nominal_sel = ""
         if isinstance(un_m, dict):
-            usb = un_m.get("unit_system")
-            if isinstance(usb, dict):
-                unit_sel = str(usb.get("selected", "")).strip()
+            ns_m = un_m.get("nominal_size")
+            if isinstance(ns_m, dict):
+                nominal_sel = str(ns_m.get("selected", "")).strip().upper()
+        use_dn_master = nominal_sel == "DN"
 
         nps = nm["nps_list"]
-        if unit_sel == "Imperial" and (not isinstance(nps, list) or len(nps) == 0):
+        if not use_dn_master and (not isinstance(nps, list) or len(nps) == 0):
             errors.append(
-                "nps_master.nps_list: unit_system 이 Imperial 이면 NPS 목록이 비어 있으면 안 됩니다."
+                "nps_master.nps_list: nominal_size.selected 가 NPS(또는 비어 있음)일 때 "
+                "NPS 목록이 비어 있으면 안 됩니다."
             )
 
         dn = nm.get("dn_list")
@@ -214,9 +202,9 @@ def validate_project_constraints(merged: dict[str, Any]) -> list[str]:
                 if not str(v).strip():
                     errors.append(f"nps_master.dn_list[{i}]: 비어 있으면 안 됩니다.")
 
-        if unit_sel == "Metric" and (not isinstance(dn, list) or len(dn) == 0):
+        if use_dn_master and (not isinstance(dn, list) or len(dn) == 0):
             errors.append(
-                "nps_master.dn_list: unit_system 이 Metric 이면 DN 목록이 비어 있으면 안 됩니다."
+                "nps_master.dn_list: nominal_size.selected 가 DN 일 때 DN 목록이 비어 있으면 안 됩니다."
             )
 
     ost = merged.get("output_settings")

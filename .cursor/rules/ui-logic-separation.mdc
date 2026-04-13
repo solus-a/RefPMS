@@ -1,0 +1,48 @@
+---
+description: Enforce strict UI and business-logic separation
+alwaysApply: true
+---
+
+# UI and Business Logic Separation
+
+## Core boundaries
+
+- Keep UI code and business logic separate (Separation of Concerns).
+- Allow UI framework imports (e.g., `tkinter`, `PyQt`, `PySide`) only in UI-layer files.
+- Write logic/service/engine classes as pure Python with no UI framework dependency.
+
+## Interaction pattern
+
+- Inject UI actions (file pickers, dialogs, notifications) via callbacks or interfaces.
+- Do not call UI popups directly inside logic modules.
+
+## Error handling
+
+- Raise exceptions for domain and validation errors from non-UI code.
+- UI layer catches exceptions and decides how to present them (status text, dialog, etc.).
+- Never use `messagebox` (or similar UI alerts) inside business-logic modules.
+
+## Quick examples
+
+```python
+# BAD (logic tied to tkinter)
+from tkinter import messagebox
+def validate(data):
+    if not data:
+        messagebox.showerror("Error", "Invalid")
+```
+
+```python
+# GOOD (pure logic)
+def validate(data):
+    if not data:
+        raise ValueError("Invalid data")
+```
+
+```python
+# GOOD (UI decides presentation)
+try:
+    validate(data)
+except ValueError as exc:
+    show_error(str(exc))  # callback/UI adapter
+```

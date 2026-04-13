@@ -27,7 +27,7 @@
   },
   "nominal_size": {
     "allowed": ["NPS", "DN"],
-    "selected": "DN"
+    "selected": "NPS"
   },
   "pipe_thread": {
     "allowed": ["NPT", "PT"],
