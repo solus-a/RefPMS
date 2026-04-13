@@ -740,25 +740,13 @@ def _load_class_branch_table_codes(workbook) -> dict[str, str]:
     return out
 
 
-def _branch_rt_template_reference_nps(run_nps: str, branch_nps: str) -> str:
+def _branch_rt_template_reference_nps(
+    run_nps: str,
+) -> str:
     """
-    이경 티(RT) 템플릿 행 선택용 기준 NPS.
-    관행: 대단(run)·소단(branch)에 따라 2~14(SMLS) vs 16~24(WLD) 구간 행을 고름.
+    이경 티(RT) 템플릿 행 선택 기준은 RUN(size1)이다.
     """
-    f_run = _to_float(_to_text(run_nps))
-    f_br = _to_float(_to_text(branch_nps))
-    if f_run is None or f_br is None:
-        return run_nps
-    s1, s2 = _to_text(run_nps), _to_text(branch_nps)
-    if f_run >= 24 and f_br <= 14:
-        return s2
-    if 22 <= f_run < 24:
-        if f_br <= 14:
-            return s2
-        return s1
-    if f_run < 22 and f_br <= 14:
-        return s2
-    return s1
+    return _to_text(run_nps)
 
 
 def _find_fitting_template_row_for_nps(
@@ -810,7 +798,7 @@ def _find_rt_fitting_template_row(
     """
     이경 티(RT): 소단이 SW 구간(예: 0.5~1.5)이어도 대단이 2\" 이상 BW 구간이면 BW 템플릿을 쓴다.
     """
-    ref = _branch_rt_template_reference_nps(run_nps, branch_nps)
+    ref = _branch_rt_template_reference_nps(run_nps)
     row_sw = _find_fitting_template_row_for_nps(
         fitting_ws,
         fitting_header_row,
@@ -1209,7 +1197,6 @@ def _iter_output_rows(
     branch_data = branch_data if branch_data is not None else {}
     class_branch_codes = class_branch_codes if class_branch_codes is not None else {}
 
-    fitting_template_rows: dict[tuple[str, str], int] = {}
     fitting_ws = workbook["Fitting_Group"] if "Fitting_Group" in workbook.sheetnames else None
     fitting_header_to_col: dict[str, int] = {}
     fitting_header_row: Optional[int] = None
@@ -1219,11 +1206,6 @@ def _iter_output_rows(
                 fitting_ws, ["Class_Name", "Item_Code", "End_Type_1"]
             )
             fitting_header_to_col = _build_header_index(fitting_ws, fitting_header_row)
-            for row_idx in range(fitting_header_row + 1, fitting_ws.max_row + 1):
-                cls = _get_cell_text(fitting_ws, row_idx, fitting_header_to_col, "Class_Name")
-                code = _get_cell_text(fitting_ws, row_idx, fitting_header_to_col, "Item_Code")
-                if cls and code:
-                    fitting_template_rows[(cls, code)] = row_idx
         except ValueError:
             fitting_ws = None
             fitting_header_row = None
@@ -1479,10 +1461,20 @@ def _iter_output_rows(
                     continue
 
                 for mapped_code in mapped_codes:
-                    template_row_idx = fitting_template_rows.get((class_name, mapped_code))
+                    template_row_idx = _find_fitting_template_row_for_nps(
+                        fitting_ws,
+                        fitting_header_row,
+                        fitting_header_to_col,
+                        class_name,
+                        mapped_code,
+                        size1,
+                        logger,
+                        log_if_missing=False,
+                    )
                     if template_row_idx is None:
                         logger.warning(
-                            f"Fitting_Group template row missing for class/item: {class_name}/{mapped_code}"
+                            f"Fitting_Group template row missing for class/item/size: "
+                            f"{class_name}/{mapped_code}/{size1}"
                         )
                         continue
 

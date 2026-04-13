@@ -5,11 +5,16 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import tkinter as tk
+from tkinter import messagebox
 
 import gui
 import config
 from class_template_wizard import run_class_level_wizard
-from template_generator import DEFAULT_TEMPLATE_FILENAME, generate_class_define_template
+from template_generator import (
+    DEFAULT_TEMPLATE_FILENAME,
+    generate_class_define_template,
+    load_class_level_bundle_from_template,
+)
 import file_handler
 import pms_generator
 from project_constraints import validate_project_constraints
@@ -52,6 +57,42 @@ def create_controller(root: tk.Tk) -> None:
             status_setter(f"템플릿 생성 완료: {out_path}")
         except Exception as exc:
             status_setter(f"템플릿 생성 실패: {exc}")
+
+    def on_template_edit() -> None:
+        src_path = file_handler.select_excel_file(root)
+        if not src_path:
+            status_setter("대기중")
+            return
+
+        status_setter("기존 템플릿 읽는 중...")
+        try:
+            seed_bundle = load_class_level_bundle_from_template(src_path)
+        except Exception as exc:
+            messagebox.showerror("템플릿 수정", f"템플릿 읽기 실패:\n{exc}", parent=root)
+            status_setter(f"템플릿 읽기 실패: {exc}")
+            return
+
+        save_dir = file_handler.select_save_folder(root)
+        if not save_dir:
+            status_setter("대기중")
+            return
+
+        status_setter("클래스 수준 입력…")
+        bundle = run_class_level_wizard(root, initial_bundle=seed_bundle)
+        if bundle is None:
+            status_setter("대기중")
+            return
+
+        status_setter("수정 템플릿 저장 중...")
+        try:
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            out_dir = Path(save_dir) / "template" / stamp
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out_path = out_dir / DEFAULT_TEMPLATE_FILENAME
+            generate_class_define_template(output_path=out_path, class_level=bundle)
+            status_setter(f"템플릿 수정 저장 완료: {out_path}")
+        except Exception as exc:
+            status_setter(f"템플릿 저장 실패: {exc}")
 
     def on_file_load() -> None:
         status_setter("파일 선택 중...")
@@ -100,6 +141,7 @@ def create_controller(root: tk.Tk) -> None:
     status_setter = gui.build_gui(
         root=root,
         on_template_create=on_template_create,
+        on_template_edit=on_template_edit,
         on_file_load=on_file_load,
         on_pms_generate=on_pms_generate,
     )

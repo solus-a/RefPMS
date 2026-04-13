@@ -8,153 +8,23 @@ from typing import Literal
 import tkinter as tk
 from tkinter import ttk
 
-import config
 from class_level_model import NamedSizeTable, SizeTableRow
-
-MIN_REDUCING_SIZE1_NPS = 0.75
-
-BRANCH_ITEM_TYPES_OK = frozenset({"T", "RT", "TH"})
-REDUCING_ITEM_TYPES_OK = frozenset({"RD", "SN"})
-
-
-def _size_number(size_text: str) -> float:
-    return float(size_text.strip())
-
-
-def _nominal_size_mode() -> Literal["NPS", "DN"]:
-    raw = config.config_manager.get("units_notation.nominal_size.selected", "NPS")
-    s = str(raw or "").strip().upper()
-    if s == "DN":
-        return "DN"
-    return "NPS"
+from size_matrix_common import (
+    BRANCH_ITEM_TYPES_OK,
+    MIN_REDUCING_SIZE1_NPS,
+    REDUCING_ITEM_TYPES_OK,
+    axes_from_rows,
+    cell_allowed,
+    load_axis_allowlist,
+    matrix_help_text,
+    nominal_size_mode,
+    size_number,
+    sorted_nominal_master_list,
+)
+from size_matrix_edit_ops import MatrixEditOpsMixin
 
 
-def _load_axis_allowlist() -> frozenset[str]:
-    mode = _nominal_size_mode()
-    key = "nps_master.dn_list" if mode == "DN" else "nps_master.nps_list"
-    lst = config.config_manager.get(key, []) or []
-    out: set[str] = set()
-    if isinstance(lst, list):
-        for x in lst:
-            t = str(x).strip()
-            if t:
-                out.add(t)
-    return frozenset(out)
-
-
-def _sorted_nominal_master_list() -> list[str]:
-    """nps_master 순서(숫자 정렬) — Edit Size 대화상자 행과 매트릭스 축의 기준."""
-    mode = _nominal_size_mode()
-    key = "nps_master.dn_list" if mode == "DN" else "nps_master.nps_list"
-    lst = config.config_manager.get(key, []) or []
-    if not isinstance(lst, list):
-        return []
-    raw = [str(x).strip() for x in lst if str(x).strip()]
-    return sorted(set(raw), key=_size_number)
-
-
-def _filter_to_allowlist(seq: list[str], allowed: frozenset[str]) -> list[str]:
-    if not allowed:
-        return list(seq)
-    return [x for x in seq if x in allowed]
-
-
-def _default_size1_rows(pair_kind: Literal["reducing", "branch"]) -> list[str]:
-    allowed = _load_axis_allowlist()
-    raw = sorted(set(allowed), key=_size_number)
-    if pair_kind == "reducing":
-        raw = [x for x in raw if _size_number(x) >= MIN_REDUCING_SIZE1_NPS]
-    return raw
-
-
-def _default_size2_cols(pair_kind: Literal["reducing", "branch"]) -> list[str]:
-    allowed = _load_axis_allowlist()
-    return sorted(set(allowed), key=_size_number)
-
-
-def _merge_axis(default_axis: list[str], extra: set[str], allowed: frozenset[str]) -> list[str]:
-    merged = sorted(set(default_axis) | extra, key=_size_number)
-    if not allowed:
-        return merged
-    return [x for x in merged if x in allowed]
-
-
-def _cell_allowed(
-    size1: str,
-    size2: str,
-    pair_kind: Literal["reducing", "branch"],
-) -> bool:
-    try:
-        n1 = _size_number(size1)
-        n2 = _size_number(size2)
-    except (TypeError, ValueError):
-        return False
-    if pair_kind == "reducing":
-        if n1 < MIN_REDUCING_SIZE1_NPS:
-            return False
-        return n2 < n1
-    return n2 <= n1
-
-
-def _axes_from_rows(
-    rows: list[SizeTableRow],
-    pair_kind: Literal["reducing", "branch"],
-) -> tuple[list[str], list[str]]:
-    allowed = _load_axis_allowlist()
-    s1: set[str] = set()
-    s2: set[str] = set()
-    for r in rows:
-        if r.size1.strip():
-            s1.add(r.size1.strip())
-        if r.size2.strip():
-            s2.add(r.size2.strip())
-    r1 = _merge_axis(_default_size1_rows(pair_kind), s1, allowed)
-    c2 = _merge_axis(_default_size2_cols(pair_kind), s2, allowed)
-    return r1, c2
-
-
-def _matrix_help_text(pair_kind: Literal["reducing", "branch"], nominal: str) -> str:
-    common = (
-        f"Nominal size mode: {nominal} (from units_notation.nominal_size). "
-        "Only sizes listed in nps_master for that mode may be used as row/column headers.\n\n"
-        "Navigation (Excel-like): click selects a cell; drag a rectangle to replace the selection. "
-        "Ctrl+drag adds a rectangle to the current selection. Shift+click or Shift+drag unions a rectangle "
-        "from the anchor to the pointer with the existing selection (keeps prior Ctrl-added cells). "
-        "Ctrl+click (no drag) toggles a single cell and moves the anchor there. "
-        "Shift+arrows extend the rectangle from the anchor the same way (union). "
-        "Arrow keys move the active cell; plain click or arrows replace the selection with a single cell. "
-        "Selection and anchor always stay on editable (white) cells.\n"
-        "F2 or typing starts edit. Arrow keys while editing commit the cell and move. "
-        "Ctrl+Enter copies the active cell value into all selected cells. "
-        "Ctrl+C / Ctrl+V copy and paste TSV blocks.\n\n"
-        "Item_Type is stored in UPPERCASE.\n"
-        "Edit Size opens a list (one row per nominal from nps_master): two checkboxes per row — "
-        "whether that label is enabled on the Size1 axis (rows) and on the Size2 axis (columns). "
-        "Unchecked axis greys the entire corresponding row or column in the matrix (geometry rules still apply).\n"
-        "Reset clears every editable cell's Item_Type value; axis enable flags are unchanged.\n"
-    )
-    if pair_kind == "reducing":
-        return (
-            common
-            + "Reducing table\n"
-            + "-------------\n"
-            + "Rows: Main Size (Size1). Columns: Reducing Size (Size2).\n"
-            + "White cells exist only where Reducing Size < Main Size and Main Size ≥ 0.75 NPS.\n"
-            + "Allowed Item_Type values: RD, SN (only). Empty cell is neutral.\n"
-            + "Invalid (non-empty, not RD/SN) cells are shown with a red background.\n"
-        )
-    return (
-        common
-        + "Branch table\n"
-        + "------------\n"
-        + "Rows: Header size (Size1). Columns: Branch Size (Size2).\n"
-        + "White cells exist where Branch Size ≤ Header size.\n"
-        + "Allowed Item_Type values: T, RT, TH (only). Empty cell is neutral.\n"
-        + "Invalid cells use a red background.\n"
-    )
-
-
-class MatrixTableDialog(tk.Toplevel):
+class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
     """
     Rows = Size1, columns = Size2; titles on dedicated header row/column.
     Selection is clamped to editable (label) cells only.
@@ -183,19 +53,19 @@ class MatrixTableDialog(tk.Toplevel):
             pass
         self._pair_kind = pair_kind
         self._table_code = table.table_code.strip()
-        self._allowed_sizes = _load_axis_allowlist()
-        self._nominal_mode = _nominal_size_mode()
-        base1, base2 = _axes_from_rows(table.rows, pair_kind)
-        self._nominal_master = _sorted_nominal_master_list()
+        self._allowed_sizes = load_axis_allowlist()
+        self._nominal_mode = nominal_size_mode()
+        base1, base2 = axes_from_rows(table.rows, pair_kind)
+        self._nominal_master = sorted_nominal_master_list()
         extra_sizes = {s for s in base1} | {s for s in base2}
         if self._nominal_master:
             axis_set = sorted(
                 set(self._nominal_master) | extra_sizes,
-                key=_size_number,
+                key=size_number,
             )
             self._nominal_dialog_rows = list(self._nominal_master)
         else:
-            axis_set = sorted(set(base1) | set(base2), key=_size_number)
+            axis_set = sorted(set(base1) | set(base2), key=size_number)
             self._nominal_dialog_rows = list(axis_set)
         self._size1_rows = list(axis_set)
         self._size2_cols = list(axis_set)
@@ -403,7 +273,7 @@ class MatrixTableDialog(tk.Toplevel):
         win.transient(self)
         txt = tk.Text(win, wrap="word", width=88, height=28, font=("Segoe UI", 10))
         txt.pack(fill="both", expand=True, padx=8, pady=8)
-        txt.insert("1.0", _matrix_help_text(self._pair_kind, self._nominal_mode))
+        txt.insert("1.0", matrix_help_text(self._pair_kind, self._nominal_mode))
         txt.config(state="disabled")
         ttk.Button(win, text="Close", command=win.destroy).pack(pady=(0, 8))
 
@@ -727,7 +597,7 @@ class MatrixTableDialog(tk.Toplevel):
                 row=gr0 + ri, column=0, sticky="nsew"
             )
             for ci, s2 in enumerate(self._size2_cols):
-                allowed = _cell_allowed(s1, s2, self._pair_kind)
+                allowed = cell_allowed(s1, s2, self._pair_kind)
                 if not allowed:
                     tk.Label(inner, text="", width=6, relief="flat", bg="#e0e0e0").grid(
                         row=gr0 + ri, column=ci + 1, sticky="nsew"
@@ -918,178 +788,6 @@ class MatrixTableDialog(tk.Toplevel):
             return "break"
         return None
 
-    def _begin_edit(self, ri: int, ci: int, first_char: str | None) -> None:
-        self._end_edit(commit=True)
-        lb = self._labels.get((ri, ci))
-        if not lb:
-            return
-        s1, s2 = self._key(ri, ci)
-        cur = self._values.get((s1, s2), "")
-        self._edit_rc = (ri, ci)
-        ent = tk.Entry(lb.master, relief="solid", bd=1)
-        ent.place(in_=lb, x=0, y=0, relwidth=1, relheight=1)
-        if first_char is None:
-            ent.insert(0, cur)
-        else:
-            ent.insert(0, first_char)
-        ent.focus_set()
-        ent.icursor(tk.END)
-        if first_char is None:
-            ent.selection_range(0, tk.END)
-
-        def commit(_e=None) -> str:
-            self._end_edit(commit=True)
-            return "break"
-
-        def cancel(_e=None) -> str:
-            self._end_edit(commit=False)
-            return "break"
-
-        ent.bind("<Return>", commit)
-        ent.bind("<Escape>", cancel)
-        ent.bind("<FocusOut>", lambda e: self.after(1, self._focusout_edit))
-        ent.bind("<Control-Return>", lambda e: self._ctrl_enter_fill())
-
-        def _ec(_e=None) -> str:
-            self._copy_selection()
-            return "break"
-
-        def _ev(_e=None) -> str:
-            self._paste_at_focus()
-            return "break"
-
-        ent.bind("<Control-c>", _ec)
-        ent.bind("<Control-v>", _ev)
-
-        def _entry_upper(_e=None) -> None:
-            cur = ent.get()
-            up = cur.upper()
-            if cur == up:
-                return
-            try:
-                ip = int(ent.index(tk.INSERT))
-            except (tk.TclError, ValueError, TypeError):
-                ip = len(up)
-            ent.delete(0, tk.END)
-            ent.insert(0, up)
-            try:
-                ent.icursor(min(ip, len(up)))
-            except tk.TclError:
-                ent.icursor(tk.END)
-
-        ent.bind("<KeyRelease>", _entry_upper)
-        for seq in ("<Up>", "<Down>", "<Left>", "<Right>"):
-            ent.bind(seq, self._on_arrow)
-        self._edit_entry = ent
-
-    def _focusout_edit(self) -> None:
-        if self._edit_entry is None:
-            return
-        fw = self.focus_get()
-        if fw is self._edit_entry:
-            return
-        self._end_edit(commit=True)
-
-    def _end_edit(self, commit: bool) -> None:
-        ent = self._edit_entry
-        rc = self._edit_rc
-        self._edit_entry = None
-        self._edit_rc = None
-        if ent is None or rc is None:
-            if ent:
-                ent.place_forget()
-                ent.destroy()
-            return
-        ri, ci = rc
-        lb = self._labels.get((ri, ci))
-        if commit:
-            val = ent.get().strip().upper()
-            s1, s2 = self._key(ri, ci)
-            self._values[(s1, s2)] = val
-            if lb:
-                lb.config(text=val)
-        ent.place_forget()
-        ent.destroy()
-        self._inner.focus_set()
-        self._refresh_all_cell_styles()
-
-    def _active_cell_value(self) -> str:
-        if self._edit_entry is not None:
-            return self._edit_entry.get().strip().upper()
-        if self._focus_rc and self._focus_rc in self._labels:
-            ri, ci = self._focus_rc
-            s1, s2 = self._key(ri, ci)
-            return self._values.get((s1, s2), "").strip().upper()
-        return ""
-
-    def _ctrl_enter_fill(self) -> str:
-        self._end_edit(commit=True)
-        self._clamp_anchor_focus()
-        self._prune_selected_to_labels()
-        targets = [c for c in self._selected_cells if c in self._labels]
-        if not targets:
-            return "break"
-        val = self._active_cell_value()
-        for ri, ci in targets:
-            s1, s2 = self._key(ri, ci)
-            self._values[(s1, s2)] = val
-            self._labels[(ri, ci)].config(text=val)
-        self._refresh_all_cell_styles()
-        return "break"
-
-    def _copy_selection(self) -> None:
-        cells = self._selected_cells & self._labels.keys()
-        if not cells:
-            if self._focus_rc and self._focus_rc in self._labels:
-                ri, ci = self._focus_rc
-                self.clipboard_clear()
-                self.clipboard_append(self._values.get(self._key(ri, ci), ""))
-            return
-        if len(cells) == 1:
-            ri, ci = next(iter(cells))
-            self.clipboard_clear()
-            self.clipboard_append(self._values.get(self._key(ri, ci), ""))
-            return
-        r0 = min(r for r, _ in cells)
-        r1 = max(r for r, _ in cells)
-        c0 = min(c for _, c in cells)
-        c1 = max(c for _, c in cells)
-        lines = []
-        for ri in range(r0, r1 + 1):
-            row = []
-            for ci in range(c0, c1 + 1):
-                if (ri, ci) in self._labels:
-                    row.append(
-                        self._values.get(self._key(ri, ci), "")
-                        if (ri, ci) in cells
-                        else ""
-                    )
-                else:
-                    row.append("")
-            lines.append("\t".join(row))
-        self.clipboard_clear()
-        self.clipboard_append("\n".join(lines))
-
-    def _paste_at_focus(self) -> None:
-        if self._focus_rc is None:
-            return
-        try:
-            txt = self.clipboard_get()
-        except tk.TclError:
-            return
-        ri0, ci0 = self._focus_rc
-        lines = txt.replace("\r\n", "\n").replace("\r", "\n").strip("\n").split("\n")
-        for di, line in enumerate(lines):
-            parts = line.split("\t")
-            for dj, part in enumerate(parts):
-                ri, ci = ri0 + di, ci0 + dj
-                if (ri, ci) in self._labels:
-                    s1, s2 = self._key(ri, ci)
-                    v = part.strip().upper()
-                    self._values[(s1, s2)] = v
-                    self._labels[(ri, ci)].config(text=v)
-        self._refresh_all_cell_styles()
-
     def _reset_template(self) -> None:
         if not self._askyesno_modal(
             "Reset",
@@ -1104,7 +802,7 @@ class MatrixTableDialog(tk.Toplevel):
         out: list[SizeTableRow] = []
         for ri, s1 in enumerate(self._size1_rows):
             for ci, s2 in enumerate(self._size2_cols):
-                if not _cell_allowed(s1, s2, self._pair_kind):
+                if not cell_allowed(s1, s2, self._pair_kind):
                     continue
                 if not self._axis_enabled_size1.get(s1, True):
                     continue
@@ -1114,7 +812,7 @@ class MatrixTableDialog(tk.Toplevel):
                 if not it:
                     continue
                 out.append(SizeTableRow(s1, s2, it, ""))
-        return sorted(out, key=lambda r: (_size_number(r.size1), _size_number(r.size2)))
+        return sorted(out, key=lambda r: (size_number(r.size1), size_number(r.size2)))
 
     def _on_ok(self) -> None:
         self._end_edit(commit=True)

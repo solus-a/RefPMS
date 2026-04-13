@@ -27,6 +27,8 @@ _STRIPE_A = "#ffffff"
 _STRIPE_B = "#f0f1f4"
 _LIST_HOVER = "#dceaf7"
 
+_LAST_CLASS_LEVEL_BUNDLE: ClassLevelBundle | None = None
+
 
 def _project_selected_design_code() -> str:
     """Single source: ``config/project/piping_design_codes.json`` → ``selected``."""
@@ -317,7 +319,7 @@ def _manage_named_tables(
 
 
 class ClassLevelWizard(tk.Toplevel):
-    def __init__(self, parent: tk.Tk) -> None:
+    def __init__(self, parent: tk.Tk, initial_bundle: ClassLevelBundle | None = None) -> None:
         super().__init__(parent)
         self.title("Class-level template data")
         self.geometry("920x620")
@@ -340,25 +342,34 @@ class ClassLevelWizard(tk.Toplevel):
             self._class_press_from_h,
             self._class_press_to_h,
         ) = ClassLevelWizard._resolve_temperature_pressure_header_keys(self._class_define_headers)
-        blank = row_dict_for_headers(self._class_define_headers)
-        self._bundle = ClassLevelBundle(
-            class_define_rows=[{**blank, "Design_Code": self._fixed_design_code}],
-            fluid_service_rows=[],
-            joint_rows=[],
-            schedule_rows=[],
-            reducing_tables=[],
-            branch_tables=[],
-        )
+        if initial_bundle is None:
+            blank = row_dict_for_headers(self._class_define_headers)
+            self._bundle = ClassLevelBundle(
+                class_define_rows=[{**blank, "Design_Code": self._fixed_design_code}],
+                fluid_service_rows=[],
+                joint_rows=[],
+                schedule_rows=[],
+                reducing_tables=[],
+                branch_tables=[],
+            )
+        else:
+            self._bundle = copy.deepcopy(initial_bundle)
+            if not self._bundle.class_define_rows:
+                blank = row_dict_for_headers(self._class_define_headers)
+                self._bundle.class_define_rows = [{**blank, "Design_Code": self._fixed_design_code}]
+            for row in self._bundle.class_define_rows:
+                row["Design_Code"] = self._fixed_design_code
 
         _configure_sheet_treeview_style()
 
         nb = ttk.Notebook(self)
         nb.pack(fill="both", expand=True, padx=8, pady=8)
 
+        self._schedule_refresh_class_list: Callable[[], None] = lambda: None
         self._tab_class(nb)
         self._tab_sheet(nb, "Fluid_Service", self._fluid_service_headers, "fluid")
         self._tab_sheet(nb, "Joint", JOINT_HEADERS, "joint")
-        self._tab_sheet(nb, "Schedule", SCHEDULE_HEADERS, "schedule")
+        self._tab_schedule(nb)
 
         bt = ttk.Frame(self)
         bt.pack(fill="x", padx=8, pady=(0, 4))
@@ -617,6 +628,7 @@ class ClassLevelWizard(tk.Toplevel):
             self._class_list_holder.pack_forget()
             self._class_list_ph.pack(fill="both", expand=True)
         _listbox_apply_stripes(self._class_list)
+        self._schedule_refresh_class_list()
 
     def _current_class_idx(self) -> int | None:
         sel = self._class_list.curselection()
@@ -789,6 +801,252 @@ class ClassLevelWizard(tk.Toplevel):
         ttk.Button(bf, text="Edit row", command=edit_row).pack(side="left", padx=4)
         ttk.Button(bf, text="Delete row", command=del_row).pack(side="left", padx=4)
 
+    def _tab_schedule(self, nb: ttk.Notebook) -> None:
+        tab = ttk.Frame(nb)
+        nb.add(tab, text="Schedule")
+
+        outer = ttk.Frame(tab)
+        outer.pack(fill="both", expand=True, padx=8, pady=8)
+        outer.columnconfigure(1, weight=1)
+        outer.rowconfigure(0, weight=1)
+
+        left = ttk.Frame(outer)
+        left.grid(row=0, column=0, sticky="nsw", padx=(0, 8))
+        ttk.Label(left, text="Class list").pack(anchor="w")
+        class_lb = tk.Listbox(left, width=30, height=20, exportselection=False)
+        class_lb.pack(fill="y", expand=False)
+        _bind_listbox_stripes_and_hover(class_lb)
+
+        right = ttk.Frame(outer)
+        right.grid(row=0, column=1, sticky="nsew")
+        right.rowconfigure(1, weight=1)
+        right.columnconfigure(0, weight=1)
+
+        hint = (
+            "Select a class, then type directly in cells. "
+            "Double-click/Enter to edit, Insert adds a row, Delete removes selected row."
+        )
+        ttk.Label(right, text=hint, wraplength=620).grid(row=0, column=0, sticky="w", pady=(0, 6))
+
+        cols = ("Size_From", "Size_To", "Schedule")
+        tree_holder = ttk.Frame(right)
+        tree_holder.grid(row=1, column=0, sticky="nsew")
+        tree_holder.grid_rowconfigure(0, weight=1)
+        tree_holder.grid_columnconfigure(0, weight=1)
+        tree = ttk.Treeview(
+            tree_holder,
+            columns=cols,
+            show="headings",
+            height=16,
+            style="WizardSheet.Treeview",
+        )
+        for c in cols:
+            tree.heading(c, text=c)
+            tree.column(c, width=140 if c != "Schedule" else 180)
+        sy = ttk.Scrollbar(tree_holder, orient="vertical", command=tree.yview)
+        tree.configure(yscrollcommand=sy.set)
+        tree.grid(row=0, column=0, sticky="nsew")
+        sy.grid(row=0, column=1, sticky="ns")
+        _tree_setup_tags(tree)
+
+        selected_class: dict[str, str] = {"name": ""}
+        class_items: list[tuple[str, str]] = []
+        editor: dict[str, tk.Entry | None] = {"w": None}
+
+        def build_class_items() -> list[tuple[str, str]]:
+            out: list[tuple[str, str]] = []
+            for i, row in enumerate(self._bundle.class_define_rows, start=1):
+                nm = str(row.get("Class_Name", "") or "").strip()
+                label = nm if nm else f"(blank class #{i})"
+                out.append((label, nm))
+            return out
+
+        def ensure_selected_class() -> None:
+            nonlocal class_items
+            if not class_items:
+                selected_class["name"] = ""
+                return
+            names = [raw for _, raw in class_items]
+            if selected_class["name"] not in names:
+                selected_class["name"] = names[0]
+            idx = names.index(selected_class["name"])
+            class_lb.selection_clear(0, "end")
+            class_lb.selection_set(idx)
+            class_lb.activate(idx)
+            class_lb.see(idx)
+
+        def refill_class_list() -> None:
+            nonlocal class_items
+            class_items = build_class_items()
+            class_lb.delete(0, "end")
+            for label, _raw in class_items:
+                class_lb.insert("end", label)
+            if class_items:
+                ensure_selected_class()
+            _listbox_apply_stripes(class_lb)
+            refill_rows()
+
+        def rows_for_selected() -> list[tuple[int, dict[str, str]]]:
+            nm = selected_class["name"]
+            if not nm:
+                return []
+            out: list[tuple[int, dict[str, str]]] = []
+            for idx, row in enumerate(self._bundle.schedule_rows):
+                if str(row.get("Class_Name", "") or "").strip() == nm:
+                    out.append((idx, row))
+            return out
+
+        def refill_rows(select_iid: str | None = None) -> None:
+            for iid in tree.get_children():
+                tree.delete(iid)
+            pairs = rows_for_selected()
+            for vis_idx, (src_idx, row) in enumerate(pairs):
+                iid = f"r{src_idx}"
+                tree.insert(
+                    "",
+                    "end",
+                    iid=iid,
+                    values=(
+                        row.get("Size_From", ""),
+                        row.get("Size_To", ""),
+                        row.get("Schedule", ""),
+                    ),
+                    tags=_tree_row_tags(vis_idx),
+                )
+            kids = tree.get_children()
+            if not kids:
+                return
+            target = kids[0]
+            if select_iid is not None and tree.exists(select_iid):
+                target = select_iid
+            tree.selection_set(target)
+            tree.focus(target)
+            tree.see(target)
+
+        def on_class_select(_e: tk.Event | None = None) -> None:
+            sel = class_lb.curselection()
+            if not sel:
+                return
+            idx = int(sel[0])
+            if 0 <= idx < len(class_items):
+                selected_class["name"] = class_items[idx][1]
+                refill_rows()
+
+        class_lb.bind("<<ListboxSelect>>", on_class_select)
+
+        def start_edit(iid: str, col_id: str, first_char: str | None = None) -> None:
+            if editor["w"] is not None:
+                try:
+                    editor["w"].destroy()
+                except tk.TclError:
+                    pass
+                editor["w"] = None
+            bbox = tree.bbox(iid, col_id)
+            if not bbox:
+                return
+            x, y, w, h = bbox
+            col_num = int(col_id[1:]) - 1
+            current = tree.item(iid, "values")[col_num]
+            ent = tk.Entry(tree)
+            ent.place(x=x, y=y, width=w, height=h)
+            ent.insert(0, first_char if first_char is not None else str(current))
+            ent.focus_set()
+            if first_char is None:
+                ent.selection_range(0, tk.END)
+
+            def commit(_e=None) -> str:
+                vals = list(tree.item(iid, "values"))
+                vals[col_num] = ent.get().strip()
+                tree.item(iid, values=tuple(vals))
+                src_idx = int(iid[1:])
+                if 0 <= src_idx < len(self._bundle.schedule_rows):
+                    row = self._bundle.schedule_rows[src_idx]
+                    row["Class_Name"] = selected_class["name"]
+                    row["Size_From"] = str(vals[0] or "")
+                    row["Size_To"] = str(vals[1] or "")
+                    row["Schedule"] = str(vals[2] or "")
+                ent.destroy()
+                editor["w"] = None
+                return "break"
+
+            def cancel(_e=None) -> str:
+                ent.destroy()
+                editor["w"] = None
+                return "break"
+
+            ent.bind("<Return>", commit)
+            ent.bind("<Escape>", cancel)
+            ent.bind("<FocusOut>", commit)
+            editor["w"] = ent
+
+        def target_cell(event: tk.Event | None = None) -> tuple[str, str] | None:
+            sel = tree.selection()
+            if event is None:
+                if not sel:
+                    return None
+                return str(sel[0]), "#1"
+            row_iid = tree.identify_row(event.y)
+            col_id = tree.identify_column(event.x)
+            if not row_iid:
+                if not sel:
+                    return None
+                row_iid = str(sel[0])
+            if col_id not in ("#1", "#2", "#3"):
+                col_id = "#1"
+            return row_iid, col_id
+
+        def on_double_click(e: tk.Event) -> None:
+            tgt = target_cell(e)
+            if tgt is None:
+                return
+            start_edit(tgt[0], tgt[1], None)
+
+        def on_return(_e: tk.Event) -> str:
+            tgt = target_cell(None)
+            if tgt is None:
+                return "break"
+            start_edit(tgt[0], tgt[1], None)
+            return "break"
+
+        def on_keypress(e: tk.Event) -> str | None:
+            if editor["w"] is not None:
+                return None
+            if e.keysym == "Insert":
+                nm = selected_class["name"]
+                if not nm:
+                    return "break"
+                self._bundle.schedule_rows.append(
+                    {"Class_Name": nm, "Size_From": "", "Size_To": "", "Schedule": ""}
+                )
+                new_iid = f"r{len(self._bundle.schedule_rows) - 1}"
+                refill_rows(select_iid=new_iid)
+                start_edit(new_iid, "#1", None)
+                return "break"
+            if e.keysym == "Delete":
+                sel = tree.selection()
+                if not sel:
+                    return "break"
+                src_idx = int(str(sel[0])[1:])
+                if 0 <= src_idx < len(self._bundle.schedule_rows):
+                    self._bundle.schedule_rows.pop(src_idx)
+                    refill_rows()
+                return "break"
+            ch = e.char
+            if ch and len(ch) == 1 and ch.isprintable() and not ch.isspace():
+                tgt = target_cell(None)
+                if tgt is None:
+                    return "break"
+                start_edit(tgt[0], tgt[1], ch)
+                return "break"
+            return None
+
+        tree.bind("<Double-1>", on_double_click)
+        tree.bind("<Return>", on_return)
+        tree.bind("<KeyPress>", on_keypress)
+
+        self._schedule_refresh_class_list = refill_class_list
+        refill_class_list()
+
     def _open_reducing_manager(self) -> None:
         self._save_class_detail_to_row()
 
@@ -837,7 +1095,17 @@ class ClassLevelWizard(tk.Toplevel):
         self.destroy()
 
 
-def run_class_level_wizard(parent: tk.Tk) -> ClassLevelBundle | None:
-    dlg = ClassLevelWizard(parent)
+def run_class_level_wizard(
+    parent: tk.Tk,
+    initial_bundle: ClassLevelBundle | None = None,
+) -> ClassLevelBundle | None:
+    global _LAST_CLASS_LEVEL_BUNDLE
+    if initial_bundle is not None:
+        seed = copy.deepcopy(initial_bundle)
+    else:
+        seed = copy.deepcopy(_LAST_CLASS_LEVEL_BUNDLE) if _LAST_CLASS_LEVEL_BUNDLE is not None else None
+    dlg = ClassLevelWizard(parent, initial_bundle=seed)
     parent.wait_window(dlg)
+    if dlg.result is not None:
+        _LAST_CLASS_LEVEL_BUNDLE = copy.deepcopy(dlg.result)
     return dlg.result

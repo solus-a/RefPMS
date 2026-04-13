@@ -9,7 +9,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font
 
 import config
-from class_level_model import ClassLevelBundle, NamedSizeTable
+from class_level_model import ClassLevelBundle, NamedSizeTable, SizeTableRow, row_dict_for_headers
 from units_notation_headers import (
     class_define_headers,
     fluid_service_headers,
@@ -387,6 +387,85 @@ def _write_named_size_tables(ws, tables: list[NamedSizeTable]) -> None:
             ws.cell(row=row_idx, column=4, value=sr.item_type)
             ws.cell(row=row_idx, column=5, value=sr.remarks)
             row_idx += 1
+
+
+def _read_dict_rows(ws, headers: list[str]) -> list[dict[str, str]]:
+    try:
+        hr = detect_header_row(ws, headers)
+    except ValueError:
+        return []
+    htc = build_header_index(ws, hr)
+    if any(h not in htc for h in headers):
+        return []
+    out: list[dict[str, str]] = []
+    for r in range(hr + 1, ws.max_row + 1):
+        row = {h: _cell_to_text(ws.cell(row=r, column=htc[h]).value) for h in headers}
+        if any(v.strip() for v in row.values()):
+            out.append(row)
+    return out
+
+
+def _read_named_size_tables(ws) -> list[NamedSizeTable]:
+    headers = REDUCING_TABLE_HEADERS
+    try:
+        hr = detect_header_row(ws, headers)
+    except ValueError:
+        return []
+    htc = build_header_index(ws, hr)
+    if any(h not in htc for h in headers):
+        return []
+    table_rows: dict[str, list[SizeTableRow]] = {}
+    table_order: list[str] = []
+    last_code = ""
+    for r in range(hr + 1, ws.max_row + 1):
+        code_raw = _cell_to_text(ws.cell(row=r, column=htc["Table_Code"]).value).strip()
+        if code_raw:
+            last_code = code_raw
+        code = last_code
+        size1 = _cell_to_text(ws.cell(row=r, column=htc["Size1"]).value).strip()
+        size2 = _cell_to_text(ws.cell(row=r, column=htc["Size2"]).value).strip()
+        item_type = _cell_to_text(ws.cell(row=r, column=htc["Item_Type"]).value).strip().upper()
+        remarks = _cell_to_text(ws.cell(row=r, column=htc["Remarks"]).value).strip()
+        if not code and not size1 and not size2 and not item_type and not remarks:
+            continue
+        if not code:
+            continue
+        if code not in table_rows:
+            table_rows[code] = []
+            table_order.append(code)
+        if not size1 and not size2 and not item_type and not remarks:
+            continue
+        table_rows[code].append(SizeTableRow(size1, size2, item_type, remarks))
+    return [NamedSizeTable(code, table_rows.get(code, [])) for code in table_order]
+
+
+def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
+    wb = load_workbook(Path(path))
+    class_headers, fluid_headers = _class_and_fluid_sheet_headers()
+
+    def ws_or_none(name: str):
+        return wb[name] if name in wb.sheetnames else None
+
+    ws_define = ws_or_none("Class_Define")
+    ws_fluid = ws_or_none("Fluid_Service")
+    ws_joint = ws_or_none("Joint")
+    ws_schedule = ws_or_none("Schedule")
+    ws_reducing = ws_or_none("Reducing_Table")
+    ws_branch = ws_or_none("Branch_Table")
+
+    class_rows = _read_dict_rows(ws_define, class_headers) if ws_define is not None else []
+    if not class_rows:
+        blank = row_dict_for_headers(class_headers)
+        class_rows = [blank]
+
+    return ClassLevelBundle(
+        class_define_rows=class_rows,
+        fluid_service_rows=_read_dict_rows(ws_fluid, fluid_headers) if ws_fluid is not None else [],
+        joint_rows=_read_dict_rows(ws_joint, JOINT_HEADERS) if ws_joint is not None else [],
+        schedule_rows=_read_dict_rows(ws_schedule, SCHEDULE_HEADERS) if ws_schedule is not None else [],
+        reducing_tables=_read_named_size_tables(ws_reducing) if ws_reducing is not None else [],
+        branch_tables=_read_named_size_tables(ws_branch) if ws_branch is not None else [],
+    )
 
 
 def _append_component_group_sheets(wb: Workbook) -> None:
