@@ -8,7 +8,13 @@ from tkinter import messagebox, simpledialog, ttk
 from typing import Callable, Literal
 
 import config
-from class_level_model import ClassLevelBundle, NamedSizeTable, row_dict_for_headers
+from class_level_model import (
+    ClassLevelBundle,
+    NamedSizeTable,
+    normalizeScheduleValue,
+    row_dict_for_headers,
+    scheduleAllowlist,
+)
 from class_spec import class_base_material_group_keys, flange_pt_class_rating_options
 from size_matrix_editor import run_size_matrix_editor
 from template_generator import JOINT_HEADERS, SCHEDULE_HEADERS
@@ -161,6 +167,18 @@ def _configure_sheet_treeview_style() -> None:
         "WizardSheet.Treeview",
         background=[("selected", "#2b6cb0")],
         foreground=[("selected", "white")],
+    )
+    style.configure(
+        "WizardSchedule.Treeview",
+        rowheight=24,
+        borderwidth=1,
+        relief="solid",
+        fieldbackground=_STRIPE_A,
+    )
+    style.map(
+        "WizardSchedule.Treeview",
+        background=[("selected", "#c7dbf4")],
+        foreground=[("selected", "#1f2d3d")],
     )
 
 
@@ -429,19 +447,6 @@ class ClassLevelWizard(tk.Toplevel):
         self._tab_sheet(nb, "Joint", JOINT_HEADERS, "joint")
         self._tab_schedule(nb)
 
-        bt = ttk.Frame(self)
-        bt.pack(fill="x", padx=8, pady=(0, 4))
-        ttk.Button(
-            bt,
-            text="Manage branch tables…",
-            command=self._open_branch_manager,
-        ).pack(side="left", padx=4)
-        ttk.Button(
-            bt,
-            text="Manage reducing tables…",
-            command=self._open_reducing_manager,
-        ).pack(side="left", padx=4)
-
         bf = ttk.Frame(self)
         bf.pack(fill="x", padx=8, pady=8)
         ttk.Button(bf, text="OK — build template", command=self._on_ok).pack(side="right", padx=6)
@@ -549,6 +554,17 @@ class ClassLevelWizard(tk.Toplevel):
         bf.pack(fill="x", pady=4)
         ttk.Button(bf, text="Add row", command=self._add_class_row).pack(fill="x", pady=2)
         ttk.Button(bf, text="Delete row", command=self._del_class_row).pack(fill="x", pady=2)
+        ttk.Separator(lf, orient="horizontal").pack(fill="x", pady=(6, 4))
+        ttk.Button(
+            lf,
+            text="Manage reducing tables…",
+            command=self._open_reducing_manager,
+        ).pack(fill="x", pady=2)
+        ttk.Button(
+            lf,
+            text="Manage branch tables…",
+            command=self._open_branch_manager,
+        ).pack(fill="x", pady=2)
 
         rf = ttk.LabelFrame(tab, text="Selected row")
         rf.pack(side="left", fill="both", expand=True, padx=8, pady=4)
@@ -891,19 +907,14 @@ class ClassLevelWizard(tk.Toplevel):
 
         right = ttk.Frame(outer)
         right.grid(row=0, column=1, sticky="nsew")
-        right.rowconfigure(1, weight=1)
+        right.rowconfigure(0, weight=1)
         right.columnconfigure(0, weight=1)
 
-        hint = (
-            "Select a class, then type directly in cells. "
-            "Use Add row/Delete row buttons (or Insert/Delete keys). "
-            "Double-click/Enter edits a cell."
-        )
-        ttk.Label(right, text=hint, wraplength=620).grid(row=0, column=0, sticky="w", pady=(0, 6))
-
         cols = ("Size_From", "Size_To", "Schedule")
+        schedule_values = scheduleAllowlist()
+        schedule_value_set = set(schedule_values)
         tree_holder = ttk.Frame(right)
-        tree_holder.grid(row=1, column=0, sticky="nsew")
+        tree_holder.grid(row=0, column=0, sticky="nsew")
         tree_holder.grid_rowconfigure(0, weight=1)
         tree_holder.grid_columnconfigure(0, weight=1)
         tree = ttk.Treeview(
@@ -911,20 +922,69 @@ class ClassLevelWizard(tk.Toplevel):
             columns=cols,
             show="headings",
             height=16,
-            style="WizardSheet.Treeview",
+            style="WizardSchedule.Treeview",
         )
-        for c in cols:
-            tree.heading(c, text=c)
-            tree.column(c, width=140 if c != "Schedule" else 180)
+        tree.heading("Size_From", text="Size_From", anchor="center")
+        tree.heading("Size_To", text="Size_To", anchor="center")
+        tree.heading("Schedule", text="Schedule", anchor="center")
+        tree.column("Size_From", width=150, minwidth=130, anchor="center", stretch=False)
+        tree.column("Size_To", width=150, minwidth=130, anchor="center", stretch=False)
+        tree.column("Schedule", width=220, minwidth=180, anchor="center", stretch=True)
         sy = ttk.Scrollbar(tree_holder, orient="vertical", command=tree.yview)
-        tree.configure(yscrollcommand=sy.set)
+        sx = ttk.Scrollbar(tree_holder, orient="horizontal", command=tree.xview)
+        tree.configure(yscrollcommand=sy.set, xscrollcommand=sx.set)
         tree.grid(row=0, column=0, sticky="nsew")
         sy.grid(row=0, column=1, sticky="ns")
+        sx.grid(row=1, column=0, sticky="ew")
         _tree_setup_tags(tree)
 
         selected_class: dict[str, str] = {"name": ""}
         class_items: list[tuple[str, str]] = []
-        editor: dict[str, tk.Entry | None] = {"w": None}
+        editor: dict[str, tk.Widget | None] = {"w": None}
+        active_commit: dict[str, object] = {"fn": None}
+        last_edit: dict[str, str] = {"iid": "", "col": "#1"}
+
+        def _close_editor_now() -> None:
+            fn = active_commit["fn"]
+            if fn is not None:
+                active_commit["fn"] = None
+                try:
+                    fn()  # type: ignore[operator]
+                except Exception:
+                    pass
+            w = editor["w"]
+            if w is not None:
+                editor["w"] = None
+                try:
+                    w.destroy()
+                except tk.TclError:
+                    pass
+
+        def _is_numeric_text(value: str) -> bool:
+            raw = value.strip()
+            if not raw:
+                return True
+            try:
+                float(raw)
+                return True
+            except ValueError:
+                return False
+
+        def _parse_float_or_none(value: str) -> float | None:
+            raw = str(value or "").strip()
+            if not raw:
+                return None
+            try:
+                return float(raw)
+            except ValueError:
+                return None
+
+        def _validate_numeric_key(proposed: str) -> bool:
+            if proposed == "":
+                return True
+            if proposed.count(".") > 1:
+                return False
+            return all(ch.isdigit() or ch == "." for ch in proposed)
 
         def build_class_items() -> list[tuple[str, str]]:
             out: list[tuple[str, str]] = []
@@ -1002,6 +1062,7 @@ class ClassLevelWizard(tk.Toplevel):
                 return
             idx = int(sel[0])
             if 0 <= idx < len(class_items):
+                _close_editor_now()
                 selected_class["name"] = class_items[idx][1]
                 refill_rows()
 
@@ -1032,28 +1093,97 @@ class ClassLevelWizard(tk.Toplevel):
             return False
 
         def start_edit(iid: str, col_id: str, first_char: str | None = None) -> None:
-            if editor["w"] is not None:
-                try:
-                    editor["w"].destroy()
-                except tk.TclError:
-                    pass
-                editor["w"] = None
+            _close_editor_now()
+            last_edit["iid"] = iid
+            last_edit["col"] = col_id
             bbox = tree.bbox(iid, col_id)
             if not bbox:
                 return
             x, y, w, h = bbox
             col_num = int(col_id[1:]) - 1
             current = tree.item(iid, "values")[col_num]
-            ent = tk.Entry(tree)
+            if col_id == "#3":
+                ent: tk.Widget = ttk.Combobox(tree, values=schedule_values, state="readonly")
+            else:
+                vcmd = (self.register(_validate_numeric_key), "%P")
+                ent = tk.Entry(tree, validate="key", validatecommand=vcmd)
             ent.place(x=x, y=y, width=w, height=h)
-            ent.insert(0, first_char if first_char is not None else str(current))
+            initial = first_char if first_char is not None else str(current)
+            if col_id == "#3":
+                schedule_initial = normalizeScheduleValue(initial)
+                if schedule_initial in schedule_value_set:
+                    ent.set(schedule_initial)
+                elif str(current).strip():
+                    ent.set(str(current).strip())
+                else:
+                    ent.set("")
+            else:
+                ent.insert(0, initial)
             ent.focus_set()
             if first_char is None:
                 ent.selection_range(0, tk.END)
 
-            def commit(_e=None) -> str:
+            def _next_cell(current_iid: str, current_col_id: str, delta: int) -> tuple[str, str] | None:
+                row_ids = list(tree.get_children())
+                if current_iid not in row_ids:
+                    return None
+                col_ids = ["#1", "#2", "#3"]
+                row_pos = row_ids.index(current_iid)
+                col_pos = col_ids.index(current_col_id)
+                next_pos = col_pos + delta
+                next_row = row_pos
+                if next_pos >= len(col_ids):
+                    next_pos = 0
+                    next_row += 1
+                elif next_pos < 0:
+                    next_pos = len(col_ids) - 1
+                    next_row -= 1
+                if not (0 <= next_row < len(row_ids)):
+                    return None
+                return row_ids[next_row], col_ids[next_pos]
+
+            def do_commit(move_delta: int | None = None) -> bool:
+                new_raw = ent.get().strip()
+                new_value = new_raw
+                if col_id in ("#1", "#2"):
+                    try:
+                        ent.configure(bg="white")
+                    except tk.TclError:
+                        pass
+                if col_id in ("#1", "#2") and not _is_numeric_text(new_raw):
+                    messagebox.showerror(
+                        "Invalid value",
+                        "Size_From / Size_To columns only allow numeric values.",
+                        parent=self,
+                    )
+                    ent.focus_set()
+                    return False
+                if col_id == "#3":
+                    normalized = normalizeScheduleValue(new_raw)
+                    if normalized and normalized not in schedule_value_set:
+                        messagebox.showerror(
+                            "Invalid schedule",
+                            "Schedule must be selected from the standard allowlist.",
+                            parent=self,
+                        )
+                        ent.focus_set()
+                        return False
+                    new_value = normalized
                 vals = list(tree.item(iid, "values"))
-                vals[col_num] = ent.get().strip()
+                vals[col_num] = new_value
+                if col_id == "#2":
+                    size_from_value = _parse_float_or_none(str(vals[0] or ""))
+                    size_to_value = _parse_float_or_none(str(vals[1] or ""))
+                    if size_from_value is not None and size_to_value is not None and size_to_value < size_from_value:
+                        try:
+                            ent.configure(bg="#ffd6d6")
+                        except tk.TclError:
+                            pass
+                        try:
+                            ent.focus_set()
+                        except tk.TclError:
+                            pass
+                        return False
                 tree.item(iid, values=tuple(vals))
                 src_idx = int(iid[1:])
                 if 0 <= src_idx < len(self._bundle.schedule_rows):
@@ -1064,16 +1194,118 @@ class ClassLevelWizard(tk.Toplevel):
                     row["Schedule"] = str(vals[2] or "")
                 ent.destroy()
                 editor["w"] = None
+                if move_delta is not None:
+                    next_cell = _next_cell(iid, col_id, move_delta)
+                    if next_cell is not None:
+                        start_edit(next_cell[0], next_cell[1], None)
+                return True
+
+            def commit(_e=None) -> str:
+                do_commit(None)
                 return "break"
 
             def cancel(_e=None) -> str:
-                ent.destroy()
+                active_commit["fn"] = None
                 editor["w"] = None
+                try:
+                    ent.destroy()
+                except tk.TclError:
+                    pass
                 return "break"
 
-            ent.bind("<Return>", commit)
+            active_commit["fn"] = lambda: do_commit(None)
+
             ent.bind("<Escape>", cancel)
-            ent.bind("<FocusOut>", commit)
+            ent.bind("<Tab>", lambda _e: "break" if do_commit(1) else "break")
+            ent.bind("<Shift-Tab>", lambda _e: "break" if do_commit(-1) else "break")
+            ent.bind("<ISO_Left_Tab>", lambda _e: "break" if do_commit(-1) else "break")
+
+            if col_id == "#3":
+                cb = ent
+
+                def try_open_dropdown() -> bool:
+                    try:
+                        cb.tk.call("ttk::combobox::Post", cb)
+                        return True
+                    except tk.TclError:
+                        try:
+                            cb.event_generate("<Alt-Down>")
+                            return True
+                        except tk.TclError:
+                            return False
+
+                def is_dropdown_open() -> bool:
+                    try:
+                        popdown = cb.tk.call("ttk::combobox::PopdownWindow", cb)
+                        return bool(int(cb.tk.call("winfo", "ismapped", popdown)))
+                    except (tk.TclError, ValueError):
+                        return False
+
+                def close_dropdown_now() -> None:
+                    try:
+                        cb.tk.call("ttk::combobox::Unpost", cb)
+                    except tk.TclError:
+                        pass
+
+                def on_up_or_down(_e=None) -> str | None:
+                    if is_dropdown_open():
+                        return None
+                    try_open_dropdown()
+                    return "break"
+
+                def cb_tab(delta: int) -> str:
+                    if is_dropdown_open():
+                        close_dropdown_now()
+                        cb.after(1, lambda: do_commit(delta))
+                    else:
+                        do_commit(delta)
+                    return "break"
+
+                def move_by_wheel(e: tk.Event) -> str:
+                    values = list(schedule_values)
+                    if not values:
+                        return "break"
+                    current = str(cb.get() or "").strip()
+                    try:
+                        idx = values.index(current)
+                    except ValueError:
+                        idx = 0
+                    delta = getattr(e, "delta", 0)
+                    if delta == 0 and hasattr(e, "num"):
+                        if e.num == 4:
+                            delta = 120
+                        elif e.num == 5:
+                            delta = -120
+                    step = -1 if delta > 0 else 1
+                    next_idx = max(0, min(len(values) - 1, idx + step))
+                    cb.set(values[next_idx])
+                    return "break"
+
+                def consume_key(_e=None) -> str:
+                    return "break"
+
+                # Override Tab/Shift-Tab with combobox-aware versions.
+                cb.bind("<Tab>", lambda _e: cb_tab(1))
+                cb.bind("<Shift-Tab>", lambda _e: cb_tab(-1))
+                cb.bind("<ISO_Left_Tab>", lambda _e: cb_tab(-1))
+                # Enter in dropdown → ComboboxSelected fires; move to next cell.
+                cb.bind("<Return>", lambda _e: "break" if do_commit(1) else "break")
+                cb.bind("<Down>", on_up_or_down)
+                cb.bind("<KeyPress-Down>", on_up_or_down, add="+")
+                cb.bind("<KP_Down>", on_up_or_down, add="+")
+                cb.bind("<Up>", on_up_or_down)
+                cb.bind("<KeyPress-Up>", on_up_or_down, add="+")
+                cb.bind("<KP_Up>", on_up_or_down, add="+")
+                cb.bind("<Left>", consume_key)
+                cb.bind("<Right>", consume_key)
+                cb.bind("<MouseWheel>", move_by_wheel)
+                cb.bind("<Button-4>", move_by_wheel)
+                cb.bind("<Button-5>", move_by_wheel)
+                # Item clicked in dropdown list.
+                cb.bind("<<ComboboxSelected>>", lambda _e: "break" if do_commit(1) else "break")
+            else:
+                ent.bind("<Return>", commit)
+
             editor["w"] = ent
 
         def target_cell(event: tk.Event | None = None) -> tuple[str, str] | None:
@@ -1098,6 +1330,27 @@ class ClassLevelWizard(tk.Toplevel):
                 return
             start_edit(tgt[0], tgt[1], None)
 
+        def on_single_click(e: tk.Event) -> str | None:
+            tgt = target_cell(e)
+            if tgt is None:
+                if editor["w"] is not None:
+                    try:
+                        editor["w"].event_generate("<Return>")
+                    except tk.TclError:
+                        pass
+                return None
+            row_iid, col_id = tgt
+            def begin_edit_after_select() -> None:
+                if not tree.exists(row_iid):
+                    return
+                tree.selection_set(row_iid)
+                tree.focus(row_iid)
+                tree.see(row_iid)
+                start_edit(row_iid, col_id, None)
+
+            self.after_idle(begin_edit_after_select)
+            return None
+
         def on_return(_e: tk.Event) -> str:
             tgt = target_cell(None)
             if tgt is None:
@@ -1107,12 +1360,7 @@ class ClassLevelWizard(tk.Toplevel):
 
         def on_keypress(e: tk.Event) -> str | None:
             if editor["w"] is not None:
-                return None
-            if e.keysym == "Insert":
-                add_row_for_selected()
-                return "break"
-            if e.keysym == "Delete":
-                delete_selected_row()
+                # Keep tree navigation from stealing focus while editing.
                 return "break"
             ch = e.char
             if ch and len(ch) == 1 and ch.isprintable() and not ch.isspace():
@@ -1123,14 +1371,55 @@ class ClassLevelWizard(tk.Toplevel):
                 return "break"
             return None
 
+        def on_tree_tab(delta: int) -> str:
+            if editor["w"] is not None:
+                return "break"
+            iid = last_edit.get("iid", "")
+            col = last_edit.get("col", "#1")
+            if not iid or not tree.exists(iid):
+                sel = tree.selection()
+                if not sel:
+                    return "break"
+                iid = str(sel[0])
+                col = "#1"
+            col_ids = ["#1", "#2", "#3"]
+            col_pos = col_ids.index(col) if col in col_ids else 0
+            next_pos = col_pos + delta
+            next_row_idx = col_ids.index(col) if col in col_ids else 0
+            row_ids = list(tree.get_children())
+            if iid not in row_ids:
+                return "break"
+            row_pos = row_ids.index(iid)
+            next_pos = col_pos + delta
+            next_row_pos = row_pos
+            if next_pos >= len(col_ids):
+                next_pos = 0
+                next_row_pos += 1
+            elif next_pos < 0:
+                next_pos = len(col_ids) - 1
+                next_row_pos -= 1
+            if not (0 <= next_row_pos < len(row_ids)):
+                return "break"
+            next_iid = row_ids[next_row_pos]
+            next_col = col_ids[next_pos]
+            tree.selection_set(next_iid)
+            tree.focus(next_iid)
+            tree.see(next_iid)
+            start_edit(next_iid, next_col, None)
+            return "break"
+
+        tree.bind("<Button-1>", on_single_click)
         tree.bind("<Double-1>", on_double_click)
         tree.bind("<Return>", on_return)
         tree.bind("<KeyPress>", on_keypress)
+        tree.bind("<Tab>", lambda _e: on_tree_tab(1))
+        tree.bind("<Shift-Tab>", lambda _e: on_tree_tab(-1))
+        tree.bind("<ISO_Left_Tab>", lambda _e: on_tree_tab(-1))
 
         row_btns = ttk.Frame(right)
-        row_btns.grid(row=2, column=0, sticky="w", pady=(6, 0))
+        row_btns.grid(row=1, column=0, sticky="e", pady=(8, 0))
         ttk.Button(row_btns, text="Add row", command=add_row_for_selected).pack(
-            side="left", padx=(0, 6)
+            side="left", padx=(0, 8)
         )
         ttk.Button(row_btns, text="Delete row", command=delete_selected_row).pack(
             side="left"

@@ -7,6 +7,44 @@ from typing import Any
 
 import config
 
+ASME_SCHEDULE_VALUES: tuple[str, ...] = (
+    "SCH5",
+    "SCH10",
+    "SCH20",
+    "SCH30",
+    "SCH40",
+    "SCH60",
+    "SCH80",
+    "SCH100",
+    "SCH120",
+    "SCH140",
+    "SCH160",
+    "SCH5S",
+    "SCH10S",
+    "SCH40S",
+    "SCH80S",
+    "STD",
+    "XS",
+    "XXS",
+)
+
+
+def normalizeScheduleValue(raw: str) -> str:
+    value = str(raw or "").strip().upper()
+    if not value:
+        return ""
+    if value.startswith("SCH"):
+        return value
+    if value.startswith("S") and value[1:].isdigit():
+        return f"SCH{value[1:]}"
+    if value.isdigit():
+        return f"SCH{value}"
+    return value
+
+
+def scheduleAllowlist() -> tuple[str, ...]:
+    return ASME_SCHEDULE_VALUES
+
 
 @dataclass
 class SizeTableRow:
@@ -48,6 +86,7 @@ class ClassLevelBundle:
             )
         if any(not t.table_code.strip() for t in self.reducing_tables + self.branch_tables):
             errs.append("Table_Code (table name) cannot be blank.")
+        allowed_schedule_values = set(scheduleAllowlist())
 
         r_codes = {t.table_code.strip() for t in self.reducing_tables}
         b_codes = {t.table_code.strip() for t in self.branch_tables}
@@ -90,6 +129,37 @@ class ClassLevelBundle:
                 ).strip().lower()
                 if policy == "error":
                     errs.append(f"{label}: Corrosion_Allowance is required.")
+
+        for i, row in enumerate(self.schedule_rows):
+            label = f"Schedule row {i + 1}"
+            size_from_raw = str(row.get("Size_From", "") or "").strip()
+            size_to_raw = str(row.get("Size_To", "") or "").strip()
+            schedule_raw = str(row.get("Schedule", "") or "").strip()
+            schedule_normalized = normalizeScheduleValue(schedule_raw)
+
+            if size_from_raw:
+                try:
+                    float(size_from_raw)
+                except ValueError:
+                    errs.append(f"{label}: Size_From must be numeric; got {size_from_raw!r}.")
+            if size_to_raw:
+                try:
+                    float(size_to_raw)
+                except ValueError:
+                    errs.append(f"{label}: Size_To must be numeric; got {size_to_raw!r}.")
+            if size_from_raw and size_to_raw:
+                try:
+                    if float(size_to_raw) < float(size_from_raw):
+                        errs.append(
+                            f"{label}: Size_To must be greater than or equal to Size_From."
+                        )
+                except ValueError:
+                    # Numeric-format errors are already reported above.
+                    pass
+            if schedule_normalized and schedule_normalized not in allowed_schedule_values:
+                errs.append(
+                    f"{label}: Schedule value {schedule_raw!r} is not allowed."
+                )
         return errs
 
     def validation_warnings(self) -> list[str]:
