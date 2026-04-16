@@ -1,40 +1,65 @@
 {
   "unit_system": {
-    "allowed": ["Metric", "Imperial"],
-    "selected": "Imperial",
+    "allowed": [
+      "Metric",
+      "Imperial"
+    ],
+    "selected": "Metric",
     "design_units": {
       "Metric": {
         "temperature": {
-          "allowed": ["°C"],
+          "allowed": [
+            "°C"
+          ],
           "selected": "°C"
         },
         "pressure": {
-          "allowed": ["bar", "barg", "kPa", "MPa"],
-          "selected": "bar"
+          "allowed": [
+            "bar",
+            "barg",
+            "kPa",
+            "MPa"
+          ],
+          "selected": "kPa"
         }
       },
       "Imperial": {
         "temperature": {
-          "allowed": ["°F"],
+          "allowed": [
+            "°F"
+          ],
           "selected": "°F"
         },
         "pressure": {
-          "allowed": ["psig", "psi", "psia"],
+          "allowed": [
+            "psig",
+            "psi",
+            "psia"
+          ],
           "selected": "psig"
         }
       }
     }
   },
   "nominal_size": {
-    "allowed": ["NPS", "DN"],
+    "allowed": [
+      "NPS",
+      "DN"
+    ],
     "selected": "NPS"
   },
   "pipe_thread": {
-    "allowed": ["NPT", "PT"],
+    "allowed": [
+      "NPT",
+      "PT"
+    ],
     "selected": "NPT"
   },
   "bolt_thread": {
-    "allowed": ["Metric", "Imperial"],
+    "allowed": [
+      "Metric",
+      "Imperial"
+    ],
     "selected": "Metric"
   }
 }
