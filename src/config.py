@@ -185,6 +185,16 @@ class ProjectConfig:
                 return default
         return value
 
+    def reload(self) -> list[str]:
+        """디스크에서 설정을 다시 읽고 제약 검증 경고 목록을 반환합니다."""
+        self._load_config()
+        return validate_project_constraints(self._config)
+
+    def snapshot(self) -> dict[str, Any]:
+        """외부 변이가 불가능한 deep copy를 반환합니다."""
+        import copy
+        return copy.deepcopy(self._config)
+
     def merged(self) -> dict[str, Any]:
         """검증·다른 모듈 전달용 얕은 복사."""
         return dict(self._config)
