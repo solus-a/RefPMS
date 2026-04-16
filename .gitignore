@@ -17,3 +17,6 @@ docs/chat/
 .cursor/*
 !.cursor/rules/
 !.cursor/rules/**
+
+# Project settings backups (created on each save)
+config/project/*.bak
