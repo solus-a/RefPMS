@@ -173,11 +173,9 @@ def validate_project_constraints(merged: dict[str, Any]) -> list[str]:
                     f"piping_design_codes.selected: 허용 목록 {al!r} 안에 없습니다: {sel!r}"
                 )
 
-    nm = merged.get("nps_master")
-    if not isinstance(nm, dict) or "nps_list" not in nm:
-        errors.append("nps_master: nps_list가 필요합니다.")
-    elif not isinstance(nm.get("nps_list"), list):
-        errors.append("nps_master.nps_list: 배열이어야 합니다.")
+    cat = merged.get("nps_catalog")
+    if not isinstance(cat, dict):
+        errors.append("nps_catalog: 프로그램 내장 카탈로그(data/nps_catalog.json)가 로드되지 않았습니다.")
     else:
         un_m = merged.get("units_notation")
         nominal_sel = ""
@@ -185,26 +183,13 @@ def validate_project_constraints(merged: dict[str, Any]) -> list[str]:
             ns_m = un_m.get("nominal_size")
             if isinstance(ns_m, dict):
                 nominal_sel = str(ns_m.get("selected", "")).strip().upper()
-        use_dn_master = nominal_sel == "DN"
+        use_dn = nominal_sel == "DN"
 
-        nps = nm["nps_list"]
-        if not use_dn_master and (not isinstance(nps, list) or len(nps) == 0):
+        key = "dn" if use_dn else "nps"
+        entries = cat.get(key)
+        if not isinstance(entries, list) or not entries:
             errors.append(
-                "nps_master.nps_list: nominal_size.selected 가 NPS(또는 비어 있음)일 때 "
-                "NPS 목록이 비어 있으면 안 됩니다."
-            )
-
-        dn = nm.get("dn_list")
-        if dn is not None and not isinstance(dn, list):
-            errors.append("nps_master.dn_list: 배열이어야 합니다.")
-        elif isinstance(dn, list):
-            for i, v in enumerate(dn, start=1):
-                if not str(v).strip():
-                    errors.append(f"nps_master.dn_list[{i}]: 비어 있으면 안 됩니다.")
-
-        if use_dn_master and (not isinstance(dn, list) or len(dn) == 0):
-            errors.append(
-                "nps_master.dn_list: nominal_size.selected 가 DN 일 때 DN 목록이 비어 있으면 안 됩니다."
+                f"nps_catalog.{key}: 카탈로그가 비어 있습니다 (nominal_size.selected={nominal_sel!r})."
             )
 
     ost = merged.get("output_settings")

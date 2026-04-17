@@ -37,6 +37,11 @@ def component_mapping_path() -> Path:
     return data_dir() / "component_mapping.json"
 
 
+def nps_catalog_path() -> Path:
+    """표준 공칭 사이즈 카탈로그 (ASME B36.10 NPS, ISO 6708 DN). 프로그램 내장 불변 데이터."""
+    return data_dir() / "nps_catalog.json"
+
+
 def project_config_dir() -> Path:
     """프로젝트 단위 설정 JSON (`config/project/`)."""
     return config_root() / "project"
@@ -105,8 +110,8 @@ class ProjectConfig:
                 "pipe_thread": {"allowed": ["NPT", "PT"], "selected": "NPT"},
                 "bolt_thread": {"allowed": ["Metric", "Imperial"], "selected": "Metric"},
             },
-            "nps_master": _read_json_dict(proj / "nps_master.json", logger)
-            or {"nps_list": [], "dn_list": []},
+            "nps_catalog": _read_json_dict(nps_catalog_path(), logger)
+            or {"version": 0, "nps": [], "dn": []},
             "output_settings": _read_json_dict(gen / "output_settings.json", logger)
             or {
                 "filename": "Piping_Material_Class_Data.xlsx",
@@ -166,16 +171,16 @@ class ProjectConfig:
                 ),
             },
         }
-        if "nps_list" not in self._config["nps_master"]:
-            self._config["nps_master"]["nps_list"] = []
-        if "dn_list" not in self._config["nps_master"]:
-            self._config["nps_master"]["dn_list"] = []
+        if "nps" not in self._config["nps_catalog"]:
+            self._config["nps_catalog"]["nps"] = []
+        if "dn" not in self._config["nps_catalog"]:
+            self._config["nps_catalog"]["dn"] = []
 
         for msg in validate_project_constraints(self._config):
             logger.warning("Project constraints: %s", msg)
 
     def get(self, key_path: str, default: Any = None) -> Any:
-        """점 표기법(예: 'nps_master.nps_list')으로 설정값을 가져옵니다."""
+        """점 표기법(예: 'units_notation.nominal_size.selected')으로 설정값을 가져옵니다."""
         keys = key_path.split(".")
         value: Any = self._config
         for key in keys:
@@ -202,3 +207,60 @@ class ProjectConfig:
 
 # 전역 설정 인스턴스
 config_manager = ProjectConfig()
+
+
+# ---------------------------------------------------------------------------
+# NPS/DN catalog helpers (program-internal, immutable)
+# ---------------------------------------------------------------------------
+
+def _catalog_entries(kind: str) -> list[dict[str, Any]]:
+    raw = config_manager.get(f"nps_catalog.{kind}", []) or []
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for item in raw:
+        if isinstance(item, dict) and item.get("size") is not None:
+            out.append(item)
+    return out
+
+
+def _catalog_sizes(kind: str, preferred_only: bool) -> list[str]:
+    out: list[str] = []
+    for item in _catalog_entries(kind):
+        size_text = str(item.get("size", "")).strip()
+        if not size_text:
+            continue
+        if preferred_only and not bool(item.get("preferred")):
+            continue
+        out.append(size_text)
+    return out
+
+
+def catalog_nps_all() -> list[str]:
+    """ASME B36.10 표준 NPS 전체 목록 (문자열, 저장 순서 유지)."""
+    return _catalog_sizes("nps", preferred_only=False)
+
+
+def catalog_nps_preferred() -> list[str]:
+    """선호 NPS 기본값 (16개)."""
+    return _catalog_sizes("nps", preferred_only=True)
+
+
+def catalog_dn_all() -> list[str]:
+    """ISO 6708 DN 전체 목록."""
+    return _catalog_sizes("dn", preferred_only=False)
+
+
+def catalog_dn_preferred() -> list[str]:
+    """선호 DN 기본값 (16개)."""
+    return _catalog_sizes("dn", preferred_only=True)
+
+
+def catalog_sizes_all(mode: str) -> list[str]:
+    """mode == 'DN' 이면 DN 전체, 그 외(NPS)이면 NPS 전체."""
+    return catalog_dn_all() if str(mode).strip().upper() == "DN" else catalog_nps_all()
+
+
+def catalog_sizes_preferred(mode: str) -> list[str]:
+    """mode == 'DN' 이면 선호 DN, 그 외(NPS)이면 선호 NPS."""
+    return catalog_dn_preferred() if str(mode).strip().upper() == "DN" else catalog_nps_preferred()

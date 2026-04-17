@@ -28,7 +28,12 @@ from thickness_engine import (
     load_schedule_rows,
     lookup_schedule_thickness,
 )
-from validator import load_component_mapping, validate_template_row
+from validator import (
+    load_class_size_ranges,
+    load_component_mapping,
+    validate_size_range_for_row,
+    validate_template_row,
+)
 
 # 프로젝트 설정 로드
 cfg = config.config_manager
@@ -1187,10 +1192,12 @@ def _iter_output_rows(
     component_mapping: Optional[dict[str, Any]] = None,
     branch_data: Optional[dict[str, dict[tuple[str, str], str]]] = None,
     class_branch_codes: Optional[dict[str, str]] = None,
+    class_size_ranges: Optional[dict[str, list[str]]] = None,
 ):
     mapping = component_mapping if component_mapping is not None else load_component_mapping()
     branch_data = branch_data if branch_data is not None else {}
     class_branch_codes = class_branch_codes if class_branch_codes is not None else {}
+    class_size_ranges = class_size_ranges if class_size_ranges is not None else {}
 
     fitting_ws = workbook["Fitting_Group"] if "Fitting_Group" in workbook.sheetnames else None
     fitting_header_to_col: dict[str, int] = {}
@@ -1254,6 +1261,39 @@ def _iter_output_rows(
             if row_issues:
                 for msg in row_issues:
                     logger.warning(msg)
+                continue
+
+            size_range_issues: list[str] = []
+            size_range_issues.extend(
+                validate_size_range_for_row(
+                    sheet_name,
+                    row_idx,
+                    class_name,
+                    ws,
+                    header_to_col,
+                    size_from_1_header,
+                    size_to_1_header,
+                    class_size_ranges,
+                    size_label="Size1" if size_from_2_header else "Size",
+                )
+            )
+            if size_from_2_header and size_to_2_header:
+                size_range_issues.extend(
+                    validate_size_range_for_row(
+                        sheet_name,
+                        row_idx,
+                        class_name,
+                        ws,
+                        header_to_col,
+                        size_from_2_header,
+                        size_to_2_header,
+                        class_size_ranges,
+                        size_label="Size2",
+                    )
+                )
+            if size_range_issues:
+                for msg in size_range_issues:
+                    logger.error(msg)
                 continue
 
             log_class_constraint_warnings(
@@ -1702,15 +1742,92 @@ def generate_piping_material_class_data(
     in_wb = load_workbook(template_path, data_only=True)
     schedule_rows = load_schedule_rows(in_wb)
     class_specs = load_class_specs_from_workbook(in_wb)
+    class_size_ranges = load_class_size_ranges(in_wb)
+
+    size_range_errors: list[str] = []
+    if class_size_ranges and "Schedule" in in_wb.sheetnames:
+        _sch_ws = in_wb["Schedule"]
+        try:
+            _sch_hr = _detect_header_row(_sch_ws, ["Class_Name", "Size_From", "Size_To"])
+            _sch_htc = _build_header_index(_sch_ws, _sch_hr)
+            for _r in range(_sch_hr + 1, _sch_ws.max_row + 1):
+                _cn = _get_cell_text(_sch_ws, _r, _sch_htc, "Class_Name")
+                if not _cn:
+                    continue
+                for _msg in validate_size_range_for_row(
+                    "Schedule",
+                    _r,
+                    _cn,
+                    _sch_ws,
+                    _sch_htc,
+                    "Size_From",
+                    "Size_To",
+                    class_size_ranges,
+                    size_label="Size",
+                ):
+                    size_range_errors.append(_msg)
+        except ValueError:
+            pass
+    if size_range_errors:
+        for _m in size_range_errors:
+            logger.error(_m)
+        raise ValueError(
+            "Schedule Size_From/Size_To outside Class Size Range; "
+            "fix Class_Size_Range sheet or Schedule rows."
+        )
+
+    reducing_data = _load_reducing_table(in_wb)
+    class_reducing_codes = _load_class_reducing_table_codes(in_wb)
+    branch_data = _load_branch_table(in_wb)
+    class_branch_codes = _load_class_branch_table_codes(in_wb)
+
+    def _check_size_table(
+        table_label: str,
+        class_code_map: dict[str, str],
+        table_payload: dict[str, dict[tuple[str, str], str]],
+    ) -> list[str]:
+        errs: list[str] = []
+        if not class_size_ranges:
+            return errs
+        for _class_name, _code in class_code_map.items():
+            _code = (_code or "").strip()
+            if not _code:
+                continue
+            _active = class_size_ranges.get(_class_name)
+            if _active is None:
+                continue
+            _active_set = {str(s).strip() for s in _active if str(s).strip()}
+            if not _active_set:
+                continue
+            _payload = table_payload.get(_code) or {}
+            for (_s1, _s2), _ in _payload.items():
+                for _label, _val in (("Size1", _s1), ("Size2", _s2)):
+                    _t = str(_val).strip()
+                    if _t and _t not in _active_set:
+                        errs.append(
+                            f"{table_label} (Class {_class_name!r}, Table {_code!r}): "
+                            f"{_label} {_t!r} is outside Class Size Range."
+                        )
+        return errs
+
+    table_range_errors = _check_size_table(
+        "Reducing_Table", class_reducing_codes, reducing_data
+    )
+    table_range_errors.extend(
+        _check_size_table("Branch_Table", class_branch_codes, branch_data)
+    )
+    if table_range_errors:
+        for _m in table_range_errors:
+            logger.error(_m)
+        raise ValueError(
+            "Reducing/Branch table size outside Class Size Range; "
+            "fix Class_Size_Range sheet or table entries."
+        )
     ca_errors, ca_warnings = corrosion_allowance_validation_messages(in_wb)
     for msg in ca_warnings:
         logger.warning(msg)
     if ca_errors:
         raise ValueError("; ".join(ca_errors))
-    reducing_data = _load_reducing_table(in_wb)
-    class_reducing_codes = _load_class_reducing_table_codes(in_wb)
-    branch_data = _load_branch_table(in_wb)
-    class_branch_codes = _load_class_branch_table_codes(in_wb)
 
     out_wb = Workbook()
     out_ws = out_wb.active
@@ -1732,6 +1849,7 @@ def generate_piping_material_class_data(
             component_mapping,
             branch_data=branch_data,
             class_branch_codes=class_branch_codes,
+            class_size_ranges=class_size_ranges,
         )
     )
     def _sort_size2_key(r: dict[str, Any]) -> tuple:

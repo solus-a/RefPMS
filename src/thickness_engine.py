@@ -1,9 +1,10 @@
 """
 사이즈·클래스별 Schedule(두께) 룩업.
 
-config/project/nps_master.json 의 nps_list·dn_list 중,
-**units_notation.nominal_size.selected 가 DN 이면 dn_list**, **NPS(또는 비어 있음)이면 nps_list**로
-사이즈 전개·스케줄 구간 매칭을 합니다 (온도·압력용 unit_system 과 무관).
+명목지름 ``units_notation.nominal_size.selected`` 에 따라 **표준 카탈로그**
+(ASME B36.10 NPS 또는 ISO 6708 DN) 전체 목록을 master로 씁니다. 클래스별로
+실제로 활성화된 사이즈 부분집합(`Class_Size_Range`) 은 상위 파이프라인이
+적용합니다.
 **Schedule 룩업**은 우선 동일 규칙으로 매칭하고, 리스트에 없는 NPS라도
 From~To **숫자 구간**에 들어가면 해당 Schedule을 씁니다(Reducing 등).
 """
@@ -31,23 +32,22 @@ SCHEDULE_REQUIRED_HEADERS = [
 
 
 def nps_list() -> list[str]:
-    return list(cfg.get("nps_master.nps_list", []) or [])
+    """표준 카탈로그(ASME B36.10) NPS 전체 목록."""
+    return list(config.catalog_nps_all())
 
 
 def dn_list() -> list[str]:
-    """프로젝트에서 사용하는 DN(mm 호칭) 문자열 목록."""
-    return list(cfg.get("nps_master.dn_list", []) or [])
+    """표준 카탈로그(ISO 6708) DN 전체 목록."""
+    return list(config.catalog_dn_all())
 
 
 def nominal_size_master() -> list[str]:
     """
-    DN → dn_list, NPS(또는 미설정) → nps_list.
+    DN → DN 카탈로그, NPS(또는 미설정) → NPS 카탈로그.
     명목지름은 ``units_notation.nominal_size.selected`` 만 따릅니다.
     """
     raw = str(cfg.get("units_notation.nominal_size.selected", "") or "").strip().upper()
-    if raw == "DN":
-        return dn_list()
-    return nps_list()
+    return list(config.catalog_sizes_all(raw))
 
 
 def explode_size_range(size_from: str, size_to: str) -> list[str]:

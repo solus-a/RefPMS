@@ -19,9 +19,10 @@ RefPMS is a transformation engine that takes project information, PMC informatio
 
 ## SSOT for Micro DB Output
 
-- `config/project/`: `units_notation.json`, `piping_design_codes.json`, `nps_master.json`
+- `config/project/`: `units_notation.json`, `piping_design_codes.json`
 - `config/generator/`: `output_settings.json`, `coding_rules.json`
-- Template `Class_Define` sheet (and linked template sheets)
+- Template `Class_Define` sheet, `Class_Size_Range` sheet (Class Size Range SSOT), and other linked template sheets
+- `data/nps_catalog.json` (program-internal catalog of ASME B36.10 NPS / ISO 6708 DN sizes)
 - `data/class_material_mapping.json`
 - `data/component_mapping.json`
 - `data/Item_Code_DB.xlsx`

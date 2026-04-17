@@ -63,6 +63,14 @@ class NamedSizeTable:
 
 
 @dataclass
+class ClassSizeRange:
+    """Class-level Size Range: 이 클래스에서 활성화된 공칭 사이즈 부분집합 (Class Constraint)."""
+
+    class_name: str
+    active_sizes: list[str] = field(default_factory=list)
+
+
+@dataclass
 class ClassLevelBundle:
     """템플릿 xlsx의 클래스 수준 시트 내용."""
 
@@ -72,9 +80,18 @@ class ClassLevelBundle:
     schedule_rows: list[dict[str, str]]
     reducing_tables: list[NamedSizeTable]
     branch_tables: list[NamedSizeTable]
+    size_ranges: list[ClassSizeRange] = field(default_factory=list)
 
     def all_table_codes(self) -> list[str]:
         return [t.table_code.strip() for t in self.reducing_tables + self.branch_tables]
+
+    def active_sizes_for(self, class_name: str) -> list[str]:
+        """주어진 Class_Name 의 활성 사이즈 목록. 엔트리 없으면 빈 리스트."""
+        target = (class_name or "").strip()
+        for sr in self.size_ranges:
+            if (sr.class_name or "").strip() == target:
+                return [str(s).strip() for s in sr.active_sizes if str(s).strip()]
+        return []
 
     def validate(self) -> list[str]:
         """Empty list means OK. Error strings for the wizard (English)."""
@@ -86,6 +103,32 @@ class ClassLevelBundle:
             )
         if any(not t.table_code.strip() for t in self.reducing_tables + self.branch_tables):
             errs.append("Table_Code (table name) cannot be blank.")
+
+        catalog_sizes = set(
+            config.catalog_sizes_all(
+                str(
+                    config.config_manager.get("units_notation.nominal_size.selected", "NPS")
+                    or "NPS"
+                )
+            )
+        )
+        class_names_seen: set[str] = set()
+        for i, sr in enumerate(self.size_ranges):
+            label = f"Class_Size_Range row {i + 1}"
+            cname = (sr.class_name or "").strip()
+            if not cname:
+                errs.append(f"{label}: Class_Name is required.")
+                continue
+            if cname in class_names_seen:
+                errs.append(f"{label}: duplicate Class_Name {cname!r}.")
+            class_names_seen.add(cname)
+            for sz in sr.active_sizes:
+                t = str(sz).strip()
+                if t and catalog_sizes and t not in catalog_sizes:
+                    errs.append(
+                        f"{label}: size {t!r} is not in the standard catalog."
+                    )
+
         allowed_schedule_values = set(scheduleAllowlist())
 
         r_codes = {t.table_code.strip() for t in self.reducing_tables}

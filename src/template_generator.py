@@ -9,7 +9,13 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font
 
 import config
-from class_level_model import ClassLevelBundle, NamedSizeTable, SizeTableRow, row_dict_for_headers
+from class_level_model import (
+    ClassLevelBundle,
+    ClassSizeRange,
+    NamedSizeTable,
+    SizeTableRow,
+    row_dict_for_headers,
+)
 from units_notation_headers import (
     class_define_headers,
     fluid_service_headers,
@@ -76,6 +82,9 @@ SCHEDULE_HEADERS = [
 
 REDUCING_TABLE_HEADERS = ["Table_Code", "Size1", "Size2", "Item_Type", "Remarks"]
 BRANCH_TABLE_HEADERS = REDUCING_TABLE_HEADERS
+
+CLASS_SIZE_RANGE_HEADERS = ["Class_Name", "Active_Sizes"]
+CLASS_SIZE_RANGE_SHEET = "Class_Size_Range"
 
 PIPE_HEADERS = [
     "Class_Name",
@@ -389,6 +398,26 @@ def _write_named_size_tables(ws, tables: list[NamedSizeTable]) -> None:
             row_idx += 1
 
 
+def _write_class_size_ranges(ws, ranges: list[ClassSizeRange]) -> None:
+    """Class_Size_Range 시트: Class_Name 한 행에 활성 사이즈를 쉼표로 연결해 기록."""
+    for row_idx, sr in enumerate(ranges, start=2):
+        ws.cell(row=row_idx, column=1, value=(sr.class_name or "").strip())
+        sizes_text = ", ".join(str(s).strip() for s in sr.active_sizes if str(s).strip())
+        ws.cell(row=row_idx, column=2, value=sizes_text)
+
+
+def _parse_active_sizes(raw: str) -> list[str]:
+    """'0.5, 1, 2' 또는 공백/세미콜론 구분 문자열을 사이즈 리스트로 변환."""
+    out: list[str] = []
+    if not raw:
+        return out
+    for token in str(raw).replace(";", ",").replace(" ", ",").split(","):
+        t = token.strip()
+        if t:
+            out.append(t)
+    return out
+
+
 def _read_dict_rows(ws, headers: list[str]) -> list[dict[str, str]]:
     try:
         hr = detect_header_row(ws, headers)
@@ -402,6 +431,26 @@ def _read_dict_rows(ws, headers: list[str]) -> list[dict[str, str]]:
         row = {h: _cell_to_text(ws.cell(row=r, column=htc[h]).value) for h in headers}
         if any(v.strip() for v in row.values()):
             out.append(row)
+    return out
+
+
+def _read_class_size_ranges(ws) -> list[ClassSizeRange]:
+    if ws is None:
+        return []
+    try:
+        hr = detect_header_row(ws, CLASS_SIZE_RANGE_HEADERS)
+    except ValueError:
+        return []
+    htc = build_header_index(ws, hr)
+    if any(h not in htc for h in CLASS_SIZE_RANGE_HEADERS):
+        return []
+    out: list[ClassSizeRange] = []
+    for r in range(hr + 1, ws.max_row + 1):
+        name = _cell_to_text(ws.cell(row=r, column=htc["Class_Name"]).value).strip()
+        if not name:
+            continue
+        raw = _cell_to_text(ws.cell(row=r, column=htc["Active_Sizes"]).value)
+        out.append(ClassSizeRange(class_name=name, active_sizes=_parse_active_sizes(raw)))
     return out
 
 
@@ -452,6 +501,7 @@ def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
     ws_schedule = ws_or_none("Schedule")
     ws_reducing = ws_or_none("Reducing_Table")
     ws_branch = ws_or_none("Branch_Table")
+    ws_size_range = ws_or_none(CLASS_SIZE_RANGE_SHEET)
 
     class_rows = _read_dict_rows(ws_define, class_headers) if ws_define is not None else []
     if not class_rows:
@@ -465,6 +515,7 @@ def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
         schedule_rows=_read_dict_rows(ws_schedule, SCHEDULE_HEADERS) if ws_schedule is not None else [],
         reducing_tables=_read_named_size_tables(ws_reducing) if ws_reducing is not None else [],
         branch_tables=_read_named_size_tables(ws_branch) if ws_branch is not None else [],
+        size_ranges=_read_class_size_ranges(ws_size_range),
     )
 
 
@@ -545,6 +596,9 @@ def generate_class_define_template(
     ws_reducing_table = wb.create_sheet(title="Reducing_Table")
     _set_headers_and_widths(ws_reducing_table, REDUCING_TABLE_HEADERS)
 
+    ws_size_range = wb.create_sheet(title=CLASS_SIZE_RANGE_SHEET)
+    _set_headers_and_widths(ws_size_range, CLASS_SIZE_RANGE_HEADERS)
+
     if class_level is not None:
         _write_dict_rows(ws_define, class_headers, class_level.class_define_rows)
         _write_dict_rows(ws_fluid, fluid_headers, class_level.fluid_service_rows)
@@ -552,6 +606,7 @@ def generate_class_define_template(
         _write_dict_rows(ws_schedule, SCHEDULE_HEADERS, class_level.schedule_rows)
         _write_named_size_tables(ws_branch_table, class_level.branch_tables)
         _write_named_size_tables(ws_reducing_table, class_level.reducing_tables)
+        _write_class_size_ranges(ws_size_range, class_level.size_ranges)
 
     _append_component_group_sheets(wb)
 

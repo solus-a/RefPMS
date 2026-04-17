@@ -8,73 +8,140 @@ description: >-
 
 # TodayWorkEnd
 
-Automate the end-of-work git wrap-up: inspect changes, guard .gitignore,
+Automate the end-of-work git wrap-up: inspect changes, guard `.gitignore`,
 commit, and push — in one shot.
+
+This project runs on **Windows + PowerShell**. Command forms below assume
+PowerShell unless noted.
 
 ## Workflow
 
-### Step 1 — Gather State (run in parallel)
+### Step 1 — Gather State (issue these as parallel Shell calls)
 
-```bash
-git status --short --branch
-git status --short --untracked-files=all
-git diff --staged
-git diff
-git log -6 --oneline
-```
+Issue the following commands as **separate Shell tool calls in the same
+message** so they run concurrently. Chaining them with `;` inside one
+shell invocation is sequential and defeats the point.
 
-Collect: branch name, tracked remote, untracked files, staged/unstaged diffs,
-recent commit message style.
+- `git status --short --branch --untracked-files=all` — branch, upstream,
+  ahead/behind, tracked + untracked changes in one shot.
+- `git diff HEAD` — staged + unstaged diffs against HEAD.
+- `git log -6 --oneline` — recent commit message style.
+- `git rev-parse --abbrev-ref --symbolic-full-name '@{u}'` — detect whether
+  an upstream is set (non-zero exit means no upstream).
 
-### Step 2 — Evaluate .gitignore
+Also **read `.gitignore`** (via the Read tool) so you know the existing
+patterns and style before proposing additions.
 
-For every **untracked** file or directory, decide whether it should be
-committed or ignored.
+From this, collect: current branch, upstream (if any), ahead/behind counts,
+tracked changes, untracked files, commit message conventions.
+
+### Step 2 — Evaluate `.gitignore`
+
+For every **untracked** file or directory, classify it:
 
 | Signal | Action |
 |--------|--------|
-| File fits an existing tracked pattern (e.g. new `.cursor/rules/*.mdc` when others are tracked) | **Commit** |
-| Generated artifact, cache, local IDE config, secrets, temp file | **Ignore** — add a rule to `.gitignore` |
+| Fits an existing tracked pattern (e.g. a new `.cursor/rules/*.mdc` when others are tracked) | **Commit** |
+| Generated artifact, cache, local IDE config, secrets, temp file, editor backup | **Ignore** — add a rule to `.gitignore` |
 | Uncertain | **Ask the user** before proceeding |
 
-If `.gitignore` is modified, stage and include it in the commit.
+When adding to `.gitignore`:
 
-### Step 3 — Stage & Commit
+1. **Follow the existing style** — grouped with a `# ...` comment header,
+   whitelist exceptions via `!` where the repo already does (see the
+   `.cursor/*` block for an example).
+2. **Handle already-tracked files**: if a path you now want to ignore is
+   *already tracked*, `.gitignore` alone won't exclude it. Untrack it with
+   `git rm --cached -r -- <path>` and include that in the commit. Confirm
+   with the user before removing tracked content.
+3. **Re-verify**: after editing `.gitignore`, run
+   `git status --short --untracked-files=all` again and confirm the
+   intended paths are gone (or still listed, for whitelists).
+4. Stage `.gitignore` together with the related changes so the commit is
+   self-consistent.
 
-1. Stage all relevant files (`git add`).
-2. Draft a concise commit message:
-   - Follow the style of recent commits in the repo.
-   - Focus on **why**, not **what**.
-   - 1-2 sentence body when helpful.
-3. Commit using a HEREDOC (PowerShell or bash, per user's shell).
+### Step 3 — Decide What This Run Should Do
 
-### Step 4 — Push
+Branch on the state collected in Step 1:
 
-```bash
-git push
-```
+- **Working tree dirty** (staged or unstaged changes, or to-be-committed
+  untracked files) → proceed to Step 4.
+- **Working tree clean but `ahead > 0`** (unpushed commits exist) → skip
+  to Step 5 (push only). Tell the user you're pushing existing commits
+  without creating a new one.
+- **Working tree clean and `ahead == 0`** → nothing to do. Report
+  "no changes, nothing to push" and stop. Do not create an empty commit.
+- **Upstream is `behind` or `diverged`** → **do not** silently
+  pull/rebase/merge. Surface the situation to the user and ask how to
+  proceed.
 
-If the branch has no upstream, use `git push -u origin HEAD`.
+### Step 4 — Stage & Commit
 
-### Step 5 — Confirm
+1. Stage the relevant files with `git add -- <paths>`. Prefer explicit
+   paths over `git add -A` so accidental files don't slip in.
+2. **Verify the staging area** — run `git status --short` and
+   `git diff --staged --stat`, then assert ALL of:
+   - Every path staged in `git status` was either (a) an untracked file
+     classified as "Commit" in Step 2, or (b) a tracked file whose diff
+     appeared in Step 1's `git diff HEAD` output.
+   - No path classified as "Ignore" or "Ask" in Step 2 is staged.
+   - No file that looks like a secret (`.env`, `*credential*`, `*token*`,
+     private key) is staged.
+   - `.gitignore` is staged **only if** it was modified in Step 2.
+   If any assertion fails, unstage the offending path with
+   `git reset HEAD -- <path>` and explain to the user why it was removed.
+3. Draft a commit message:
+   - Match the style of recent commits (language, casing, scope prefix).
+   - Subject ≤ ~72 chars, imperative mood, focuses on **why**.
+   - Optional 1–2 sentence body for rationale or side effects.
+4. Commit. In **PowerShell**, prefer one of:
+   - Multiple `-m` flags (each becomes a paragraph):
+     `git commit -m "subject" -m "body line 1" -m "body line 2"`
+   - Or a temp file for longer messages:
+     `Set-Content -Path .git\COMMIT_EDITMSG.tmp -Value $msg -Encoding utf8;`
+     `git commit -F .git\COMMIT_EDITMSG.tmp;`
+     `Remove-Item .git\COMMIT_EDITMSG.tmp`
+   - Heredocs (`@'...'@`, `<<'EOF'`) only work reliably in Git Bash, not
+     PowerShell — avoid them here.
+5. **Pre-commit hook handling**:
+   - Hook **rejected** the commit (non-zero exit) → fix the reported
+     issue and create a **new** commit. Do **not** `--amend`.
+   - Hook **succeeded but auto-modified files** → `git add` the modified
+     paths and `git commit --amend --no-edit` is acceptable *only* if
+     this commit was created in this session and has not been pushed.
 
-Run `git status --short --branch` and report:
-- Commit hash and message
-- Files included
-- Push result
-- Working tree cleanliness
+### Step 5 — Push
+
+1. If Step 1 found no upstream, use `git push -u origin HEAD`.
+   Otherwise `git push`.
+2. On failure, diagnose before retrying — never force-push or pull/rebase
+   without explicit user approval:
+   - **Non-fast-forward / rejected** → stop and ask the user whether to
+     rebase, merge, or force-push.
+   - **Auth / network error** → report verbatim and stop.
+   - **Pre-push hook failure** → fix the reported issue, then retry.
+
+### Step 6 — Confirm
+
+Run these verifications and report back:
+
+- `git status --short --branch` — working tree should be clean and the
+  branch should not be `ahead` of upstream.
+- `git log -1 --oneline` — the new commit hash + subject (if a commit
+  was made).
+- `git log "@{u}..HEAD" --oneline` — must be empty, proving everything
+  is pushed.
+
+Include in the final report: commit hash(es) and subject, files
+included, push result, working-tree status.
 
 ## Decision Rules
 
-- **Never** commit files that look like secrets (`.env`, credentials, tokens).
-  Warn the user if they explicitly request it.
-- **Never** force-push or amend unless the user explicitly asks.
-- If there are **no changes** at all, inform the user and stop.
-- If the commit is rejected by a pre-commit hook, fix and create a **new**
-  commit (do not amend).
-
-## Shell Compatibility Note
-
-This project runs on Windows (PowerShell). Use `;` instead of `&&` to chain
-commands. For commit messages use PowerShell here-strings (`@'...'@`) or
-the `"$(cat <<'EOF' ... EOF)"` form on bash/Git Bash.
+- **Never** commit files that look like secrets (`.env`, credentials,
+  tokens, private keys). If the user explicitly asks, warn first.
+- **Never** force-push, amend a pushed commit, or silently rewrite
+  history. Require explicit user consent.
+- **Never** run `git pull`, `git rebase`, or `git merge` autonomously to
+  resolve a diverged branch — ask the user.
+- If the user's intent is ambiguous (e.g. mixed unrelated changes), ask
+  whether to split into multiple commits before staging.

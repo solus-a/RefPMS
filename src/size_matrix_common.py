@@ -24,26 +24,21 @@ def nominal_size_mode() -> Literal["NPS", "DN"]:
 
 
 def load_axis_allowlist() -> frozenset[str]:
+    """
+    Size_Matrix 축에 허용되는 사이즈 집합.
+
+    기본 기준은 **표준 카탈로그 전체 (ASME B36.10 / ISO 6708)**.  클래스별 Size Range
+    (`Class_Size_Range` 시트)는 이 축 목록을 다시 좁히는 2차 게이트로 생성 파이프라인에서
+    적용한다 (교차 시트 검증).
+    """
     mode = nominal_size_mode()
-    key = "nps_master.dn_list" if mode == "DN" else "nps_master.nps_list"
-    lst = config.config_manager.get(key, []) or []
-    out: set[str] = set()
-    if isinstance(lst, list):
-        for x in lst:
-            t = str(x).strip()
-            if t:
-                out.add(t)
-    return frozenset(out)
+    return frozenset(config.catalog_sizes_all(mode))
 
 
 def sorted_nominal_master_list() -> list[str]:
-    """nps_master 순서(숫자 정렬) — Edit Size 대화상자 행과 매트릭스 축의 기준."""
+    """Size_Matrix 축 기준 — 표준 카탈로그(전체 사이즈) 숫자 정렬."""
     mode = nominal_size_mode()
-    key = "nps_master.dn_list" if mode == "DN" else "nps_master.nps_list"
-    lst = config.config_manager.get(key, []) or []
-    if not isinstance(lst, list):
-        return []
-    raw = [str(x).strip() for x in lst if str(x).strip()]
+    raw = config.catalog_sizes_all(mode)
     return sorted(set(raw), key=size_number)
 
 
@@ -105,7 +100,9 @@ def axes_from_rows(
 def matrix_help_text(pair_kind: Literal["reducing", "branch"], nominal: str) -> str:
     common = (
         f"Nominal size mode: {nominal} (from units_notation.nominal_size). "
-        "Only sizes listed in nps_master for that mode may be used as row/column headers.\n\n"
+        "Row/column headers are drawn from the built-in standard catalog "
+        "(ASME B36.10 for NPS, ISO 6708 for DN). Per-Class Size Range narrows which of those "
+        "are actually usable when the Piping_Material_Class_Data file is generated.\n\n"
         "Navigation (Excel-like): click selects a cell; drag a rectangle to replace the selection. "
         "Ctrl+drag adds a rectangle to the current selection. Shift+click or Shift+drag unions a rectangle "
         "from the anchor to the pointer with the existing selection (keeps prior Ctrl-added cells). "
@@ -117,7 +114,7 @@ def matrix_help_text(pair_kind: Literal["reducing", "branch"], nominal: str) -> 
         "Ctrl+Enter copies the active cell value into all selected cells. "
         "Ctrl+C / Ctrl+V copy and paste TSV blocks.\n\n"
         "Item_Type is stored in UPPERCASE.\n"
-        "Edit Size opens a list (one row per nominal from nps_master): two checkboxes per row — "
+        "Edit Size opens a list (one row per nominal from the standard catalog): two checkboxes per row — "
         "whether that label is enabled on the Size1 axis (rows) and on the Size2 axis (columns). "
         "Unchecked axis greys the entire corresponding row or column in the matrix (geometry rules still apply).\n"
         "Reset clears every editable cell's Item_Type value; axis enable flags are unchanged.\n"

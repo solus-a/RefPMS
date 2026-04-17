@@ -204,7 +204,7 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         ttk.Label(
             outer,
             text=(
-                f"One row per {self._nominal_mode} from nps_master. "
+                f"One row per {self._nominal_mode} from the standard catalog. "
                 f"Checkboxes turn that label on or off for the matrix row axis ({h1}) "
                 f"and column axis ({h2}). Unchecked greys the whole row or column."
             ),

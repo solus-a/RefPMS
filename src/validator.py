@@ -92,3 +92,87 @@ def validate_template_row(
                 )
 
     return messages
+
+
+# ---------------------------------------------------------------------------
+# Cross-sheet Class Size Range validation
+# ---------------------------------------------------------------------------
+
+def load_class_size_ranges(workbook) -> dict[str, list[str]]:
+    """템플릿 workbook 에서 Class_Size_Range 시트를 읽어 Class_Name → active sizes.
+
+    시트가 없거나 비어 있으면 빈 dict. 호출 측에서 빈 dict ⇒ "범위 미선언" 으로 간주하여
+    해당 검증을 건너뛸 수 있습니다.
+    """
+    if workbook is None or "Class_Size_Range" not in workbook.sheetnames:
+        return {}
+    ws = workbook["Class_Size_Range"]
+    from excel_sheet_utils import (
+        build_header_index as _bhi,
+        detect_header_row as _dhr,
+        to_text as _tt,
+    )
+    headers = ["Class_Name", "Active_Sizes"]
+    try:
+        hr = _dhr(ws, headers)
+    except ValueError:
+        return {}
+    htc = _bhi(ws, hr)
+    if any(h not in htc for h in headers):
+        return {}
+    out: dict[str, list[str]] = {}
+    for r in range(hr + 1, ws.max_row + 1):
+        name = _tt(ws.cell(row=r, column=htc["Class_Name"]).value).strip()
+        if not name:
+            continue
+        raw = _tt(ws.cell(row=r, column=htc["Active_Sizes"]).value)
+        sizes: list[str] = []
+        if raw:
+            for token in str(raw).replace(";", ",").replace(" ", ",").split(","):
+                t = token.strip()
+                if t:
+                    sizes.append(t)
+        out[name] = sizes
+    return out
+
+
+def validate_size_range_for_row(
+    sheet_name: str,
+    row_idx: int,
+    class_name: str,
+    ws,
+    header_to_col: dict[str, int],
+    size_from_field: str | None,
+    size_to_field: str | None,
+    class_size_ranges: dict[str, list[str]],
+    size_label: str = "Size",
+) -> list[str]:
+    """Size_From/Size_To 가 해당 Class 의 Active Size Range 안에 있는지 확인.
+
+    Class 의 Size Range 엔트리 자체가 없으면(= 선언 안 됨) 검증을 건너뜁니다.
+    엔트리는 있지만 Size 값이 그 집합에 없으면 **에러** 메시지를 반환.
+    """
+    if not class_name or not class_size_ranges:
+        return []
+    active = class_size_ranges.get(class_name)
+    if active is None:
+        return []
+    active_set = {str(s).strip() for s in active if str(s).strip()}
+    if not active_set:
+        return []
+    messages: list[str] = []
+    for field_name, role in (
+        (size_from_field, f"{size_label} (From)"),
+        (size_to_field, f"{size_label} (To)"),
+    ):
+        if not field_name or field_name not in header_to_col:
+            continue
+        val = _get_cell_text(ws, row_idx, header_to_col, field_name).strip()
+        if not val:
+            continue
+        if val not in active_set:
+            messages.append(
+                f"{sheet_name} row {row_idx}: {role} {val!r} is outside Class {class_name!r} "
+                f"Size Range (declared in Class_Size_Range sheet)."
+            )
+    return messages

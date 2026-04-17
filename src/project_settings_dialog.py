@@ -46,11 +46,7 @@ class ProjectSettingsDialog(tk.Toplevel):
             frame, row, "단위 체계", UNIT_SYSTEM_OPTIONS, current.unit_system, "_unit_system",
         )
 
-        # --- Temperature / Pressure (dependent on unit system) ---
-        t_opts, p_opts = _design_unit_options(current.unit_system)
-        row = self._add_combo(
-            frame, row, "온도 단위", t_opts, current.temperature_unit, "_temperature",
-        )
+        _, p_opts = _design_unit_options(current.unit_system)
         row = self._add_combo(
             frame, row, "압력 단위", p_opts, current.pressure_unit, "_pressure",
         )
@@ -106,18 +102,18 @@ class ProjectSettingsDialog(tk.Toplevel):
 
     def _on_unit_system_changed(self, _event: tk.Event | None = None) -> None:
         selected_system = self._unit_system_combo.get()
-        t_opts, p_opts = _design_unit_options(selected_system)
-
-        self._temperature_combo["values"] = list(t_opts)
-        self._temperature_combo.set(t_opts[0] if t_opts else "")
+        _, p_opts = _design_unit_options(selected_system)
 
         self._pressure_combo["values"] = list(p_opts)
         self._pressure_combo.set(p_opts[0] if p_opts else "")
 
     def _do_save(self) -> None:
+        unit_system = self._unit_system_combo.get()
+        t_opts, _ = _design_unit_options(unit_system)
+        temperature_unit = t_opts[0] if t_opts else ""
         candidate = ProjectSettings(
-            unit_system=self._unit_system_combo.get(),
-            temperature_unit=self._temperature_combo.get(),
+            unit_system=unit_system,
+            temperature_unit=temperature_unit,
             pressure_unit=self._pressure_combo.get(),
             nominal_size=self._nominal_size_combo.get(),
             pipe_thread=self._pipe_thread_combo.get(),
