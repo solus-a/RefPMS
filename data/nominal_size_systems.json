@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "description": "Nominal pipe-size systems available for selection at the Class layer. Program-internal reference data; the selected value is stored per Class row in the Class_Define sheet and drives which subset of data/nps_catalog.json applies to that class.",
+  "allowed": [
+    "NPS",
+    "DN"
+  ]
+}

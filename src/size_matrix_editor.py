@@ -17,7 +17,7 @@ from size_matrix_common import (
     cell_allowed,
     load_axis_allowlist,
     matrix_help_text,
-    nominal_size_mode,
+    normalize_nominal_mode,
     size_number,
     sorted_nominal_master_list,
 )
@@ -38,6 +38,7 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         title: str,
         table: NamedSizeTable,
         pair_kind: Literal["reducing", "branch"],
+        nominal_mode: str | None = None,
     ) -> None:
         super().__init__(parent)
         self.title(title)
@@ -53,10 +54,10 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
             pass
         self._pair_kind = pair_kind
         self._table_code = table.table_code.strip()
-        self._allowed_sizes = load_axis_allowlist()
-        self._nominal_mode = nominal_size_mode()
-        base1, base2 = axes_from_rows(table.rows, pair_kind)
-        self._nominal_master = sorted_nominal_master_list()
+        self._nominal_mode = normalize_nominal_mode(nominal_mode)
+        self._allowed_sizes = load_axis_allowlist(self._nominal_mode)
+        base1, base2 = axes_from_rows(table.rows, pair_kind, self._nominal_mode)
+        self._nominal_master = sorted_nominal_master_list(self._nominal_mode)
         extra_sizes = {s for s in base1} | {s for s in base2}
         if self._nominal_master:
             axis_set = sorted(
@@ -830,7 +831,8 @@ def run_size_matrix_editor(
     title: str,
     table: NamedSizeTable,
     pair_kind: Literal["reducing", "branch"],
+    nominal_mode: str | None = None,
 ) -> NamedSizeTable | None:
-    dlg = MatrixTableDialog(parent, title, table, pair_kind)
+    dlg = MatrixTableDialog(parent, title, table, pair_kind, nominal_mode)
     parent.winfo_toplevel().wait_window(dlg)
     return dlg._result

@@ -1,8 +1,6 @@
-"""Project `units_notation` → Class_Define column headers with ``[unit]`` notation."""
+"""Class Template 전역 단위 → Class_Define 컬럼 헤더 (``[unit]`` notation)."""
 
 from __future__ import annotations
-
-from typing import Any
 
 
 def bracket_unit_header(base_column_name: str, unit_display: str) -> str:
@@ -12,43 +10,13 @@ def bracket_unit_header(base_column_name: str, unit_display: str) -> str:
     return f"{base_column_name} [{u}]"
 
 
-def read_design_units_from_merged(merged: dict[str, Any]) -> tuple[str, str]:
-    """
-    ``units_notation.unit_system.design_units[unit_system.selected]`` 의
-    temperature/pressure selected.
-    """
-    un = merged.get("units_notation")
-    if not isinstance(un, dict):
-        return "", ""
-    us_block = un.get("unit_system")
-    if not isinstance(us_block, dict):
-        return "", ""
-    sel = str(us_block.get("selected", "")).strip()
-    if sel not in ("Metric", "Imperial"):
-        return "", ""
-    du_root = us_block.get("design_units")
-    if not isinstance(du_root, dict):
-        return "", ""
-    sys_block = du_root.get(sel)
-    if not isinstance(sys_block, dict):
-        return "", ""
-    dt = ""
-    dp = ""
-    temp = sys_block.get("temperature")
-    if isinstance(temp, dict):
-        dt = str(temp.get("selected", "") or "").strip()
-    press = sys_block.get("pressure")
-    if isinstance(press, dict):
-        dp = str(press.get("selected", "") or "").strip()
-    return dt, dp
-
-
 def class_define_headers(design_temperature_unit: str, design_pressure_unit: str) -> list[str]:
     t = design_temperature_unit
     p = design_pressure_unit
     return [
         "Revision_No",
         "Class_Name",
+        "Nominal_Size_System",
         "Design_Code",
         "Class_Base_Material",
         "Class_Rating",
@@ -79,6 +47,7 @@ def class_define_excel_to_spec_key(
     return {
         "Class_Name": "class_name",
         "Revision_No": "revision_no",
+        "Nominal_Size_System": "nominal_size_system",
         "Design_Code": "design_code",
         "Class_Base_Material": "class_base_material",
         "Class_Rating": "class_rating",

@@ -1,10 +1,11 @@
 """
 사이즈·클래스별 Schedule(두께) 룩업.
 
-명목지름 ``units_notation.nominal_size.selected`` 에 따라 **표준 카탈로그**
-(ASME B36.10 NPS 또는 ISO 6708 DN) 전체 목록을 master로 씁니다. 클래스별로
-실제로 활성화된 사이즈 부분집합(`Class_Size_Range`) 은 상위 파이프라인이
-적용합니다.
+명목지름(NPS/DN)은 **클래스 단위** 로 주입해야 한다. Class_Define
+의 ``Nominal_Size_System`` 값을 호출부가 모아서 ``nominal_mode`` 로 전달하면
+해당 **표준 카탈로그** (ASME B36.10 NPS 또는 ISO 6708 DN) 전체를 master 로
+사용한다. 클래스별로 실제 활성 사이즈 부분집합(`Class_Size_Range`) 은
+상위 파이프라인이 적용한다.
 **Schedule 룩업**은 우선 동일 규칙으로 매칭하고, 리스트에 없는 NPS라도
 From~To **숫자 구간**에 들어가면 해당 Schedule을 씁니다(Reducing 등).
 """
@@ -20,8 +21,6 @@ from excel_sheet_utils import (
     to_float,
     to_text,
 )
-
-cfg = config.config_manager
 
 SCHEDULE_REQUIRED_HEADERS = [
     "Class_Name",
@@ -41,17 +40,17 @@ def dn_list() -> list[str]:
     return list(config.catalog_dn_all())
 
 
-def nominal_size_master() -> list[str]:
+def nominal_size_master(nominal_mode: str) -> list[str]:
     """
+    클래스의 Nominal_Size_System 값에 따라 표준 카탈로그를 반환.
     DN → DN 카탈로그, NPS(또는 미설정) → NPS 카탈로그.
-    명목지름은 ``units_notation.nominal_size.selected`` 만 따릅니다.
     """
-    raw = str(cfg.get("units_notation.nominal_size.selected", "") or "").strip().upper()
+    raw = str(nominal_mode or "").strip().upper()
     return list(config.catalog_sizes_all(raw))
 
 
-def explode_size_range(size_from: str, size_to: str) -> list[str]:
-    master = nominal_size_master()
+def explode_size_range(size_from: str, size_to: str, nominal_mode: str) -> list[str]:
+    master = nominal_size_master(nominal_mode)
     from_num = to_float(to_text(size_from))
     to_num = to_float(to_text(size_to))
     if from_num is None or to_num is None:
@@ -103,6 +102,7 @@ def lookup_schedule_thickness(
     schedule_rows: list[dict[str, str]],
     class_name: str,
     size_nps: str,
+    nominal_mode: str,
 ) -> str:
     if not size_nps or not class_name:
         return ""
@@ -112,7 +112,7 @@ def lookup_schedule_thickness(
     for row in schedule_rows:
         if row["Class_Name"] != class_name:
             continue
-        exploded = explode_size_range(row["Size_From"], row["Size_To"])
+        exploded = explode_size_range(row["Size_From"], row["Size_To"], nominal_mode)
         if exploded and size_nps in exploded:
             return row["Schedule"]
         if not row["Size_To"] and row["Size_From"] and size_nps == row["Size_From"]:

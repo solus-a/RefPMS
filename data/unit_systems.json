@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "description": "Unit systems and their design-unit options. Program-internal reference data; the selected value is stored in the Class Template's Unit_System sheet and applies globally to all classes in that template.",
+  "allowed": [
+    "Metric",
+    "Imperial"
+  ],
+  "design_units": {
+    "Metric": {
+      "temperature": {
+        "allowed": ["°C"],
+        "default": "°C"
+      },
+      "pressure": {
+        "allowed": ["bar", "barg", "kPa", "MPa"],
+        "default": "bar"
+      }
+    },
+    "Imperial": {
+      "temperature": {
+        "allowed": ["°F"],
+        "default": "°F"
+      },
+      "pressure": {
+        "allowed": ["psig", "psi", "psia"],
+        "default": "psig"
+      }
+    }
+  }
+}

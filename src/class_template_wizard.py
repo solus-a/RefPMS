@@ -11,19 +11,17 @@ import config
 from class_level_model import (
     ClassLevelBundle,
     ClassSizeRange,
+    ClassTemplateGlobalSettings,
     NamedSizeTable,
     normalizeScheduleValue,
     row_dict_for_headers,
     scheduleAllowlist,
 )
 from class_spec import class_base_material_group_keys, flange_pt_class_rating_options
+from size_matrix_common import normalize_nominal_mode
 from size_matrix_editor import run_size_matrix_editor
 from template_generator import SCHEDULE_HEADERS
-from units_notation_headers import (
-    bracket_unit_header,
-    class_define_headers,
-    read_design_units_from_merged,
-)
+from units_notation_headers import bracket_unit_header, class_define_headers
 
 _CLASS_DETAIL_LABEL_WIDTH = 28
 _CLASS_DETAIL_VALUE_PADX = (8, 0)
@@ -37,38 +35,21 @@ _LAST_CLASS_LEVEL_BUNDLE: ClassLevelBundle | None = None
 _CORROSION_ALLOWANCE_KEY = "Corrosion_Allowance"
 
 
-def _project_selected_unit_system(merged: dict) -> str:
-    un = merged.get("units_notation")
-    if not isinstance(un, dict):
-        return "Metric"
-    us = un.get("unit_system")
-    if not isinstance(us, dict):
-        return "Metric"
-    sel = str(us.get("selected", "Metric") or "Metric").strip()
-    return "Imperial" if sel == "Imperial" else "Metric"
-
-
 def _corrosion_allowance_unit_symbol(unit_system: str) -> str:
     return "inch" if unit_system == "Imperial" else "mm"
 
 
-def _corrosion_reference_values(merged: dict) -> list[str]:
-    vp = merged.get("validation_policy")
-    if not isinstance(vp, dict):
-        return []
-    ca = vp.get("corrosion_allowance")
-    if not isinstance(ca, dict):
-        return []
-    ref = ca.get("reference_values")
+def _corrosion_reference_values_for(unit_system: str) -> list[str]:
+    """Corrosion_Allowance 참조 값 목록 — Unit_System (Metric/Imperial) 에 따라 결정."""
+    ref = config.config_manager.get(
+        "validation_policy.corrosion_allowance.reference_values", {}
+    )
     if not isinstance(ref, dict):
         return []
-
-    unit_system = _project_selected_unit_system(merged)
     key = "imperial_inch" if unit_system == "Imperial" else "metric_mm"
     raw = ref.get(key)
     if not isinstance(raw, list):
         return []
-
     ordered: list[str] = []
     seen: set[str] = set()
     for v in raw:
@@ -78,12 +59,6 @@ def _corrosion_reference_values(merged: dict) -> list[str]:
         seen.add(sv)
         ordered.append(sv)
     return ordered
-
-
-def _project_selected_design_code() -> str:
-    """Single source: ``config/project/piping_design_codes.json`` → ``selected``."""
-    raw = config.config_manager.get("piping_design_codes.selected", "")
-    return str(raw or "").strip()
 
 
 def _all_codes(bundle: ClassLevelBundle) -> set[str]:
@@ -277,8 +252,9 @@ def _edit_size_table_dialog(
     title: str,
     table: NamedSizeTable,
     pair_kind: Literal["reducing", "branch"],
+    nominal_mode: str | None = None,
 ) -> NamedSizeTable | None:
-    return run_size_matrix_editor(parent, title, table, pair_kind)
+    return run_size_matrix_editor(parent, title, table, pair_kind, nominal_mode)
 
 
 def _manage_named_tables(
@@ -289,6 +265,7 @@ def _manage_named_tables(
     *,
     pair_kind: Literal["reducing", "branch"],
     refresh_dropdowns: Callable[[], None],
+    nominal_mode: str | None = None,
 ) -> None:
     win = tk.Toplevel(parent)
     win.title(title)
@@ -341,7 +318,9 @@ def _manage_named_tables(
         refill()
         lb.selection_clear(0, "end")
         lb.selection_set(len(tables) - 1)
-        edited = _edit_size_table_dialog(parent, f"Edit table — {name}", nt, pair_kind)
+        edited = _edit_size_table_dialog(
+            parent, f"Edit table — {name}", nt, pair_kind, nominal_mode
+        )
         if edited:
             tables[-1] = edited
         else:
@@ -356,7 +335,9 @@ def _manage_named_tables(
             return
         idx = int(sel[0])
         tbl = tables[idx]
-        edited = _edit_size_table_dialog(parent, f"Edit table — {tbl.table_code}", tbl, pair_kind)
+        edited = _edit_size_table_dialog(
+            parent, f"Edit table — {tbl.table_code}", tbl, pair_kind, nominal_mode
+        )
         if edited:
             tables[idx] = edited
             refill()
@@ -388,68 +369,51 @@ class ClassLevelWizard(tk.Toplevel):
         self.transient(parent)
         self.grab_set()
         self.result: ClassLevelBundle | None = None
-        self._fixed_design_code = _project_selected_design_code()
         self._material_combo_values = ["", *class_base_material_group_keys()]
         self._rating_combo_values = ["", *flange_pt_class_rating_options()]
+        self._design_code_options: list[str] = ["", *config.design_codes_allowed()]
+        self._nominal_size_options: list[str] = ["", *config.nominal_size_systems_allowed()]
+        self._unit_system_options: list[str] = config.unit_systems_allowed()
         self._last_shown_class_idx: int | None = None
 
-        merged = config.config_manager.merged()
         self._corrosion_default_value = str(
             config.config_manager.get("validation_policy.corrosion_allowance.default_value", "0.0")
             or "0.0"
         ).strip() or "0.0"
-        self._corrosion_unit_symbol = _corrosion_allowance_unit_symbol(
-            _project_selected_unit_system(merged)
-        )
-        self._corrosion_combo_values = _corrosion_reference_values(merged)
-        _dt, _dp = read_design_units_from_merged(merged)
-        self._class_define_headers = class_define_headers(_dt, _dp)
-        self._class_design_temp_u, self._class_design_press_u = _dt, _dp
-        (
-            self._class_temp_from_h,
-            self._class_temp_to_h,
-            self._class_press_from_h,
-            self._class_press_to_h,
-        ) = ClassLevelWizard._resolve_temperature_pressure_header_keys(self._class_define_headers)
+
         if initial_bundle is None:
-            blank = row_dict_for_headers(self._class_define_headers)
+            self._global_settings = ClassTemplateGlobalSettings()
             self._bundle = ClassLevelBundle(
-                class_define_rows=[
-                    {
-                        **blank,
-                        "Design_Code": self._fixed_design_code,
-                        _CORROSION_ALLOWANCE_KEY: self._corrosion_default_value,
-                    }
-                ],
+                class_define_rows=[],
                 schedule_rows=[],
                 reducing_tables=[],
                 branch_tables=[],
+                global_settings=copy.deepcopy(self._global_settings),
             )
         else:
             self._bundle = copy.deepcopy(initial_bundle)
-            if not self._bundle.class_define_rows:
-                blank = row_dict_for_headers(self._class_define_headers)
-                self._bundle.class_define_rows = [{**blank, "Design_Code": self._fixed_design_code}]
+            self._global_settings = copy.deepcopy(self._bundle.global_settings)
+
+        self._refresh_derived_from_global_settings()
+
+        if not self._bundle.class_define_rows:
+            self._bundle.class_define_rows = [self._new_class_row()]
+        else:
             for row in self._bundle.class_define_rows:
-                row["Design_Code"] = self._fixed_design_code
                 if not str(row.get(_CORROSION_ALLOWANCE_KEY, "") or "").strip():
                     row[_CORROSION_ALLOWANCE_KEY] = self._corrosion_default_value
 
-        nominal_mode = str(
-            config.config_manager.get("units_notation.nominal_size.selected", "NPS") or "NPS"
-        )
-        self._size_catalog_all: list[str] = list(config.catalog_sizes_all(nominal_mode))
-        self._size_catalog_preferred: set[str] = set(config.catalog_sizes_preferred(nominal_mode))
-        self._size_nominal_mode: str = "DN" if str(nominal_mode).strip().upper() == "DN" else "NPS"
         self._sync_size_ranges_to_classes()
 
         _configure_sheet_treeview_style()
 
         nb = ttk.Notebook(self)
+        self._nb = nb
         nb.pack(fill="both", expand=True, padx=8, pady=8)
 
         self._schedule_refresh_class_list: Callable[[], None] = lambda: None
         self._size_range_refresh_class_list: Callable[[], None] = lambda: None
+        self._tab_unit_system(nb)
         self._tab_class(nb)
         self._tab_size_range(nb)
         self._tab_schedule(nb)
@@ -459,30 +423,85 @@ class ClassLevelWizard(tk.Toplevel):
         ttk.Button(bf, text="OK — build template", command=self._on_ok).pack(side="right", padx=6)
         ttk.Button(bf, text="Cancel", command=self._on_cancel).pack(side="right", padx=6)
 
+    def _refresh_derived_from_global_settings(self) -> None:
+        """Global settings 변경 시 헤더·corrosion 레퍼런스·temp/press 키 재계산."""
+        gs = self._global_settings
+        self._class_design_temp_u = gs.design_temperature_unit
+        self._class_design_press_u = gs.design_pressure_unit
+        self._class_define_headers = class_define_headers(
+            gs.design_temperature_unit, gs.design_pressure_unit
+        )
+        (
+            self._class_temp_from_h,
+            self._class_temp_to_h,
+            self._class_press_from_h,
+            self._class_press_to_h,
+        ) = ClassLevelWizard._resolve_temperature_pressure_header_keys(self._class_define_headers)
+        self._corrosion_unit_symbol = _corrosion_allowance_unit_symbol(gs.unit_system)
+        self._corrosion_combo_values = _corrosion_reference_values_for(gs.unit_system)
+
+    def _new_class_row(self) -> dict[str, str]:
+        row = row_dict_for_headers(self._class_define_headers)
+        row[_CORROSION_ALLOWANCE_KEY] = self._corrosion_default_value
+        return row
+
+    def _rekey_class_rows_to_current_headers(
+        self, old_temp_from: str, old_temp_to: str, old_press_from: str, old_press_to: str
+    ) -> None:
+        """단위 변경으로 헤더 키가 바뀐 경우 각 row 의 키를 새 헤더로 재매핑."""
+        rename_map: dict[str, str] = {}
+        if old_temp_from and old_temp_from != self._class_temp_from_h:
+            rename_map[old_temp_from] = self._class_temp_from_h
+        if old_temp_to and old_temp_to != self._class_temp_to_h:
+            rename_map[old_temp_to] = self._class_temp_to_h
+        if old_press_from and old_press_from != self._class_press_from_h:
+            rename_map[old_press_from] = self._class_press_from_h
+        if old_press_to and old_press_to != self._class_press_to_h:
+            rename_map[old_press_to] = self._class_press_to_h
+        if not rename_map:
+            return
+        for row in self._bundle.class_define_rows:
+            for old_key, new_key in rename_map.items():
+                if old_key in row:
+                    row[new_key] = row.pop(old_key)
+
+    def _nominal_mode_for_class_name(self, class_name: str) -> str:
+        """주어진 Class_Name 의 nominal_size_system (NPS/DN, 빈 값 시 NPS 폴백)."""
+        target = (class_name or "").strip()
+        for row in self._bundle.class_define_rows:
+            if (row.get("Class_Name") or "").strip() == target:
+                return normalize_nominal_mode(row.get("Nominal_Size_System"))
+        return "NPS"
+
+    def _catalog_all_for(self, mode: str) -> list[str]:
+        return list(config.catalog_sizes_all(mode))
+
+    def _catalog_preferred_for(self, mode: str) -> set[str]:
+        return set(config.catalog_sizes_preferred(mode))
+
     def _sync_size_ranges_to_classes(self) -> None:
         """class_define_rows 의 Class_Name 세트에 맞춰 size_ranges 를 재정렬/채움.
-        신규 Class 는 선호 사이즈만 활성화된 기본값으로 seed. 사라진 Class 의 엔트리는 제거.
+        신규 Class 는 해당 Class 의 nominal_size_system 기준 선호 사이즈만 활성화된 기본값으로 seed.
+        사라진 Class 의 엔트리는 제거.
         """
-        current_names = [
-            (r.get("Class_Name") or "").strip()
-            for r in self._bundle.class_define_rows
-        ]
         existing_by_name: dict[str, ClassSizeRange] = {}
         for sr in self._bundle.size_ranges:
             key = (sr.class_name or "").strip()
             if key:
                 existing_by_name[key] = sr
 
-        preferred_default = [
-            s for s in self._size_catalog_all if s in self._size_catalog_preferred
-        ]
         new_ranges: list[ClassSizeRange] = []
-        for name in current_names:
+        for row in self._bundle.class_define_rows:
+            name = (row.get("Class_Name") or "").strip()
             if not name:
                 continue
+            mode = normalize_nominal_mode(row.get("Nominal_Size_System"))
+            catalog_all = self._catalog_all_for(mode)
+            catalog_pref = self._catalog_preferred_for(mode)
+            preferred_default = [s for s in catalog_all if s in catalog_pref]
             existing = existing_by_name.get(name)
             if existing is not None:
-                active = [s for s in existing.active_sizes if s in self._size_catalog_all]
+                active = [s for s in existing.active_sizes if s in catalog_all]
                 if not active:
                     active = list(preferred_default)
                 new_ranges.append(ClassSizeRange(class_name=name, active_sizes=active))
@@ -567,6 +586,126 @@ class ClassLevelWizard(tk.Toplevel):
         self._class_list.see(idx)
         _listbox_apply_stripes(self._class_list)
 
+    def _tab_unit_system(self, nb: ttk.Notebook) -> None:
+        """Template 전역 단위 체계 편집 탭 — 모든 Class 에 공통 적용."""
+        tab = ttk.Frame(nb)
+        nb.add(tab, text="Unit_System")
+
+        box = ttk.LabelFrame(tab, text="Template-global unit system")
+        box.pack(fill="x", padx=12, pady=12)
+
+        ttk.Label(
+            box,
+            text=(
+                "These units apply to ALL classes in this template. "
+                "Temperature and pressure columns on Class_Define use the unit selected here."
+            ),
+            wraplength=560,
+        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(6, 8))
+
+        lw = 22
+        ttk.Label(box, text="Unit System", width=lw, anchor="w").grid(
+            row=1, column=0, sticky="w", padx=8, pady=4
+        )
+        self._unit_system_combo = ttk.Combobox(
+            box,
+            width=28,
+            state="readonly",
+            values=["", *self._unit_system_options],
+        )
+        self._unit_system_combo.grid(row=1, column=1, sticky="ew", padx=(8, 8), pady=4)
+        self._unit_system_combo.set(self._global_settings.unit_system or "")
+
+        ttk.Label(box, text="Design Temperature Unit", width=lw, anchor="w").grid(
+            row=2, column=0, sticky="w", padx=8, pady=4
+        )
+        self._design_temp_combo = ttk.Combobox(box, width=28, state="readonly", values=[""])
+        self._design_temp_combo.grid(row=2, column=1, sticky="ew", padx=(8, 8), pady=4)
+
+        ttk.Label(box, text="Design Pressure Unit", width=lw, anchor="w").grid(
+            row=3, column=0, sticky="w", padx=8, pady=4
+        )
+        self._design_press_combo = ttk.Combobox(box, width=28, state="readonly", values=[""])
+        self._design_press_combo.grid(row=3, column=1, sticky="ew", padx=(8, 8), pady=4)
+
+        box.columnconfigure(1, weight=1)
+
+        self._refresh_design_unit_options(preserve_selection=True)
+
+        self._unit_system_combo.bind(
+            "<<ComboboxSelected>>", lambda _e: self._on_unit_system_changed()
+        )
+        self._design_temp_combo.bind(
+            "<<ComboboxSelected>>", lambda _e: self._on_design_units_changed()
+        )
+        self._design_press_combo.bind(
+            "<<ComboboxSelected>>", lambda _e: self._on_design_units_changed()
+        )
+
+    def _refresh_design_unit_options(self, *, preserve_selection: bool) -> None:
+        """선택된 Unit System 에 맞춰 Design Temperature/Pressure Combobox values 재설정."""
+        system = (self._unit_system_combo.get() or "").strip()
+        block = config.design_units_for(system) if system else {}
+        temp_block = block.get("temperature") if isinstance(block, dict) else None
+        press_block = block.get("pressure") if isinstance(block, dict) else None
+        temp_allowed = list(temp_block.get("allowed", []) if isinstance(temp_block, dict) else [])
+        press_allowed = list(press_block.get("allowed", []) if isinstance(press_block, dict) else [])
+        temp_default = str(temp_block.get("default", "") if isinstance(temp_block, dict) else "")
+        press_default = str(press_block.get("default", "") if isinstance(press_block, dict) else "")
+
+        self._design_temp_combo["values"] = ["", *temp_allowed]
+        self._design_press_combo["values"] = ["", *press_allowed]
+
+        if preserve_selection:
+            cur_t = self._global_settings.design_temperature_unit
+            cur_p = self._global_settings.design_pressure_unit
+        else:
+            cur_t = temp_default
+            cur_p = press_default
+        if cur_t not in temp_allowed:
+            cur_t = temp_default if temp_default in temp_allowed else (temp_allowed[0] if temp_allowed else "")
+        if cur_p not in press_allowed:
+            cur_p = press_default if press_default in press_allowed else (press_allowed[0] if press_allowed else "")
+        self._design_temp_combo.set(cur_t)
+        self._design_press_combo.set(cur_p)
+
+    def _apply_global_settings_change(self) -> None:
+        """현재 콤보값을 _global_settings 에 반영하고 헤더/디테일을 재구성."""
+        new_system = (self._unit_system_combo.get() or "").strip()
+        new_temp = (self._design_temp_combo.get() or "").strip()
+        new_press = (self._design_press_combo.get() or "").strip()
+
+        old_temp_from = self._class_temp_from_h
+        old_temp_to = self._class_temp_to_h
+        old_press_from = self._class_press_from_h
+        old_press_to = self._class_press_to_h
+
+        self._save_class_detail_to_row()
+        self._global_settings = ClassTemplateGlobalSettings(
+            unit_system=new_system,
+            design_temperature_unit=new_temp,
+            design_pressure_unit=new_press,
+        )
+        self._refresh_derived_from_global_settings()
+        self._rekey_class_rows_to_current_headers(
+            old_temp_from, old_temp_to, old_press_from, old_press_to
+        )
+        self._rebuild_class_detail_widgets()
+        self._refresh_class_listbox()
+        if self._bundle.class_define_rows:
+            self._class_list.selection_clear(0, "end")
+            idx = self._last_shown_class_idx if self._last_shown_class_idx is not None else 0
+            idx = max(0, min(idx, len(self._bundle.class_define_rows) - 1))
+            self._class_list.selection_set(idx)
+            self._load_class_detail()
+
+    def _on_unit_system_changed(self) -> None:
+        self._refresh_design_unit_options(preserve_selection=False)
+        self._apply_global_settings_change()
+
+    def _on_design_units_changed(self) -> None:
+        self._apply_global_settings_change()
+
     def _tab_class(self, nb: ttk.Notebook) -> None:
         tab = ttk.Frame(nb)
         nb.add(tab, text="Class_Define")
@@ -621,12 +760,35 @@ class ClassLevelWizard(tk.Toplevel):
             command=self._open_branch_manager,
         ).pack(fill="x", pady=2)
 
-        rf = ttk.LabelFrame(tab, text="Selected row")
-        rf.pack(side="left", fill="both", expand=True, padx=8, pady=4)
+        self._class_rf = ttk.LabelFrame(tab, text="Selected row")
+        self._class_rf.pack(side="left", fill="both", expand=True, padx=8, pady=4)
         self._class_entries: dict[str, tk.StringVar] = {}
         self._class_combos: dict[str, ttk.Combobox] = {}
-        rows_f = ttk.Frame(rf)
+        self._class_rows_frame: ttk.Frame | None = None
+        self._rebuild_class_detail_widgets()
+
+        self._refresh_class_listbox()
+        if self._bundle.class_define_rows:
+            self._class_list.selection_set(0)
+            self._class_list.activate(0)
+            self._class_list.see(0)
+            self._class_list.focus_set()
+            self._load_class_detail()
+
+    def _rebuild_class_detail_widgets(self) -> None:
+        """현재 헤더(`_class_define_headers`) 기준으로 Selected row 디테일 위젯을 재구성."""
+        if not hasattr(self, "_class_rf"):
+            return
+        if self._class_rows_frame is not None:
+            try:
+                self._class_rows_frame.destroy()
+            except tk.TclError:
+                pass
+        self._class_entries = {}
+        self._class_combos = {}
+        rows_f = ttk.Frame(self._class_rf)
         rows_f.pack(fill="both", expand=True)
+        self._class_rows_frame = rows_f
 
         pair_skip: set[str] = set()
         if self._use_combined_temperature_pressure_rows():
@@ -699,10 +861,27 @@ class ClassLevelWizard(tk.Toplevel):
                 continue
             ttk.Label(rows_f, text=h, width=lw).grid(row=grid_row, column=0, sticky="w", pady=1)
             if h == "Design_Code":
-                dc_text = self._fixed_design_code or "(piping_design_codes.selected is empty)"
-                ttk.Label(rows_f, text=dc_text, width=44, anchor="w").grid(
-                    row=grid_row, column=1, sticky="ew", pady=1, padx=px
+                cb = ttk.Combobox(
+                    rows_f,
+                    width=42,
+                    state="readonly",
+                    values=list(self._design_code_options),
                 )
+                cb.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
+                self._class_combos[h] = cb
+            elif h == "Nominal_Size_System":
+                cb = ttk.Combobox(
+                    rows_f,
+                    width=42,
+                    state="readonly",
+                    values=list(self._nominal_size_options),
+                )
+                cb.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
+                cb.bind(
+                    "<<ComboboxSelected>>",
+                    lambda _e: self._on_nominal_size_system_changed(),
+                )
+                self._class_combos[h] = cb
             elif h == "Class_Base_Material":
                 cb = ttk.Combobox(
                     rows_f,
@@ -741,13 +920,11 @@ class ClassLevelWizard(tk.Toplevel):
             grid_row += 1
         rows_f.columnconfigure(1, weight=1)
 
-        self._refresh_class_listbox()
-        if self._bundle.class_define_rows:
-            self._class_list.selection_set(0)
-            self._class_list.activate(0)
-            self._class_list.see(0)
-            self._class_list.focus_set()
-            self._load_class_detail()
+    def _on_nominal_size_system_changed(self) -> None:
+        """선택된 Class 의 Nominal_Size_System 이 바뀌면 해당 Class 의 Size Range 를 새 카탈로그로 재시드."""
+        self._save_class_detail_to_row()
+        self._sync_size_ranges_to_classes()
+        self._size_range_refresh_class_list()
 
     def _refresh_combo_lists(self) -> None:
         rvals = list(self._reducing_names())
@@ -782,7 +959,6 @@ class ClassLevelWizard(tk.Toplevel):
         if idx < 0 or idx >= len(self._bundle.class_define_rows):
             return
         row = self._bundle.class_define_rows[idx]
-        row["Design_Code"] = self._fixed_design_code
         for h, v in self._class_entries.items():
             row[h] = v.get() or ""
         for h, cb in self._class_combos.items():
@@ -805,7 +981,6 @@ class ClassLevelWizard(tk.Toplevel):
             self._save_class_row_at_index(self._last_shown_class_idx)
         row = self._bundle.class_define_rows[idx]
         self._refresh_combo_lists()
-        row["Design_Code"] = self._fixed_design_code
         for h, v in self._class_entries.items():
             v.set(row.get(h, ""))
         for h, cb in self._class_combos.items():
@@ -814,9 +989,7 @@ class ClassLevelWizard(tk.Toplevel):
 
     def _add_class_row(self) -> None:
         self._save_class_detail_to_row()
-        nr = row_dict_for_headers(self._class_define_headers)
-        nr["Design_Code"] = self._fixed_design_code
-        nr[_CORROSION_ALLOWANCE_KEY] = self._corrosion_default_value
+        nr = self._new_class_row()
         self._bundle.class_define_rows.append(nr)
         self._sync_size_ranges_to_classes()
         self._refresh_class_listbox()
@@ -1380,6 +1553,19 @@ class ClassLevelWizard(tk.Toplevel):
         self._schedule_refresh_class_list = refill_class_list
         refill_class_list()
 
+    def _current_nominal_mode_for_tables(self) -> str:
+        """Reducing/Branch 테이블 편집 시 사용할 nominal mode — 현재 선택된 Class 기준, 없으면 NPS."""
+        idx = self._current_class_idx()
+        if idx is not None and 0 <= idx < len(self._bundle.class_define_rows):
+            return normalize_nominal_mode(
+                self._bundle.class_define_rows[idx].get("Nominal_Size_System")
+            )
+        for row in self._bundle.class_define_rows:
+            mode = (row.get("Nominal_Size_System") or "").strip()
+            if mode:
+                return normalize_nominal_mode(mode)
+        return "NPS"
+
     def _open_reducing_manager(self) -> None:
         self._save_class_detail_to_row()
 
@@ -1394,6 +1580,7 @@ class ClassLevelWizard(tk.Toplevel):
             self._bundle,
             pair_kind="reducing",
             refresh_dropdowns=refresh,
+            nominal_mode=self._current_nominal_mode_for_tables(),
         )
 
     def _open_branch_manager(self) -> None:
@@ -1410,6 +1597,7 @@ class ClassLevelWizard(tk.Toplevel):
             self._bundle,
             pair_kind="branch",
             refresh_dropdowns=refresh,
+            nominal_mode=self._current_nominal_mode_for_tables(),
         )
 
     def _tab_size_range(self, nb: ttk.Notebook) -> None:
@@ -1436,13 +1624,7 @@ class ClassLevelWizard(tk.Toplevel):
 
         header = ttk.Frame(right)
         header.grid(row=0, column=0, sticky="ew", pady=(0, 6))
-        mode_label = ttk.Label(
-            header,
-            text=(
-                f"Nominal size mode: {self._size_nominal_mode}  |  "
-                "Preferred sizes are pre-checked. Check non-preferred sizes only when actually required."
-            ),
-        )
+        mode_label = ttk.Label(header, text="")
         mode_label.pack(anchor="w")
 
         btns = ttk.Frame(right)
@@ -1470,6 +1652,9 @@ class ClassLevelWizard(tk.Toplevel):
         state: dict[str, object] = {
             "class_name": "",
             "vars": {},  # size -> tk.BooleanVar
+            "catalog_all": [],  # list[str]
+            "catalog_preferred": set(),  # set[str]
+            "mode": "NPS",
         }
 
         def _selected_class_name() -> str:
@@ -1499,9 +1684,10 @@ class ClassLevelWizard(tk.Toplevel):
         def _persist_current() -> None:
             name = str(state.get("class_name") or "")
             vars_map: dict[str, tk.BooleanVar] = state.get("vars", {})  # type: ignore[assignment]
+            catalog_all: list[str] = state.get("catalog_all", [])  # type: ignore[assignment]
             if not name or not vars_map:
                 return
-            active = [s for s in self._size_catalog_all if bool(vars_map.get(s) and vars_map[s].get())]
+            active = [s for s in catalog_all if bool(vars_map.get(s) and vars_map[s].get())]
             entry = _find_range_entry(name)
             if entry is None:
                 self._bundle.size_ranges.append(
@@ -1516,6 +1702,10 @@ class ClassLevelWizard(tk.Toplevel):
             state["class_name"] = name
             state["vars"] = {}
             if not name:
+                mode_label.config(text="")
+                state["catalog_all"] = []
+                state["catalog_preferred"] = set()
+                state["mode"] = "NPS"
                 ttk.Label(
                     grid_frame,
                     text="Select a class on the left to edit its Size Range.",
@@ -1523,10 +1713,21 @@ class ClassLevelWizard(tk.Toplevel):
                 _on_grid_config()
                 return
 
-            entry = _find_range_entry(name)
-            active_set = set(entry.active_sizes) if entry is not None else set(
-                self._size_catalog_preferred
+            mode = self._nominal_mode_for_class_name(name)
+            catalog_all = self._catalog_all_for(mode)
+            catalog_preferred = self._catalog_preferred_for(mode)
+            state["catalog_all"] = catalog_all
+            state["catalog_preferred"] = catalog_preferred
+            state["mode"] = mode
+            mode_label.config(
+                text=(
+                    f"Class {name!r} — Nominal size mode: {mode}  |  "
+                    "Preferred sizes are pre-checked. Check non-preferred sizes only when actually required."
+                )
             )
+
+            entry = _find_range_entry(name)
+            active_set = set(entry.active_sizes) if entry is not None else set(catalog_preferred)
 
             vars_map: dict[str, tk.BooleanVar] = {}
             cols = 8
@@ -1538,8 +1739,8 @@ class ClassLevelWizard(tk.Toplevel):
                     _persist_current()
                 return _cb
 
-            for size in self._size_catalog_all:
-                is_preferred = size in self._size_catalog_preferred
+            for size in catalog_all:
+                is_preferred = size in catalog_preferred
                 label = f"{size}" + ("" if is_preferred else "  *")
                 var = tk.BooleanVar(value=(size in active_set))
                 vars_map[size] = var
@@ -1566,8 +1767,9 @@ class ClassLevelWizard(tk.Toplevel):
             name = _selected_class_name()
             if not name:
                 return
+            catalog_preferred: set[str] = state.get("catalog_preferred") or set()  # type: ignore[assignment]
             for size, var in (state.get("vars") or {}).items():  # type: ignore[union-attr]
-                var.set(size in self._size_catalog_preferred)
+                var.set(size in catalog_preferred)
             _persist_current()
 
         def _select_all() -> None:
@@ -1582,8 +1784,9 @@ class ClassLevelWizard(tk.Toplevel):
             name = _selected_class_name()
             if not name:
                 return
+            catalog_preferred: set[str] = state.get("catalog_preferred") or set()  # type: ignore[assignment]
             for size, var in (state.get("vars") or {}).items():  # type: ignore[union-attr]
-                if size not in self._size_catalog_preferred:
+                if size not in catalog_preferred:
                     var.set(False)
             _persist_current()
 
@@ -1615,6 +1818,7 @@ class ClassLevelWizard(tk.Toplevel):
             self._save_class_row_at_index(idx)
         self._size_range_refresh_class_list()  # persist current edits first
         self._sync_size_ranges_to_classes()
+        self._bundle.global_settings = copy.deepcopy(self._global_settings)
         errs = self._bundle.validate()
         if errs:
             messagebox.showerror("Validation", "\n".join(errs), parent=self)

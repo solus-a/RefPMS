@@ -12,14 +12,15 @@ import config
 from class_level_model import (
     ClassLevelBundle,
     ClassSizeRange,
+    ClassTemplateGlobalSettings,
     NamedSizeTable,
     SizeTableRow,
+    UNIT_SYSTEM_HEADERS,
+    UNIT_SYSTEM_SHEET,
+    read_global_settings_from_workbook,
     row_dict_for_headers,
 )
-from units_notation_headers import (
-    class_define_headers,
-    read_design_units_from_merged,
-)
+from units_notation_headers import class_define_headers
 from data_defaults import DEFAULT_CLASS_MATERIAL_MAPPING, DEFAULT_COMPONENT_MAPPING
 from excel_sheet_utils import build_header_index, detect_header_row, to_text as _cell_to_text
 
@@ -57,10 +58,11 @@ ITEM_CODE_DB_DEFAULT_ROWS = [
     ("B", "BOLT&NUT", "BOLT", "Bolt_Group"),
 ]
 
-def _class_sheet_headers() -> list[str]:
-    merged = config.config_manager.merged()
-    dt, dp = read_design_units_from_merged(merged)
-    return class_define_headers(dt, dp)
+def _class_sheet_headers(
+    global_settings: ClassTemplateGlobalSettings | None = None,
+) -> list[str]:
+    gs = global_settings or ClassTemplateGlobalSettings()
+    return class_define_headers(gs.design_temperature_unit, gs.design_pressure_unit)
 
 
 SCHEDULE_HEADERS = [
@@ -396,6 +398,13 @@ def _write_class_size_ranges(ws, ranges: list[ClassSizeRange]) -> None:
         ws.cell(row=row_idx, column=2, value=sizes_text)
 
 
+def _write_unit_system_sheet(ws, global_settings: ClassTemplateGlobalSettings) -> None:
+    """Unit_System 시트에 전역 설정 1행 기록."""
+    ws.cell(row=2, column=1, value=(global_settings.unit_system or "").strip())
+    ws.cell(row=2, column=2, value=(global_settings.design_temperature_unit or "").strip())
+    ws.cell(row=2, column=3, value=(global_settings.design_pressure_unit or "").strip())
+
+
 def _parse_active_sizes(raw: str) -> list[str]:
     """'0.5, 1, 2' 또는 공백/세미콜론 구분 문자열을 사이즈 리스트로 변환."""
     out: list[str] = []
@@ -480,7 +489,8 @@ def _read_named_size_tables(ws) -> list[NamedSizeTable]:
 
 def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
     wb = load_workbook(Path(path))
-    class_headers = _class_sheet_headers()
+    global_settings = read_global_settings_from_workbook(wb)
+    class_headers = _class_sheet_headers(global_settings)
 
     def ws_or_none(name: str):
         return wb[name] if name in wb.sheetnames else None
@@ -502,6 +512,7 @@ def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
         reducing_tables=_read_named_size_tables(ws_reducing) if ws_reducing is not None else [],
         branch_tables=_read_named_size_tables(ws_branch) if ws_branch is not None else [],
         size_ranges=_read_class_size_ranges(ws_size_range),
+        global_settings=global_settings,
     )
 
 
@@ -560,10 +571,17 @@ def generate_class_define_template(
 
     wb = Workbook()
 
-    class_headers = _class_sheet_headers()
+    global_settings = (
+        class_level.global_settings if class_level is not None else ClassTemplateGlobalSettings()
+    )
+    class_headers = _class_sheet_headers(global_settings)
 
-    ws_define = wb.active
-    ws_define.title = "Class_Define"
+    ws_unit_system = wb.active
+    ws_unit_system.title = UNIT_SYSTEM_SHEET
+    _set_headers_and_widths(ws_unit_system, UNIT_SYSTEM_HEADERS)
+    _write_unit_system_sheet(ws_unit_system, global_settings)
+
+    ws_define = wb.create_sheet(title="Class_Define")
     _set_headers_and_widths(ws_define, class_headers)
 
     ws_schedule = wb.create_sheet(title="Schedule")

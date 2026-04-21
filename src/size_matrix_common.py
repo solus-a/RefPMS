@@ -15,15 +15,15 @@ def size_number(size_text: str) -> float:
     return float(size_text.strip())
 
 
-def nominal_size_mode() -> Literal["NPS", "DN"]:
-    raw = config.config_manager.get("units_notation.nominal_size.selected", "NPS")
-    s = str(raw or "").strip().upper()
+def normalize_nominal_mode(mode: str | None) -> Literal["NPS", "DN"]:
+    """Class 별 nominal_size_system (NPS/DN) 를 정규화. 빈 값 또는 미지정 시 'NPS' 폴백."""
+    s = str(mode or "").strip().upper()
     if s == "DN":
         return "DN"
     return "NPS"
 
 
-def load_axis_allowlist() -> frozenset[str]:
+def load_axis_allowlist(nominal_mode: str | None = None) -> frozenset[str]:
     """
     Size_Matrix 축에 허용되는 사이즈 집합.
 
@@ -31,28 +31,34 @@ def load_axis_allowlist() -> frozenset[str]:
     (`Class_Size_Range` 시트)는 이 축 목록을 다시 좁히는 2차 게이트로 생성 파이프라인에서
     적용한다 (교차 시트 검증).
     """
-    mode = nominal_size_mode()
+    mode = normalize_nominal_mode(nominal_mode)
     return frozenset(config.catalog_sizes_all(mode))
 
 
-def sorted_nominal_master_list() -> list[str]:
+def sorted_nominal_master_list(nominal_mode: str | None = None) -> list[str]:
     """Size_Matrix 축 기준 — 표준 카탈로그(전체 사이즈) 숫자 정렬."""
-    mode = nominal_size_mode()
+    mode = normalize_nominal_mode(nominal_mode)
     raw = config.catalog_sizes_all(mode)
     return sorted(set(raw), key=size_number)
 
 
-def default_size1_rows(pair_kind: Literal["reducing", "branch"]) -> list[str]:
-    allowed = load_axis_allowlist()
+def default_size1_rows(
+    pair_kind: Literal["reducing", "branch"],
+    nominal_mode: str | None = None,
+) -> list[str]:
+    allowed = load_axis_allowlist(nominal_mode)
     raw = sorted(set(allowed), key=size_number)
     if pair_kind == "reducing":
         raw = [x for x in raw if size_number(x) >= MIN_REDUCING_SIZE1_NPS]
     return raw
 
 
-def default_size2_cols(pair_kind: Literal["reducing", "branch"]) -> list[str]:
+def default_size2_cols(
+    pair_kind: Literal["reducing", "branch"],
+    nominal_mode: str | None = None,
+) -> list[str]:
     del pair_kind
-    allowed = load_axis_allowlist()
+    allowed = load_axis_allowlist(nominal_mode)
     return sorted(set(allowed), key=size_number)
 
 
@@ -83,8 +89,9 @@ def cell_allowed(
 def axes_from_rows(
     rows: list[SizeTableRow],
     pair_kind: Literal["reducing", "branch"],
+    nominal_mode: str | None = None,
 ) -> tuple[list[str], list[str]]:
-    allowed = load_axis_allowlist()
+    allowed = load_axis_allowlist(nominal_mode)
     s1: set[str] = set()
     s2: set[str] = set()
     for r in rows:
@@ -92,14 +99,14 @@ def axes_from_rows(
             s1.add(r.size1.strip())
         if r.size2.strip():
             s2.add(r.size2.strip())
-    r1 = merge_axis(default_size1_rows(pair_kind), s1, allowed)
-    c2 = merge_axis(default_size2_cols(pair_kind), s2, allowed)
+    r1 = merge_axis(default_size1_rows(pair_kind, nominal_mode), s1, allowed)
+    c2 = merge_axis(default_size2_cols(pair_kind, nominal_mode), s2, allowed)
     return r1, c2
 
 
 def matrix_help_text(pair_kind: Literal["reducing", "branch"], nominal: str) -> str:
     common = (
-        f"Nominal size mode: {nominal} (from units_notation.nominal_size). "
+        f"Nominal size mode: {nominal} (from the owning Class's Nominal_Size_System). "
         "Row/column headers are drawn from the built-in standard catalog "
         "(ASME B36.10 for NPS, ISO 6708 for DN). Per-Class Size Range narrows which of those "
         "are actually usable when the Piping_Material_Class_Data file is generated.\n\n"

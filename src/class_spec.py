@@ -14,21 +14,24 @@ from excel_sheet_utils import (
     pick_first_non_empty,
     to_text,
 )
-from units_notation_headers import class_define_excel_to_spec_key, read_design_units_from_merged
+from units_notation_headers import class_define_excel_to_spec_key
 
 CLASS_DEFINE_REQUIRED_HEADERS = ["Class_Name"]
 
 
-def _class_define_excel_to_spec_key() -> dict[str, str]:
-    merged = config.config_manager.merged()
-    dt, dp = read_design_units_from_merged(merged)
-    return class_define_excel_to_spec_key(dt, dp)
+def _class_define_excel_to_spec_key(workbook) -> dict[str, str]:
+    """Class_Define 엑셀 헤더 → ClassSpec 키 매핑. 단위 헤더는 워크북의 Unit_System 시트에서 결정."""
+    from class_level_model import read_global_settings_from_workbook
+
+    gs = read_global_settings_from_workbook(workbook)
+    return class_define_excel_to_spec_key(gs.design_temperature_unit, gs.design_pressure_unit)
 
 
 class ClassSpec(TypedDict, total=False):
     class_name: str
     revision_no: str
     design_code: str
+    nominal_size_system: str
     class_base_material: str
     class_rating: str
     corrosion_allowance: str
@@ -95,7 +98,7 @@ def load_class_specs_from_workbook(workbook) -> dict[str, ClassSpec]:
         return {}
 
     header_to_col = build_header_index(ws, header_row)
-    excel_to_key = _class_define_excel_to_spec_key()
+    excel_to_key = _class_define_excel_to_spec_key(workbook)
     out: dict[str, ClassSpec] = {}
 
     for row_idx in range(header_row + 1, ws.max_row + 1):
@@ -138,7 +141,10 @@ def corrosion_allowance_validation_messages(workbook) -> tuple[list[str], list[s
     if any(h not in header_to_col for h in required):
         return errors, warnings
 
-    unit_system = str(config.config_manager.get("units_notation.unit_system.selected", "Metric") or "Metric").strip()
+    from class_level_model import read_global_settings_from_workbook
+
+    gs = read_global_settings_from_workbook(workbook)
+    unit_system = (gs.unit_system or "Metric").strip() or "Metric"
     ca_unit = "inch" if unit_system == "Imperial" else "mm"
     empty_policy = str(
         config.config_manager.get(

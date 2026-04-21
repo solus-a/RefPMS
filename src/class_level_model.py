@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import config
+from excel_sheet_utils import build_header_index, detect_header_row, get_cell_text
 
 ASME_SCHEDULE_VALUES: tuple[str, ...] = (
     "SCH5",
@@ -71,6 +72,46 @@ class ClassSizeRange:
 
 
 @dataclass
+class ClassTemplateGlobalSettings:
+    """Class Template 전역 설정 (Unit_System 시트). 모든 Class 에 공통 적용."""
+
+    unit_system: str = ""
+    design_temperature_unit: str = ""
+    design_pressure_unit: str = ""
+
+
+UNIT_SYSTEM_SHEET = "Unit_System"
+UNIT_SYSTEM_HEADERS = [
+    "Unit_System",
+    "Design_Temperature_Unit",
+    "Design_Pressure_Unit",
+]
+
+
+def read_global_settings_from_workbook(workbook) -> ClassTemplateGlobalSettings:
+    """Class Template 워크북의 Unit_System 시트에서 전역 설정을 로드.
+
+    시트가 없거나 헤더가 맞지 않으면 빈 설정을 반환 (빈 템플릿/레거시 대응).
+    """
+    if UNIT_SYSTEM_SHEET not in workbook.sheetnames:
+        return ClassTemplateGlobalSettings()
+    ws = workbook[UNIT_SYSTEM_SHEET]
+    try:
+        header_row = detect_header_row(ws, UNIT_SYSTEM_HEADERS)
+    except ValueError:
+        return ClassTemplateGlobalSettings()
+    htc = build_header_index(ws, header_row)
+    if any(h not in htc for h in UNIT_SYSTEM_HEADERS):
+        return ClassTemplateGlobalSettings()
+    data_row = header_row + 1
+    return ClassTemplateGlobalSettings(
+        unit_system=get_cell_text(ws, data_row, htc, "Unit_System"),
+        design_temperature_unit=get_cell_text(ws, data_row, htc, "Design_Temperature_Unit"),
+        design_pressure_unit=get_cell_text(ws, data_row, htc, "Design_Pressure_Unit"),
+    )
+
+
+@dataclass
 class ClassLevelBundle:
     """템플릿 xlsx의 클래스 수준 시트 내용."""
 
@@ -79,6 +120,9 @@ class ClassLevelBundle:
     reducing_tables: list[NamedSizeTable]
     branch_tables: list[NamedSizeTable]
     size_ranges: list[ClassSizeRange] = field(default_factory=list)
+    global_settings: ClassTemplateGlobalSettings = field(
+        default_factory=ClassTemplateGlobalSettings
+    )
 
     def all_table_codes(self) -> list[str]:
         return [t.table_code.strip() for t in self.reducing_tables + self.branch_tables]
@@ -102,14 +146,13 @@ class ClassLevelBundle:
         if any(not t.table_code.strip() for t in self.reducing_tables + self.branch_tables):
             errs.append("Table_Code (table name) cannot be blank.")
 
-        catalog_sizes = set(
-            config.catalog_sizes_all(
-                str(
-                    config.config_manager.get("units_notation.nominal_size.selected", "NPS")
-                    or "NPS"
-                )
-            )
-        )
+        class_nominal: dict[str, str] = {}
+        for row in self.class_define_rows:
+            name = (row.get("Class_Name") or "").strip()
+            if not name:
+                continue
+            class_nominal[name] = (row.get("Nominal_Size_System") or "").strip() or "NPS"
+
         class_names_seen: set[str] = set()
         for i, sr in enumerate(self.size_ranges):
             label = f"Class_Size_Range row {i + 1}"
@@ -120,11 +163,13 @@ class ClassLevelBundle:
             if cname in class_names_seen:
                 errs.append(f"{label}: duplicate Class_Name {cname!r}.")
             class_names_seen.add(cname)
+            mode = class_nominal.get(cname, "NPS")
+            catalog_sizes = set(config.catalog_sizes_all(mode))
             for sz in sr.active_sizes:
                 t = str(sz).strip()
                 if t and catalog_sizes and t not in catalog_sizes:
                     errs.append(
-                        f"{label}: size {t!r} is not in the standard catalog."
+                        f"{label}: size {t!r} is not in the {mode} standard catalog."
                     )
 
         allowed_schedule_values = set(scheduleAllowlist())

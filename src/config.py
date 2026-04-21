@@ -42,6 +42,21 @@ def nps_catalog_path() -> Path:
     return data_dir() / "nps_catalog.json"
 
 
+def design_codes_path() -> Path:
+    """배관 설계 코드 참조 목록 (Class 계층 선택 대상)."""
+    return data_dir() / "design_codes.json"
+
+
+def nominal_size_systems_path() -> Path:
+    """공칭 사이즈 체계 참조 목록 (NPS/DN, Class 계층 선택 대상)."""
+    return data_dir() / "nominal_size_systems.json"
+
+
+def unit_systems_path() -> Path:
+    """단위 체계 및 design-unit 옵션 참조 (Class Template 전역)."""
+    return data_dir() / "unit_systems.json"
+
+
 def project_config_dir() -> Path:
     """프로젝트 단위 설정 JSON (`config/project/`)."""
     return config_root() / "project"
@@ -264,3 +279,54 @@ def catalog_sizes_all(mode: str) -> list[str]:
 def catalog_sizes_preferred(mode: str) -> list[str]:
     """mode == 'DN' 이면 선호 DN, 그 외(NPS)이면 선호 NPS."""
     return catalog_dn_preferred() if str(mode).strip().upper() == "DN" else catalog_nps_preferred()
+
+
+# ---------------------------------------------------------------------------
+# Class-layer reference data (design codes, nominal-size systems, unit systems)
+# ---------------------------------------------------------------------------
+
+def _load_reference(path: Path) -> dict[str, Any]:
+    logger = logging.getLogger(__name__)
+    return _read_json_dict(path, logger)
+
+
+def load_design_codes() -> dict[str, Any]:
+    """`data/design_codes.json` 원본 dict 반환."""
+    return _load_reference(design_codes_path())
+
+
+def load_nominal_size_systems() -> dict[str, Any]:
+    """`data/nominal_size_systems.json` 원본 dict 반환."""
+    return _load_reference(nominal_size_systems_path())
+
+
+def load_unit_systems() -> dict[str, Any]:
+    """`data/unit_systems.json` 원본 dict 반환."""
+    return _load_reference(unit_systems_path())
+
+
+def design_codes_allowed() -> list[str]:
+    """Class 계층에서 선택 가능한 설계 코드 목록."""
+    raw = load_design_codes().get("allowed", [])
+    return [str(x) for x in raw if str(x).strip()]
+
+
+def nominal_size_systems_allowed() -> list[str]:
+    """Class 계층에서 선택 가능한 공칭 사이즈 체계 (NPS/DN)."""
+    raw = load_nominal_size_systems().get("allowed", [])
+    return [str(x) for x in raw if str(x).strip()]
+
+
+def unit_systems_allowed() -> list[str]:
+    """Class Template Unit_System 시트에서 선택 가능한 단위 체계 (Metric/Imperial)."""
+    raw = load_unit_systems().get("allowed", [])
+    return [str(x) for x in raw if str(x).strip()]
+
+
+def design_units_for(system: str) -> dict[str, Any]:
+    """선택된 unit system 의 temperature·pressure 옵션 블록을 반환."""
+    blk = load_unit_systems().get("design_units", {})
+    if not isinstance(blk, dict):
+        return {}
+    sub = blk.get(str(system).strip())
+    return sub if isinstance(sub, dict) else {}

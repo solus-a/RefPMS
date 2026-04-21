@@ -42,50 +42,7 @@ OUTPUT_FILENAME = cfg.get("output_settings.filename", "Piping_Material_Class_Dat
 OUTPUT_SHEET_NAME = cfg.get("output_settings.sheet_name", "Piping_Material_Class_Data")
 OUTPUT_COLUMNS = cfg.get("output_settings.columns", [])
 ITEM_CODE_OUTPUT_ORDER = cfg.get("output_settings.item_order", [])
-THREAD_METHOD_DEFAULT = "NPT"
 
-
-def _thread_method_token() -> str:
-    """
-    파이프 밀봉 나사 표기 (배관 PE/TE 등 설명에 붙는 접미).
-    config/project/units_notation.json: pipe_thread.selected (예: NPT, PT). 구형 pipe_thread.standard·thread_method 폴백.
-    """
-    raw = _to_text(cfg.get("units_notation.pipe_thread.selected", "")).strip()
-    if not raw:
-        raw = _to_text(cfg.get("units_notation.pipe_thread.standard", "")).strip()
-    if not raw:
-        raw = _to_text(cfg.get("units_notation.thread_method", THREAD_METHOD_DEFAULT)).strip()
-    return raw.upper() if raw else THREAD_METHOD_DEFAULT
-
-
-def _pipe_thread_end_token(raw_end_type: str) -> str:
-    """
-    Pipe/Nipple 설명용: End Type + (THREAD_METHOD) 표기.
-    예) PE/TE -> PE/TE(NPT), TBE -> TBE(NPT)
-    """
-    end_type = _to_text(raw_end_type).strip()
-    if not end_type:
-        return ""
-    upper = end_type.upper()
-    if not any(k in upper for k in ("TE", "NPT", "PT", "TBE", "TSE")):
-        return end_type
-    thread = _thread_method_token()
-    if f"({thread})" in upper:
-        return end_type
-    return f"{end_type}({thread})"
-
-
-def _fitting_thread_end_token(raw_end_type: str) -> str:
-    """
-    Fitting 설명용: Thread End는 End Type 코드(TE) 대신 THREAD_METHOD만 표기.
-    """
-    end_type = _to_text(raw_end_type).strip()
-    if not end_type:
-        return ""
-    upper = end_type.upper()
-    if any(k in upper for k in ("TE", "NPT", "PT")):
-        return _thread_method_token()
-    return end_type
 
 def _autofit_output_sheet_columns(
     ws,
@@ -287,13 +244,28 @@ def _rating_looks_forged_socket_class(rating_raw: str) -> bool:
     return bool(re.match(r"^CL(2000|3000|6000|9000)\b", r))
 
 
-def _piping_design_implies_socket_screwed_b16_11_fitting_dims() -> bool:
+def _piping_design_implies_socket_screwed_b16_11_fitting_dims(class_design_code: str) -> bool:
     """
-    프로젝트 설계코드가 소켓·나사 단조이음관 치수에 ASME B16.11 계열을 전제로 할 때
+    해당 Class 의 Design_Code 가 소켓·나사 단조이음관 치수에 ASME B16.11 계열을 전제로 할 때
     (예: ASME B31.3 / B31.4). 컴포넌트 시트의 Dim_Standard 대신 End_Type 으로 구분.
     """
-    sel = _to_text(cfg.get("piping_design_codes.selected", "")).upper()
+    sel = _to_text(class_design_code).upper()
     return "B31.3" in sel or "B31.4" in sel
+
+
+def _class_design_code_for(class_specs: dict[str, ClassSpec], class_name: str) -> str:
+    spec = class_specs.get(class_name)
+    if not spec:
+        return ""
+    return _to_text(spec.get("design_code", ""))
+
+
+def _class_nominal_mode_for(class_specs: dict[str, ClassSpec], class_name: str) -> str:
+    """Class_Define.Nominal_Size_System 값. 미지정 시 빈 문자열 (카탈로그는 NPS 로 폴백)."""
+    spec = class_specs.get(class_name)
+    if not spec:
+        return ""
+    return _to_text(spec.get("nominal_size_system", ""))
 
 
 def _fitting_elbow_should_strip_lr_sr(
@@ -398,7 +370,6 @@ def _try_nipple_pipe_output(
     prefix = _to_text(description_prefix) or "NIPPLE"
     if code in ("JN", "JN1"):
         pair = f"{et1}/{et2}".strip("/") if et2 else et1
-        pair = _pipe_thread_end_token(pair)
         desc = _join_tokens(prefix, mat, method, pair, sch, length_note, remarks, dim_standard)
         out_name = _apply_length_to_catalog_nipple_name(catalog_item_name, length_note)
         if not out_name:
@@ -415,7 +386,7 @@ def _try_nipple_pipe_output(
         prefix,
         mat,
         method,
-        _pipe_thread_end_token("TBE"),
+        "TBE",
         sch,
         length_note,
         remarks,
@@ -763,6 +734,7 @@ def _find_fitting_template_row_for_nps(
     item_code: str,
     reference_nps: str,
     logger: logging.Logger,
+    nominal_mode: str,
     *,
     log_if_missing: bool = True,
 ) -> Optional[int]:
@@ -770,7 +742,7 @@ def _find_fitting_template_row_for_nps(
     ref = _to_text(reference_nps)
     if not ref:
         return None
-    ref_span = _explode_size_range(ref, ref)
+    ref_span = _explode_size_range(ref, ref, nominal_mode)
     ref_set = set(ref_span) if ref_span else {ref}
 
     for row_idx in range(fitting_header_row + 1, fitting_ws.max_row + 1):
@@ -780,7 +752,7 @@ def _find_fitting_template_row_for_nps(
             continue
         sf = _get_cell_text(fitting_ws, row_idx, fitting_header_to_col, "Size_From")
         st = _get_cell_text(fitting_ws, row_idx, fitting_header_to_col, "Size_To")
-        span = _explode_size_range(sf, st)
+        span = _explode_size_range(sf, st, nominal_mode)
         span_set = set(span) if span else set()
         if ref_set & span_set:
             return row_idx
@@ -800,6 +772,7 @@ def _find_rt_fitting_template_row(
     run_nps: str,
     branch_nps: str,
     logger: logging.Logger,
+    nominal_mode: str,
 ) -> Optional[int]:
     """
     이경 티(RT): 소단이 SW 구간(예: 0.5~1.5)이어도 대단이 2\" 이상 BW 구간이면 BW 템플릿을 쓴다.
@@ -813,6 +786,7 @@ def _find_rt_fitting_template_row(
         "RT",
         ref,
         logger,
+        nominal_mode,
         log_if_missing=False,
     )
     if row_sw is None:
@@ -824,6 +798,7 @@ def _find_rt_fitting_template_row(
             "RT",
             run_nps,
             logger,
+            nominal_mode,
         )
 
     et_ref = _get_cell_text(fitting_ws, row_sw, fitting_header_to_col, "End_Type_1")
@@ -837,6 +812,7 @@ def _find_rt_fitting_template_row(
             "RT",
             run_nps,
             logger,
+            nominal_mode,
             log_if_missing=False,
         )
         if row_bw is not None:
@@ -854,6 +830,7 @@ def _find_rt_fitting_template_row(
         "RT",
         run_nps,
         logger,
+        nominal_mode,
     )
 
 
@@ -871,6 +848,7 @@ def _build_item_description_by_rule(
     reducer_size2: Optional[str] = None,
     fitting_dual_schedule: bool = False,
     size1_value: Optional[str] = None,
+    class_design_code: str = "",
 ) -> str:
     method = _pick_first_non_empty(
         ws, row_idx, header_to_col, ["Manufacturing_Method", "Method"]
@@ -886,7 +864,6 @@ def _build_item_description_by_rule(
         end_type_1 = _pick_first_non_empty(
             ws, row_idx, header_to_col, ["End_Type_1", "End_Type"]
         )
-        end_type_1 = _pipe_thread_end_token(end_type_1)
         remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
         pipe_label = description_lead or "PIPE"
         return _join_tokens(
@@ -908,7 +885,9 @@ def _build_item_description_by_rule(
         end_type_upper = end_type_1.strip().upper()
         is_plug_item = item_code.upper() == "PL"
         dim_has_b16_11 = "B16.11" in dim_standard.upper()
-        implicit_socket_dims = _piping_design_implies_socket_screwed_b16_11_fitting_dims()
+        implicit_socket_dims = _piping_design_implies_socket_screwed_b16_11_fitting_dims(
+            class_design_code
+        )
         rating_cell = _get_cell_text(ws, row_idx, header_to_col, "Rating")
         forged_socket_rating = _rating_looks_forged_socket_class(rating_cell)
         fitting_thickness_or_rating = sch1
@@ -1029,7 +1008,7 @@ def _build_item_description_by_rule(
             description_lead,
             mat,
             method,
-            _fitting_thread_end_token(end_type_1),
+            end_type_1,
             fitting_thickness_or_rating,
             remarks,
             dim_standard,
@@ -1383,6 +1362,7 @@ def _iter_output_rows(
                         th2,
                         db_group=db_group,
                         size1_value=size1_out,
+                        class_design_code=_class_design_code_for(class_specs, class_name),
                     )
                     out_item_name = catalog_item_name
                     if sheet_name == "Bolt_Group" and not out_item_name:
@@ -1451,6 +1431,7 @@ def _iter_output_rows(
                         th2,
                         db_group=db_group,
                         size1_value=exploded_size,
+                        class_design_code=_class_design_code_for(class_specs, class_name),
                     )
                     out_item_name = catalog_item_name
                     if sheet_name == "Bolt_Group" and not out_item_name:
@@ -1496,6 +1477,7 @@ def _iter_output_rows(
                     continue
 
                 for mapped_code in mapped_codes:
+                    nominal_mode_cls = _class_nominal_mode_for(class_specs, class_name)
                     template_row_idx = _find_fitting_template_row_for_nps(
                         fitting_ws,
                         fitting_header_row,
@@ -1504,6 +1486,7 @@ def _iter_output_rows(
                         mapped_code,
                         size1,
                         logger,
+                        nominal_mode_cls,
                         log_if_missing=False,
                     )
                     if template_row_idx is None:
@@ -1544,8 +1527,12 @@ def _iter_output_rows(
                         db_row.get("Description_Prefix") or db_row.get("Item_Name", "")
                     )
                     db_group = _to_text(db_row.get("Group", ""))
-                    th1 = lookup_schedule_thickness(schedule_rows, class_name, size1)
-                    th2 = lookup_schedule_thickness(schedule_rows, class_name, size2)
+                    th1 = lookup_schedule_thickness(
+                        schedule_rows, class_name, size1, nominal_mode_cls
+                    )
+                    th2 = lookup_schedule_thickness(
+                        schedule_rows, class_name, size2, nominal_mode_cls
+                    )
                     desc = _build_item_description_by_rule(
                         "Fitting_Group",
                         fitting_ws,
@@ -1558,6 +1545,7 @@ def _iter_output_rows(
                         db_group=db_group,
                         reducer_size1=size1,
                         reducer_size2=size2,
+                        class_design_code=_class_design_code_for(class_specs, class_name),
                     )
 
                     yield {
@@ -1619,6 +1607,7 @@ def _iter_output_rows(
                 else:
                     th_output_size = ""
 
+                nominal_mode_cls = _class_nominal_mode_for(class_specs, class_name)
                 if mapped_code == "RT":
                     template_row_idx = _find_rt_fitting_template_row(
                         fitting_ws,
@@ -1628,6 +1617,7 @@ def _iter_output_rows(
                         size1,
                         size2,
                         logger,
+                        nominal_mode_cls,
                     )
                 elif mapped_code == "TH":
                     template_row_idx = _find_fitting_template_row_for_nps(
@@ -1638,6 +1628,7 @@ def _iter_output_rows(
                         mapped_code,
                         th_output_size,
                         logger,
+                        nominal_mode_cls,
                     )
                 else:
                     template_row_idx = _find_fitting_template_row_for_nps(
@@ -1648,6 +1639,7 @@ def _iter_output_rows(
                         mapped_code,
                         size1,
                         logger,
+                        nominal_mode_cls,
                     )
                 if template_row_idx is None:
                     continue
@@ -1684,11 +1676,17 @@ def _iter_output_rows(
                 )
                 db_group_b = _to_text(db_row_b.get("Group", ""))
                 if mapped_code == "TH":
-                    th1b = lookup_schedule_thickness(schedule_rows, class_name, th_output_size)
+                    th1b = lookup_schedule_thickness(
+                        schedule_rows, class_name, th_output_size, nominal_mode_cls
+                    )
                     th2b = ""
                 else:
-                    th1b = lookup_schedule_thickness(schedule_rows, class_name, size1)
-                    th2b = lookup_schedule_thickness(schedule_rows, class_name, size2)
+                    th1b = lookup_schedule_thickness(
+                        schedule_rows, class_name, size1, nominal_mode_cls
+                    )
+                    th2b = lookup_schedule_thickness(
+                        schedule_rows, class_name, size2, nominal_mode_cls
+                    )
 
                 desc_b = _build_item_description_by_rule(
                     "Fitting_Group",
@@ -1701,6 +1699,7 @@ def _iter_output_rows(
                     th2b,
                     db_group=db_group_b,
                     fitting_dual_schedule=use_dual,
+                    class_design_code=_class_design_code_for(class_specs, class_name),
                 )
 
                 yield {

@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "description": "Piping design codes available for selection at the Class layer. Program-internal reference data; the selected value is stored per Class row in the Class_Define sheet.",
+  "allowed": [
+    "ASME B31.3",
+    "ASME B31.4"
+  ],
+  "notes": "Typical ASME B31.3/B31.4 scope assumes ASME B16.11 for socket-welded and screwed forged fittings; use Fitting_Group End_Type (SW/TE/NPT/PT/BW), not a separate Dim_Standard column."
+}
