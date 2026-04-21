@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python run.py harness --all)",
+      "Bash(python -m py_compile src/class_level_model.py src/class_template_wizard.py src/template_generator.py src/units_notation_headers.py src/class_spec.py)",
+      "Bash(python -m py_compile src/class_template_wizard.py)"
+    ]
+  }
+}
