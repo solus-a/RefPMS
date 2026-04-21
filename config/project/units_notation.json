@@ -4,7 +4,7 @@
       "Metric",
       "Imperial"
     ],
-    "selected": "Metric",
+    "selected": "Imperial",
     "design_units": {
       "Metric": {
         "temperature": {
@@ -20,7 +20,7 @@
             "kPa",
             "MPa"
           ],
-          "selected": "kPa"
+          "selected": "bar"
         }
       },
       "Imperial": {

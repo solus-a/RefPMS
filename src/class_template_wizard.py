@@ -18,11 +18,10 @@ from class_level_model import (
 )
 from class_spec import class_base_material_group_keys, flange_pt_class_rating_options
 from size_matrix_editor import run_size_matrix_editor
-from template_generator import JOINT_HEADERS, SCHEDULE_HEADERS
+from template_generator import SCHEDULE_HEADERS
 from units_notation_headers import (
     bracket_unit_header,
     class_define_headers,
-    fluid_service_headers,
     read_design_units_from_merged,
 )
 
@@ -64,18 +63,20 @@ def _corrosion_reference_values(merged: dict) -> list[str]:
     if not isinstance(ref, dict):
         return []
 
-    metric_raw = ref.get("metric_mm") if isinstance(ref.get("metric_mm"), list) else []
-    imperial_raw = ref.get("imperial_inch") if isinstance(ref.get("imperial_inch"), list) else []
+    unit_system = _project_selected_unit_system(merged)
+    key = "imperial_inch" if unit_system == "Imperial" else "metric_mm"
+    raw = ref.get(key)
+    if not isinstance(raw, list):
+        return []
 
     ordered: list[str] = []
     seen: set[str] = set()
-    for source in (metric_raw, imperial_raw):
-        for v in source:
-            sv = str(v or "").strip()
-            if not sv or sv in seen:
-                continue
-            seen.add(sv)
-            ordered.append(sv)
+    for v in raw:
+        sv = str(v or "").strip()
+        if not sv or sv in seen:
+            continue
+        seen.add(sv)
+        ordered.append(sv)
     return ordered
 
 
@@ -403,7 +404,6 @@ class ClassLevelWizard(tk.Toplevel):
         self._corrosion_combo_values = _corrosion_reference_values(merged)
         _dt, _dp = read_design_units_from_merged(merged)
         self._class_define_headers = class_define_headers(_dt, _dp)
-        self._fluid_service_headers = fluid_service_headers(_dt, _dp)
         self._class_design_temp_u, self._class_design_press_u = _dt, _dp
         (
             self._class_temp_from_h,
@@ -421,8 +421,6 @@ class ClassLevelWizard(tk.Toplevel):
                         _CORROSION_ALLOWANCE_KEY: self._corrosion_default_value,
                     }
                 ],
-                fluid_service_rows=[],
-                joint_rows=[],
                 schedule_rows=[],
                 reducing_tables=[],
                 branch_tables=[],
@@ -453,8 +451,6 @@ class ClassLevelWizard(tk.Toplevel):
         self._schedule_refresh_class_list: Callable[[], None] = lambda: None
         self._size_range_refresh_class_list: Callable[[], None] = lambda: None
         self._tab_class(nb)
-        self._tab_sheet(nb, "Fluid_Service", self._fluid_service_headers, "fluid")
-        self._tab_sheet(nb, "Joint", JOINT_HEADERS, "joint")
         self._tab_size_range(nb)
         self._tab_schedule(nb)
 
@@ -564,6 +560,7 @@ class ClassLevelWizard(tk.Toplevel):
         self._rename_size_range_class(old_name, new_name)
         self._sync_size_ranges_to_classes()
         self._refresh_class_listbox()
+        self._size_range_refresh_class_list()
         self._class_list.selection_clear(0, "end")
         self._class_list.selection_set(idx)
         self._class_list.activate(idx)
@@ -823,6 +820,7 @@ class ClassLevelWizard(tk.Toplevel):
         self._bundle.class_define_rows.append(nr)
         self._sync_size_ranges_to_classes()
         self._refresh_class_listbox()
+        self._size_range_refresh_class_list()
         self._class_list.selection_clear(0, "end")
         self._class_list.selection_set(len(self._bundle.class_define_rows) - 1)
         self._load_class_detail()
@@ -839,115 +837,9 @@ class ClassLevelWizard(tk.Toplevel):
             self._sync_size_ranges_to_classes()
             self._last_shown_class_idx = None
             self._refresh_class_listbox()
+            self._size_range_refresh_class_list()
             self._class_list.selection_set(min(idx, len(self._bundle.class_define_rows) - 1))
             self._load_class_detail()
-
-    def _tab_sheet(self, nb: ttk.Notebook, title: str, headers: list[str], key: str) -> None:
-        tab = ttk.Frame(nb)
-        nb.add(tab, text=title)
-
-        cols = tuple(headers)
-        data_area = ttk.Frame(tab)
-        data_area.pack(fill="both", expand=True, padx=8, pady=(8, 0))
-        data_area.grid_rowconfigure(0, weight=1)
-        data_area.grid_columnconfigure(0, weight=1)
-
-        tree_holder = ttk.Frame(data_area)
-        tree_holder.grid_rowconfigure(0, weight=1)
-        tree_holder.grid_columnconfigure(0, weight=1)
-
-        tree = ttk.Treeview(
-            tree_holder,
-            columns=cols,
-            show="headings",
-            height=16,
-            style="WizardSheet.Treeview",
-        )
-        for c in cols:
-            tree.heading(c, text=c)
-            tree.column(c, width=100)
-        sy = ttk.Scrollbar(tree_holder, orient="vertical", command=tree.yview)
-        tree.configure(yscrollcommand=sy.set)
-        tree.grid(row=0, column=0, sticky="nsew")
-        sy.grid(row=0, column=1, sticky="ns")
-        tree_holder.grid(row=0, column=0, sticky="nsew")
-        _tree_setup_tags(tree)
-
-        empty_msg = f'No {title} rows yet. Use "Add row".'
-        empty_ph = _canvas_dashed_empty_state(data_area, empty_msg, height=200, bg="#fafafa")
-        empty_ph.grid(row=0, column=0, sticky="nsew")
-        empty_ph.grid_remove()
-
-        if key == "fluid":
-            rows_attr = "fluid_service_rows"
-        elif key == "joint":
-            rows_attr = "joint_rows"
-        else:
-            rows_attr = "schedule_rows"
-
-        def get_rows() -> list[dict[str, str]]:
-            return getattr(self._bundle, rows_attr)
-
-        def refill(sel_idx: int | None = None) -> None:
-            for iid in tree.get_children():
-                tree.delete(iid)
-            rows = get_rows()
-            for idx, r in enumerate(rows):
-                tree.insert(
-                    "",
-                    "end",
-                    values=tuple(r.get(h, "") for h in headers),
-                    tags=_tree_row_tags(idx),
-                )
-            kids = tree.get_children()
-            if rows:
-                empty_ph.grid_remove()
-                tree_holder.grid(row=0, column=0, sticky="nsew")
-                pick = 0
-                if sel_idx is not None and 0 <= sel_idx < len(kids):
-                    pick = sel_idx
-                if kids:
-                    target = kids[pick]
-                    tree.selection_set(target)
-                    tree.focus(target)
-                    tree.see(target)
-            else:
-                tree_holder.grid_remove()
-                empty_ph.grid(row=0, column=0, sticky="nsew")
-
-        refill()
-
-        def add_row() -> None:
-            get_rows().append(row_dict_for_headers(headers))
-            refill(sel_idx=len(get_rows()) - 1)
-
-        def edit_row() -> None:
-            sel = tree.selection()
-            if not sel:
-                messagebox.showinfo("Selection", "Select a row to edit.", parent=self)
-                return
-            idx = tree.index(sel[0])
-            cur = get_rows()[idx]
-            new = _edit_row_dict_dialog(self, f"{title} 행 편집", headers, cur)
-            if new:
-                get_rows()[idx] = new
-                refill(sel_idx=idx)
-
-        def del_row() -> None:
-            sel = tree.selection()
-            if not sel:
-                return
-            idx = tree.index(sel[0])
-            get_rows().pop(idx)
-            n = len(get_rows())
-            refill(sel_idx=min(idx, n - 1) if n else None)
-
-        ttk.Separator(tab, orient="horizontal").pack(fill="x", padx=8, pady=(4, 0))
-        bf = ttk.Frame(tab)
-        bf.pack(fill="x", padx=8, pady=(0, 8))
-        ttk.Button(bf, text="Add row", command=add_row).pack(side="left", padx=4)
-        ttk.Button(bf, text="Edit row", command=edit_row).pack(side="left", padx=4)
-        ttk.Button(bf, text="Delete row", command=del_row).pack(side="left", padx=4)
 
     def _tab_schedule(self, nb: ttk.Notebook) -> None:
         tab = ttk.Frame(nb)

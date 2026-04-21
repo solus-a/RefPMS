@@ -75,8 +75,6 @@ class ClassLevelBundle:
     """템플릿 xlsx의 클래스 수준 시트 내용."""
 
     class_define_rows: list[dict[str, str]]
-    fluid_service_rows: list[dict[str, str]]
-    joint_rows: list[dict[str, str]]
     schedule_rows: list[dict[str, str]]
     reducing_tables: list[NamedSizeTable]
     branch_tables: list[NamedSizeTable]

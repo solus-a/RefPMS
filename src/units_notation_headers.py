@@ -1,4 +1,4 @@
-"""Project `units_notation` → Class_Define / Fluid_Service column headers with ``[unit]`` notation."""
+"""Project `units_notation` → Class_Define column headers with ``[unit]`` notation."""
 
 from __future__ import annotations
 
@@ -64,22 +64,6 @@ def class_define_headers(design_temperature_unit: str, design_pressure_unit: str
         "Reducing_Table_2",
         "Global_Special_Req",
         "Remarks",
-    ]
-
-
-def fluid_service_headers(design_temperature_unit: str, design_pressure_unit: str) -> list[str]:
-    t = design_temperature_unit
-    p = design_pressure_unit
-    return [
-        "Class_Name",
-        "Fluid_Service_Code",
-        "Fluid_Service_Name",
-        bracket_unit_header("Min_Design_Temperature", t),
-        bracket_unit_header("Max_Design_Temperature", t),
-        bracket_unit_header("Min_Design_Pressure", p),
-        bracket_unit_header("Max_Design_Pressure", p),
-        "NDE",
-        "PWHT",
     ]
 
 

@@ -18,7 +18,6 @@ from class_level_model import (
 )
 from units_notation_headers import (
     class_define_headers,
-    fluid_service_headers,
     read_design_units_from_merged,
 )
 from data_defaults import DEFAULT_CLASS_MATERIAL_MAPPING, DEFAULT_COMPONENT_MAPPING
@@ -58,20 +57,11 @@ ITEM_CODE_DB_DEFAULT_ROWS = [
     ("B", "BOLT&NUT", "BOLT", "Bolt_Group"),
 ]
 
-def _class_and_fluid_sheet_headers() -> tuple[list[str], list[str]]:
+def _class_sheet_headers() -> list[str]:
     merged = config.config_manager.merged()
     dt, dp = read_design_units_from_merged(merged)
-    return class_define_headers(dt, dp), fluid_service_headers(dt, dp)
+    return class_define_headers(dt, dp)
 
-
-JOINT_HEADERS = [
-    "Class_Name",
-    "Size_From",
-    "Size_To",
-    "Pipe_Joint_Type",
-    "Maintenance_Joint_Type",
-    "Remarks",
-]
 
 SCHEDULE_HEADERS = [
     "Class_Name",
@@ -490,14 +480,12 @@ def _read_named_size_tables(ws) -> list[NamedSizeTable]:
 
 def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
     wb = load_workbook(Path(path))
-    class_headers, fluid_headers = _class_and_fluid_sheet_headers()
+    class_headers = _class_sheet_headers()
 
     def ws_or_none(name: str):
         return wb[name] if name in wb.sheetnames else None
 
     ws_define = ws_or_none("Class_Define")
-    ws_fluid = ws_or_none("Fluid_Service")
-    ws_joint = ws_or_none("Joint")
     ws_schedule = ws_or_none("Schedule")
     ws_reducing = ws_or_none("Reducing_Table")
     ws_branch = ws_or_none("Branch_Table")
@@ -510,8 +498,6 @@ def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
 
     return ClassLevelBundle(
         class_define_rows=class_rows,
-        fluid_service_rows=_read_dict_rows(ws_fluid, fluid_headers) if ws_fluid is not None else [],
-        joint_rows=_read_dict_rows(ws_joint, JOINT_HEADERS) if ws_joint is not None else [],
         schedule_rows=_read_dict_rows(ws_schedule, SCHEDULE_HEADERS) if ws_schedule is not None else [],
         reducing_tables=_read_named_size_tables(ws_reducing) if ws_reducing is not None else [],
         branch_tables=_read_named_size_tables(ws_branch) if ws_branch is not None else [],
@@ -546,11 +532,10 @@ def generate_class_define_template(
     """
     Create `Class_Define_Template.xlsx` with required sheets:
     - Class_Define
-    - Fluid_Service
-    - Joint
     - Schedule
     - Reducing_Table
     - Branch_Table
+    - Class_Size_Range
     - Pipe_Group
     - Fitting_Group
     - Flange_Group
@@ -561,9 +546,9 @@ def generate_class_define_template(
     동시에 data/Item_Code_DB.xlsx 가 없으면 생성합니다(기존 파일은 유지).
 
     class_level:
-        GUI에서 수집한 클래스 수준 데이터. 지정 시 Class_Define·Fluid_Service·Joint·Schedule·
-        Branch_Table·Reducing_Table 내용을 이 값으로 채웁니다. None 이면 두 시트는 헤더만
-        생성되고 데이터 행은 비워 둡니다.
+        GUI에서 수집한 클래스 수준 데이터. 지정 시 Class_Define·Schedule·
+        Branch_Table·Reducing_Table·Class_Size_Range 내용을 이 값으로 채웁니다.
+        None 이면 헤더만 생성되고 데이터 행은 비워 둡니다.
     """
     logger = _get_logger()
 
@@ -575,17 +560,11 @@ def generate_class_define_template(
 
     wb = Workbook()
 
-    class_headers, fluid_headers = _class_and_fluid_sheet_headers()
+    class_headers = _class_sheet_headers()
 
     ws_define = wb.active
     ws_define.title = "Class_Define"
     _set_headers_and_widths(ws_define, class_headers)
-
-    ws_fluid = wb.create_sheet(title="Fluid_Service")
-    _set_headers_and_widths(ws_fluid, fluid_headers)
-
-    ws_joint = wb.create_sheet(title="Joint")
-    _set_headers_and_widths(ws_joint, JOINT_HEADERS)
 
     ws_schedule = wb.create_sheet(title="Schedule")
     _set_headers_and_widths(ws_schedule, SCHEDULE_HEADERS)
@@ -601,8 +580,6 @@ def generate_class_define_template(
 
     if class_level is not None:
         _write_dict_rows(ws_define, class_headers, class_level.class_define_rows)
-        _write_dict_rows(ws_fluid, fluid_headers, class_level.fluid_service_rows)
-        _write_dict_rows(ws_joint, JOINT_HEADERS, class_level.joint_rows)
         _write_dict_rows(ws_schedule, SCHEDULE_HEADERS, class_level.schedule_rows)
         _write_named_size_tables(ws_branch_table, class_level.branch_tables)
         _write_named_size_tables(ws_reducing_table, class_level.reducing_tables)
