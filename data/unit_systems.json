@@ -1,12 +1,12 @@
 {
-  "version": 1,
+  "version": 2,
   "description": "Unit systems and their design-unit options. Program-internal reference data; the selected value is stored in the Class Template's Unit_System sheet and applies globally to all classes in that template.",
   "allowed": [
-    "Metric",
-    "Imperial"
+    "SI",
+    "US Customary"
   ],
   "design_units": {
-    "Metric": {
+    "SI": {
       "temperature": {
         "allowed": ["°C"],
         "default": "°C"
@@ -16,7 +16,7 @@
         "default": "bar"
       }
     },
-    "Imperial": {
+    "US Customary": {
       "temperature": {
         "allowed": ["°F"],
         "default": "°F"

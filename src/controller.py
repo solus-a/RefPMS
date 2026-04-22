@@ -8,7 +8,6 @@ import tkinter as tk
 from tkinter import messagebox
 
 import gui
-import config
 from class_template_wizard import run_class_level_wizard
 from template_generator import (
     DEFAULT_TEMPLATE_FILENAME,
@@ -17,9 +16,6 @@ from template_generator import (
 )
 import file_handler
 import pms_generator
-from project_constraints import validate_project_constraints
-from project_config_service import load_current_settings, save_and_reload
-from project_settings_dialog import open_project_settings
 
 
 def create_controller(root: tk.Tk) -> None:
@@ -36,33 +32,7 @@ def create_controller(root: tk.Tk) -> None:
 
     status_setter: Callable[[str], None] = lambda _msg: None
 
-    def _check_project_constraints() -> bool:
-        """프로젝트 설정 검증. 통과 시 True, 실패 시 status 표시 후 False."""
-        errors = validate_project_constraints(config.config_manager.merged())
-        if errors:
-            preview = "; ".join(errors[:3])
-            if len(errors) > 3:
-                preview += f" … 외 {len(errors) - 3}건"
-            status_setter(f"프로젝트 설정 검증 실패: {preview}")
-            return False
-        return True
-
-    def on_project_settings() -> None:
-        current = load_current_settings()
-
-        def handle_save(candidate):
-            warnings = save_and_reload(candidate)
-            if warnings:
-                return warnings
-            status_setter("프로젝트 설정 저장 완료 (다음 작업부터 반영)")
-            return []
-
-        open_project_settings(root, current, handle_save)
-
     def on_template_create() -> None:
-        if not _check_project_constraints():
-            return
-
         save_dir = file_handler.select_save_folder(root)
         if not save_dir:
             status_setter("대기중")
@@ -86,9 +56,6 @@ def create_controller(root: tk.Tk) -> None:
             status_setter(f"템플릿 생성 실패: {exc}")
 
     def on_template_edit() -> None:
-        if not _check_project_constraints():
-            return
-
         src_path = file_handler.select_excel_file(root)
         if not src_path:
             status_setter("대기중")
@@ -150,9 +117,6 @@ def create_controller(root: tk.Tk) -> None:
         out_dir.mkdir(parents=True, exist_ok=True)
         output_path = out_dir / pms_generator.OUTPUT_FILENAME
 
-        if not _check_project_constraints():
-            return
-
         status_setter("Piping Material Class Data 생성 중...")
         try:
             out_path = pms_generator.generate_piping_material_class_data(
@@ -165,7 +129,6 @@ def create_controller(root: tk.Tk) -> None:
 
     status_setter = gui.build_gui(
         root=root,
-        on_project_settings=on_project_settings,
         on_template_create=on_template_create,
         on_template_edit=on_template_edit,
         on_file_load=on_file_load,

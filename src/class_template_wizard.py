@@ -36,17 +36,17 @@ _CORROSION_ALLOWANCE_KEY = "Corrosion_Allowance"
 
 
 def _corrosion_allowance_unit_symbol(unit_system: str) -> str:
-    return "inch" if unit_system == "Imperial" else "mm"
+    return "inch" if unit_system == "US Customary" else "mm"
 
 
 def _corrosion_reference_values_for(unit_system: str) -> list[str]:
-    """Corrosion_Allowance 참조 값 목록 — Unit_System (Metric/Imperial) 에 따라 결정."""
+    """Corrosion_Allowance 참조 값 목록 — Unit_System (SI/US Customary) 에 따라 결정."""
     ref = config.config_manager.get(
         "validation_policy.corrosion_allowance.reference_values", {}
     )
     if not isinstance(ref, dict):
         return []
-    key = "imperial_inch" if unit_system == "Imperial" else "metric_mm"
+    key = "imperial_inch" if unit_system == "US Customary" else "metric_mm"
     raw = ref.get(key)
     if not isinstance(raw, list):
         return []
@@ -167,6 +167,7 @@ def _tree_setup_tags(tree: ttk.Treeview) -> None:
     tree.tag_configure("even", background=_STRIPE_A)
     tree.tag_configure("odd", background=_STRIPE_B)
     tree.tag_configure("hover", background=_LIST_HOVER)
+    tree.tag_configure("size_warn", background="#fff3cd", foreground="#856404")
 
     hover_state: dict[str, str | None] = {"iid": None}
 
@@ -257,22 +258,59 @@ def _edit_size_table_dialog(
     return run_size_matrix_editor(parent, title, table, pair_kind, nominal_mode)
 
 
-def _manage_named_tables(
+def _ask_nominal_mode_dialog(parent: tk.Widget) -> str | None:
+    """NPS / DN 라디오 버튼 선택 모달. 선택된 모드 문자열 반환, 취소시 None."""
+    result: dict[str, str | None] = {"mode": None}
+    win = tk.Toplevel(parent)
+    win.title("Select Nominal Size System")
+    win.resizable(False, False)
+    win.transient(parent)
+    win.grab_set()
+
+    ttk.Label(win, text="Select the Nominal Size System for this table.\nThis cannot be changed after creation.", wraplength=300).pack(padx=20, pady=(16, 8))
+
+    var = tk.StringVar(value="NPS")
+    rb_frame = ttk.Frame(win)
+    rb_frame.pack(padx=20, pady=8)
+    ttk.Radiobutton(rb_frame, text="NPS (ASME B36.10)", variable=var, value="NPS").pack(anchor="w", pady=4)
+    ttk.Radiobutton(rb_frame, text="DN (ISO 6708)", variable=var, value="DN").pack(anchor="w", pady=4)
+
+    def on_ok() -> None:
+        result["mode"] = var.get()
+        win.destroy()
+
+    def on_cancel() -> None:
+        win.destroy()
+
+    bf = ttk.Frame(win)
+    bf.pack(pady=(8, 16))
+    ttk.Button(bf, text="OK", command=on_ok).pack(side="left", padx=8)
+    ttk.Button(bf, text="Cancel", command=on_cancel).pack(side="left", padx=8)
+    parent.wait_window(win)
+    return result["mode"]
+
+
+def _build_named_tables_panel(
+    container: tk.Widget,
     parent: tk.Toplevel,
-    title: str,
     tables: list[NamedSizeTable],
     bundle: ClassLevelBundle,
     *,
     pair_kind: Literal["reducing", "branch"],
     refresh_dropdowns: Callable[[], None],
-    nominal_mode: str | None = None,
-) -> None:
-    win = tk.Toplevel(parent)
-    win.title(title)
-    win.geometry("420x320")
-    win.transient(parent)
+    nominal_mode_provider: Callable[[], str],
+) -> Callable[[], None]:
+    """Reducing/Branch 테이블 관리 UI 를 주어진 container 에 렌더링.
 
-    shell = tk.Frame(win, highlightthickness=1, highlightbackground="#b0b0b0", highlightcolor="#b0b0b0", bg="#fafafa")
+    Returns a callable that refills the listbox (for external refresh after bundle state changes).
+    """
+    shell = tk.Frame(
+        container,
+        highlightthickness=1,
+        highlightbackground="#b0b0b0",
+        highlightcolor="#b0b0b0",
+        bg="#fafafa",
+    )
     holder = tk.Frame(shell, bg="#fafafa")
     lb = tk.Listbox(
         holder,
@@ -306,22 +344,26 @@ def _manage_named_tables(
     refill()
 
     def add_table() -> None:
-        name = simpledialog.askstring("Add table", "Table_Code (unique name):", parent=win)
+        name = simpledialog.askstring("Add table", "Table_Code (unique name):", parent=parent)
         if not name or not name.strip():
             return
         name = name.strip()
         if name in _all_codes(bundle):
-            messagebox.showerror("Duplicate", f"The name {name!r} is already in use.", parent=win)
+            messagebox.showerror("Duplicate", f"The name {name!r} is already in use.", parent=parent)
             return
-        nt = NamedSizeTable(name, [])
+        chosen_mode = _ask_nominal_mode_dialog(parent)
+        if chosen_mode is None:
+            return
+        nt = NamedSizeTable(name, [], nominal_mode=chosen_mode)
         tables.append(nt)
         refill()
         lb.selection_clear(0, "end")
         lb.selection_set(len(tables) - 1)
         edited = _edit_size_table_dialog(
-            parent, f"Edit table — {name}", nt, pair_kind, nominal_mode
+            parent, f"Edit table — {name}", nt, pair_kind, chosen_mode
         )
         if edited:
+            edited.nominal_mode = chosen_mode
             tables[-1] = edited
         else:
             tables.pop()
@@ -331,14 +373,16 @@ def _manage_named_tables(
     def edit_table() -> None:
         sel = lb.curselection()
         if not sel:
-            messagebox.showinfo("Selection", "Select a table to edit.", parent=win)
+            messagebox.showinfo("Selection", "Select a table to edit.", parent=parent)
             return
         idx = int(sel[0])
         tbl = tables[idx]
+        mode = tbl.nominal_mode if tbl.nominal_mode else nominal_mode_provider()
         edited = _edit_size_table_dialog(
-            parent, f"Edit table — {tbl.table_code}", tbl, pair_kind, nominal_mode
+            parent, f"Edit table — {tbl.table_code}", tbl, pair_kind, mode
         )
         if edited:
+            edited.nominal_mode = mode
             tables[idx] = edited
             refill()
         refresh_dropdowns()
@@ -348,17 +392,18 @@ def _manage_named_tables(
         if not sel:
             return
         idx = int(sel[0])
-        if messagebox.askyesno("Delete", "Delete this table?", parent=win):
+        if messagebox.askyesno("Delete", "Delete this table?", parent=parent):
             tables.pop(idx)
             refill()
             refresh_dropdowns()
 
-    bf = ttk.Frame(win)
+    bf = ttk.Frame(container)
     bf.pack(fill="x", padx=8, pady=(0, 8))
     ttk.Button(bf, text="Add", command=add_table).pack(side="left", padx=4)
     ttk.Button(bf, text="Edit", command=edit_table).pack(side="left", padx=4)
     ttk.Button(bf, text="Delete", command=del_table).pack(side="left", padx=4)
-    ttk.Button(bf, text="Close", command=win.destroy).pack(side="right", padx=4)
+
+    return refill
 
 
 class ClassLevelWizard(tk.Toplevel):
@@ -412,11 +457,16 @@ class ClassLevelWizard(tk.Toplevel):
         nb.pack(fill="both", expand=True, padx=8, pady=8)
 
         self._schedule_refresh_class_list: Callable[[], None] = lambda: None
+        self._schedule_sync_size_range: Callable[[str], None] = lambda _cn: None
         self._size_range_refresh_class_list: Callable[[], None] = lambda: None
-        self._tab_unit_system(nb)
+        self._reducing_tab_refresh: Callable[[], None] = lambda: None
+        self._branch_tab_refresh: Callable[[], None] = lambda: None
+        self._tab_global_setting(nb)
         self._tab_class(nb)
         self._tab_size_range(nb)
         self._tab_schedule(nb)
+        self._tab_reducing_tables(nb)
+        self._tab_branch_tables(nb)
 
         bf = ttk.Frame(self)
         bf.pack(fill="x", padx=8, pady=8)
@@ -586,10 +636,10 @@ class ClassLevelWizard(tk.Toplevel):
         self._class_list.see(idx)
         _listbox_apply_stripes(self._class_list)
 
-    def _tab_unit_system(self, nb: ttk.Notebook) -> None:
+    def _tab_global_setting(self, nb: ttk.Notebook) -> None:
         """Template 전역 단위 체계 편집 탭 — 모든 Class 에 공통 적용."""
         tab = ttk.Frame(nb)
-        nb.add(tab, text="Unit_System")
+        nb.add(tab, text="Global Setting")
 
         box = ttk.LabelFrame(tab, text="Template-global unit system")
         box.pack(fill="x", padx=12, pady=12)
@@ -607,20 +657,25 @@ class ClassLevelWizard(tk.Toplevel):
         ttk.Label(box, text="Unit System", width=lw, anchor="w").grid(
             row=1, column=0, sticky="w", padx=8, pady=4
         )
-        self._unit_system_combo = ttk.Combobox(
-            box,
-            width=28,
-            state="readonly",
-            values=["", *self._unit_system_options],
-        )
-        self._unit_system_combo.grid(row=1, column=1, sticky="ew", padx=(8, 8), pady=4)
-        self._unit_system_combo.set(self._global_settings.unit_system or "")
+        self._unit_system_var = tk.StringVar(value=self._global_settings.unit_system or "")
+        radio_holder = ttk.Frame(box)
+        radio_holder.grid(row=1, column=1, sticky="w", padx=(8, 8), pady=4)
+        for option in self._unit_system_options:
+            ttk.Radiobutton(
+                radio_holder,
+                text=option,
+                value=option,
+                variable=self._unit_system_var,
+                command=self._on_unit_system_changed,
+            ).pack(side="left", padx=(0, 12))
 
         ttk.Label(box, text="Design Temperature Unit", width=lw, anchor="w").grid(
             row=2, column=0, sticky="w", padx=8, pady=4
         )
-        self._design_temp_combo = ttk.Combobox(box, width=28, state="readonly", values=[""])
-        self._design_temp_combo.grid(row=2, column=1, sticky="ew", padx=(8, 8), pady=4)
+        self._design_temp_var = tk.StringVar(value="")
+        ttk.Label(box, textvariable=self._design_temp_var, anchor="w").grid(
+            row=2, column=1, sticky="w", padx=(8, 8), pady=4
+        )
 
         ttk.Label(box, text="Design Pressure Unit", width=lw, anchor="w").grid(
             row=3, column=0, sticky="w", padx=8, pady=4
@@ -632,19 +687,13 @@ class ClassLevelWizard(tk.Toplevel):
 
         self._refresh_design_unit_options(preserve_selection=True)
 
-        self._unit_system_combo.bind(
-            "<<ComboboxSelected>>", lambda _e: self._on_unit_system_changed()
-        )
-        self._design_temp_combo.bind(
-            "<<ComboboxSelected>>", lambda _e: self._on_design_units_changed()
-        )
         self._design_press_combo.bind(
             "<<ComboboxSelected>>", lambda _e: self._on_design_units_changed()
         )
 
     def _refresh_design_unit_options(self, *, preserve_selection: bool) -> None:
-        """선택된 Unit System 에 맞춰 Design Temperature/Pressure Combobox values 재설정."""
-        system = (self._unit_system_combo.get() or "").strip()
+        """선택된 Unit System 에 맞춰 Design Temperature 라벨 / Pressure Combobox values 재설정."""
+        system = (self._unit_system_var.get() or "").strip()
         block = config.design_units_for(system) if system else {}
         temp_block = block.get("temperature") if isinstance(block, dict) else None
         press_block = block.get("pressure") if isinstance(block, dict) else None
@@ -653,7 +702,6 @@ class ClassLevelWizard(tk.Toplevel):
         temp_default = str(temp_block.get("default", "") if isinstance(temp_block, dict) else "")
         press_default = str(press_block.get("default", "") if isinstance(press_block, dict) else "")
 
-        self._design_temp_combo["values"] = ["", *temp_allowed]
         self._design_press_combo["values"] = ["", *press_allowed]
 
         if preserve_selection:
@@ -666,13 +714,13 @@ class ClassLevelWizard(tk.Toplevel):
             cur_t = temp_default if temp_default in temp_allowed else (temp_allowed[0] if temp_allowed else "")
         if cur_p not in press_allowed:
             cur_p = press_default if press_default in press_allowed else (press_allowed[0] if press_allowed else "")
-        self._design_temp_combo.set(cur_t)
+        self._design_temp_var.set(cur_t)
         self._design_press_combo.set(cur_p)
 
     def _apply_global_settings_change(self) -> None:
-        """현재 콤보값을 _global_settings 에 반영하고 헤더/디테일을 재구성."""
-        new_system = (self._unit_system_combo.get() or "").strip()
-        new_temp = (self._design_temp_combo.get() or "").strip()
+        """현재 선택값을 _global_settings 에 반영하고 헤더/디테일을 재구성."""
+        new_system = (self._unit_system_var.get() or "").strip()
+        new_temp = (self._design_temp_var.get() or "").strip()
         new_press = (self._design_press_combo.get() or "").strip()
 
         old_temp_from = self._class_temp_from_h
@@ -748,17 +796,6 @@ class ClassLevelWizard(tk.Toplevel):
         bf.pack(fill="x", pady=4)
         ttk.Button(bf, text="Add row", command=self._add_class_row).pack(fill="x", pady=2)
         ttk.Button(bf, text="Delete row", command=self._del_class_row).pack(fill="x", pady=2)
-        ttk.Separator(lf, orient="horizontal").pack(fill="x", pady=(6, 4))
-        ttk.Button(
-            lf,
-            text="Manage reducing tables…",
-            command=self._open_reducing_manager,
-        ).pack(fill="x", pady=2)
-        ttk.Button(
-            lf,
-            text="Manage branch tables…",
-            command=self._open_branch_manager,
-        ).pack(fill="x", pady=2)
 
         self._class_rf = ttk.LabelFrame(tab, text="Selected row")
         self._class_rf.pack(side="left", fill="both", expand=True, padx=8, pady=4)
@@ -1038,6 +1075,8 @@ class ClassLevelWizard(tk.Toplevel):
         cols = ("Size_From", "Size_To", "Schedule")
         schedule_values = scheduleAllowlist()
         schedule_value_set = set(schedule_values)
+        # size dropdown values for the currently selected class (updated on class select / size range save)
+        size_range_values: dict[str, list[str]] = {}  # class_name -> sorted active sizes
         tree_holder = ttk.Frame(right)
         tree_holder.grid(row=0, column=0, sticky="nsew")
         tree_holder.grid_rowconfigure(0, weight=1)
@@ -1133,9 +1172,17 @@ class ClassLevelWizard(tk.Toplevel):
             class_lb.activate(idx)
             class_lb.see(idx)
 
+        def _rebuild_size_range_values() -> None:
+            size_range_values.clear()
+            for sr in self._bundle.size_ranges:
+                nm = (sr.class_name or "").strip()
+                if nm:
+                    size_range_values[nm] = list(sr.active_sizes)
+
         def refill_class_list() -> None:
             nonlocal class_items
             class_items = build_class_items()
+            _rebuild_size_range_values()
             class_lb.delete(0, "end")
             for label, _raw in class_items:
                 class_lb.insert("end", label)
@@ -1158,18 +1205,24 @@ class ClassLevelWizard(tk.Toplevel):
             for iid in tree.get_children():
                 tree.delete(iid)
             pairs = rows_for_selected()
+            nm = selected_class["name"]
+            known_sizes = set(size_range_values.get(nm, []))
             for vis_idx, (src_idx, row) in enumerate(pairs):
                 iid = f"r{src_idx}"
+                sf = str(row.get("Size_From", "") or "")
+                st = str(row.get("Size_To", "") or "")
+                out_of_range = known_sizes and (
+                    (sf.strip() and sf.strip() not in known_sizes)
+                    or (st.strip() and st.strip() not in known_sizes)
+                )
+                base_tags = _tree_row_tags(vis_idx)
+                tags = (*base_tags, "size_warn") if out_of_range else base_tags
                 tree.insert(
                     "",
                     "end",
                     iid=iid,
-                    values=(
-                        row.get("Size_From", ""),
-                        row.get("Size_To", ""),
-                        row.get("Schedule", ""),
-                    ),
-                    tags=_tree_row_tags(vis_idx),
+                    values=(sf, st, row.get("Schedule", "")),
+                    tags=tags,
                 )
             kids = tree.get_children()
             if not kids:
@@ -1229,6 +1282,10 @@ class ClassLevelWizard(tk.Toplevel):
             current = tree.item(iid, "values")[col_num]
             if col_id == "#3":
                 ent: tk.Widget = ttk.Combobox(tree, values=schedule_values, state="readonly")
+            elif col_id in ("#1", "#2"):
+                nm = selected_class["name"]
+                sz_vals = size_range_values.get(nm, [])
+                ent = ttk.Combobox(tree, values=sz_vals, state="normal")
             else:
                 vcmd = (self.register(_validate_numeric_key), "%P")
                 ent = tk.Entry(tree, validate="key", validatecommand=vcmd)
@@ -1242,11 +1299,16 @@ class ClassLevelWizard(tk.Toplevel):
                     ent.set(str(current).strip())
                 else:
                     ent.set("")
+            elif col_id in ("#1", "#2"):
+                ent.set(initial)
             else:
                 ent.insert(0, initial)
             ent.focus_set()
             if first_char is None:
-                ent.selection_range(0, tk.END)
+                try:
+                    ent.selection_range(0, tk.END)
+                except (tk.TclError, AttributeError):
+                    pass
 
             def _next_cell(current_iid: str, current_col_id: str, delta: int) -> tuple[str, str] | None:
                 row_ids = list(tree.get_children())
@@ -1345,7 +1407,7 @@ class ClassLevelWizard(tk.Toplevel):
             ent.bind("<Shift-Tab>", lambda _e: "break" if do_commit(-1) else "break")
             ent.bind("<ISO_Left_Tab>", lambda _e: "break" if do_commit(-1) else "break")
 
-            if col_id == "#3":
+            if col_id in ("#1", "#2", "#3"):
                 cb = ent
 
                 def try_open_dropdown() -> bool:
@@ -1386,8 +1448,14 @@ class ClassLevelWizard(tk.Toplevel):
                         do_commit(delta)
                     return "break"
 
+                def _cb_values_for_wheel() -> list[str]:
+                    if col_id == "#3":
+                        return list(schedule_values)
+                    nm = selected_class["name"]
+                    return size_range_values.get(nm, [])
+
                 def move_by_wheel(e: tk.Event) -> str:
-                    values = list(schedule_values)
+                    values = _cb_values_for_wheel()
                     if not values:
                         return "break"
                     current = str(cb.get() or "").strip()
@@ -1413,7 +1481,6 @@ class ClassLevelWizard(tk.Toplevel):
                 cb.bind("<Tab>", lambda _e: cb_tab(1))
                 cb.bind("<Shift-Tab>", lambda _e: cb_tab(-1))
                 cb.bind("<ISO_Left_Tab>", lambda _e: cb_tab(-1))
-                # Enter in dropdown → ComboboxSelected fires; move to next cell.
                 cb.bind("<Return>", lambda _e: "break" if do_commit(1) else "break")
                 cb.bind("<Down>", on_up_or_down)
                 cb.bind("<KeyPress-Down>", on_up_or_down, add="+")
@@ -1421,12 +1488,13 @@ class ClassLevelWizard(tk.Toplevel):
                 cb.bind("<Up>", on_up_or_down)
                 cb.bind("<KeyPress-Up>", on_up_or_down, add="+")
                 cb.bind("<KP_Up>", on_up_or_down, add="+")
-                cb.bind("<Left>", consume_key)
-                cb.bind("<Right>", consume_key)
+                if col_id == "#3":
+                    cb.bind("<Left>", consume_key)
+                    cb.bind("<Right>", consume_key)
                 cb.bind("<MouseWheel>", move_by_wheel)
                 cb.bind("<Button-4>", move_by_wheel)
                 cb.bind("<Button-5>", move_by_wheel)
-                # Item clicked in dropdown list.
+                # Item clicked in dropdown list → commit and move right.
                 cb.bind("<<ComboboxSelected>>", lambda _e: "break" if do_commit(1) else "break")
             else:
                 ent.bind("<Return>", commit)
@@ -1550,7 +1618,14 @@ class ClassLevelWizard(tk.Toplevel):
             side="left"
         )
 
+        def sync_size_range_for_class(class_name: str) -> None:
+            """Size Range 저장 후 해당 클래스의 드롭다운 값 갱신 및 경고 재표시."""
+            _rebuild_size_range_values()
+            if selected_class["name"] == class_name:
+                refill_rows()
+
         self._schedule_refresh_class_list = refill_class_list
+        self._schedule_sync_size_range: Callable[[str], None] = sync_size_range_for_class
         refill_class_list()
 
     def _current_nominal_mode_for_tables(self) -> str:
@@ -1566,39 +1641,63 @@ class ClassLevelWizard(tk.Toplevel):
                 return normalize_nominal_mode(mode)
         return "NPS"
 
-    def _open_reducing_manager(self) -> None:
-        self._save_class_detail_to_row()
+    def _tab_reducing_tables(self, nb: ttk.Notebook) -> None:
+        """Reducing tables 관리 탭 (sheet: Reducing_Table)."""
+        tab = ttk.Frame(nb)
+        nb.add(tab, text="Reducing Tables")
 
-        def refresh() -> None:
+        ttk.Label(
+            tab,
+            text=(
+                "Reducing tables (sheet: Reducing_Table) — one entry per Table_Code. "
+                "Classes reference these by name via Reducing_Table_1 / Reducing_Table_2."
+            ),
+            wraplength=640,
+        ).pack(anchor="w", padx=12, pady=(10, 0))
+
+        def refresh_combos() -> None:
             self._refresh_combo_lists()
             self._load_class_detail()
 
-        _manage_named_tables(
+        refill = _build_named_tables_panel(
+            tab,
             self,
-            "Reducing tables (sheet: Reducing_Table)",
             self._bundle.reducing_tables,
             self._bundle,
             pair_kind="reducing",
-            refresh_dropdowns=refresh,
-            nominal_mode=self._current_nominal_mode_for_tables(),
+            refresh_dropdowns=refresh_combos,
+            nominal_mode_provider=self._current_nominal_mode_for_tables,
         )
+        self._reducing_tab_refresh = refill
 
-    def _open_branch_manager(self) -> None:
-        self._save_class_detail_to_row()
+    def _tab_branch_tables(self, nb: ttk.Notebook) -> None:
+        """Branch tables 관리 탭 (sheet: Branch_Table)."""
+        tab = ttk.Frame(nb)
+        nb.add(tab, text="Branch Tables")
 
-        def refresh() -> None:
+        ttk.Label(
+            tab,
+            text=(
+                "Branch tables (sheet: Branch_Table) — one entry per Table_Code. "
+                "Classes reference these by name via Branch_Table_1 / Branch_Table_2."
+            ),
+            wraplength=640,
+        ).pack(anchor="w", padx=12, pady=(10, 0))
+
+        def refresh_combos() -> None:
             self._refresh_combo_lists()
             self._load_class_detail()
 
-        _manage_named_tables(
+        refill = _build_named_tables_panel(
+            tab,
             self,
-            "Branch tables (sheet: Branch_Table)",
             self._bundle.branch_tables,
             self._bundle,
             pair_kind="branch",
-            refresh_dropdowns=refresh,
-            nominal_mode=self._current_nominal_mode_for_tables(),
+            refresh_dropdowns=refresh_combos,
+            nominal_mode_provider=self._current_nominal_mode_for_tables,
         )
+        self._branch_tab_refresh = refill
 
     def _tab_size_range(self, nb: ttk.Notebook) -> None:
         """Class 별 활성 Size Range 편집 탭 (Class Constraint — Size Range)."""
@@ -1655,6 +1754,7 @@ class ClassLevelWizard(tk.Toplevel):
             "catalog_all": [],  # list[str]
             "catalog_preferred": set(),  # set[str]
             "mode": "NPS",
+            "dirty": False,
         }
 
         def _selected_class_name() -> str:
@@ -1681,7 +1781,15 @@ class ClassLevelWizard(tk.Toplevel):
                     return sr
             return None
 
-        def _persist_current() -> None:
+        def _mark_dirty() -> None:
+            state["dirty"] = True
+            save_btn.config(text="Save *")
+
+        def _mark_clean() -> None:
+            state["dirty"] = False
+            save_btn.config(text="Save")
+
+        def _persist_current(sync_schedule: bool = False) -> None:
             name = str(state.get("class_name") or "")
             vars_map: dict[str, tk.BooleanVar] = state.get("vars", {})  # type: ignore[assignment]
             catalog_all: list[str] = state.get("catalog_all", [])  # type: ignore[assignment]
@@ -1695,17 +1803,22 @@ class ClassLevelWizard(tk.Toplevel):
                 )
             else:
                 entry.active_sizes = active
+            if sync_schedule:
+                self._schedule_sync_size_range(name)
+                _mark_clean()
 
         def _render_for_class(name: str) -> None:
             for child in list(grid_frame.winfo_children()):
                 child.destroy()
             state["class_name"] = name
             state["vars"] = {}
+            _mark_clean()
             if not name:
                 mode_label.config(text="")
                 state["catalog_all"] = []
                 state["catalog_preferred"] = set()
                 state["mode"] = "NPS"
+                save_btn.config(state="disabled")
                 ttk.Label(
                     grid_frame,
                     text="Select a class on the left to edit its Size Range.",
@@ -1713,6 +1826,7 @@ class ClassLevelWizard(tk.Toplevel):
                 _on_grid_config()
                 return
 
+            save_btn.config(state="normal")
             mode = self._nominal_mode_for_class_name(name)
             catalog_all = self._catalog_all_for(mode)
             catalog_preferred = self._catalog_preferred_for(mode)
@@ -1734,9 +1848,9 @@ class ClassLevelWizard(tk.Toplevel):
             r = 0
             c = 0
 
-            def _make_toggle(size: str) -> Callable[[], None]:
+            def _make_toggle(_size: str) -> Callable[[], None]:
                 def _cb() -> None:
-                    _persist_current()
+                    _mark_dirty()
                 return _cb
 
             for size in catalog_all:
@@ -1757,7 +1871,7 @@ class ClassLevelWizard(tk.Toplevel):
             _on_grid_config()
 
         def _on_class_select(_e=None) -> None:
-            _persist_current()
+            _persist_current(sync_schedule=False)  # auto-persist without Schedule sync
             name = _selected_class_name()
             _render_for_class(name)
 
@@ -1770,7 +1884,7 @@ class ClassLevelWizard(tk.Toplevel):
             catalog_preferred: set[str] = state.get("catalog_preferred") or set()  # type: ignore[assignment]
             for size, var in (state.get("vars") or {}).items():  # type: ignore[union-attr]
                 var.set(size in catalog_preferred)
-            _persist_current()
+            _mark_dirty()
 
         def _select_all() -> None:
             name = _selected_class_name()
@@ -1778,7 +1892,7 @@ class ClassLevelWizard(tk.Toplevel):
                 return
             for size, var in (state.get("vars") or {}).items():  # type: ignore[union-attr]
                 var.set(True)
-            _persist_current()
+            _mark_dirty()
 
         def _clear_all_non_preferred() -> None:
             name = _selected_class_name()
@@ -1788,7 +1902,12 @@ class ClassLevelWizard(tk.Toplevel):
             for size, var in (state.get("vars") or {}).items():  # type: ignore[union-attr]
                 if size not in catalog_preferred:
                     var.set(False)
-            _persist_current()
+            _mark_dirty()
+
+        def _save_current_class() -> None:
+            if not _selected_class_name():
+                return
+            _persist_current(sync_schedule=True)
 
         ttk.Button(btns, text="Defaults (preferred only)", command=_set_all_preferred_only).pack(
             side="left", padx=(0, 6)
@@ -1797,9 +1916,11 @@ class ClassLevelWizard(tk.Toplevel):
         ttk.Button(
             btns, text="Clear non-preferred", command=_clear_all_non_preferred
         ).pack(side="left", padx=(0, 6))
+        save_btn = ttk.Button(btns, text="Save", command=_save_current_class, state="disabled")
+        save_btn.pack(side="left", padx=(12, 0))
 
         def _refresh() -> None:
-            _persist_current()
+            _persist_current(sync_schedule=False)
             self._sync_size_ranges_to_classes()
             _refresh_class_list()
             if self._bundle.class_define_rows:

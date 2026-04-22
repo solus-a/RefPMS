@@ -5,7 +5,6 @@ from tkinter import ttk
 from typing import Callable
 
 
-OnProjectSettings = Callable[[], None]
 OnTemplateCreate = Callable[[], None]
 OnTemplateEdit = Callable[[], None]
 OnFileLoad = Callable[[], None]
@@ -14,7 +13,6 @@ OnPmsGenerate = Callable[[], None]
 
 def build_gui(
     root: tk.Tk,
-    on_project_settings: OnProjectSettings,
     on_template_create: OnTemplateCreate,
     on_template_edit: OnTemplateEdit,
     on_file_load: OnFileLoad,
@@ -25,7 +23,7 @@ def build_gui(
     로직/흐름 제어는 controller.py에서 처리합니다.
     """
     root.title("Piping Material Class")
-    root.geometry("820x180")
+    root.geometry("700x180")
 
     main_frame = ttk.Frame(root, padding=12)
     main_frame.grid(row=0, column=0, sticky="nsew")
@@ -36,9 +34,6 @@ def build_gui(
     buttons_frame = ttk.Frame(main_frame)
     buttons_frame.grid(row=0, column=0, sticky="ew")
 
-    btn_settings = ttk.Button(
-        buttons_frame, text="프로젝트 설정", command=on_project_settings
-    )
     btn_template = ttk.Button(
         buttons_frame, text="템플릿 생성", command=on_template_create
     )
@@ -50,13 +45,12 @@ def build_gui(
         buttons_frame, text="자재 클래스 데이터 생성", command=on_pms_generate
     )
 
-    btn_settings.grid(row=0, column=0, padx=(0, 8), pady=8, sticky="ew")
-    btn_template.grid(row=0, column=1, padx=(0, 8), pady=8, sticky="ew")
-    btn_template_edit.grid(row=0, column=2, padx=(0, 8), pady=8, sticky="ew")
-    btn_load.grid(row=0, column=3, padx=(0, 8), pady=8, sticky="ew")
-    btn_generate.grid(row=0, column=4, padx=(0, 0), pady=8, sticky="ew")
+    btn_template.grid(row=0, column=0, padx=(0, 8), pady=8, sticky="ew")
+    btn_template_edit.grid(row=0, column=1, padx=(0, 8), pady=8, sticky="ew")
+    btn_load.grid(row=0, column=2, padx=(0, 8), pady=8, sticky="ew")
+    btn_generate.grid(row=0, column=3, padx=(0, 0), pady=8, sticky="ew")
 
-    for col in range(5):
+    for col in range(4):
         buttons_frame.columnconfigure(col, weight=1)
 
     status_var = tk.StringVar(value="대기중")
@@ -69,4 +63,3 @@ def build_gui(
         root.update_idletasks()
 
     return set_status
-

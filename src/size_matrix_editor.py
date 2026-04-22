@@ -8,6 +8,7 @@ from typing import Literal
 import tkinter as tk
 from tkinter import ttk
 
+import config
 from class_level_model import NamedSizeTable, SizeTableRow
 from size_matrix_common import (
     BRANCH_ITEM_TYPES_OK,
@@ -68,8 +69,7 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         else:
             axis_set = sorted(set(base1) | set(base2), key=size_number)
             self._nominal_dialog_rows = list(axis_set)
-        self._size1_rows = list(axis_set)
-        self._size2_cols = list(axis_set)
+        self._axis_master: list[str] = list(axis_set)
 
         self._values: dict[tuple[str, str], str] = {}
         for r in table.rows:
@@ -77,8 +77,16 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
             if r.item_type.strip():
                 self._values[k] = r.item_type.strip().upper()
 
-        self._axis_enabled_size1: dict[str, bool] = {s: True for s in self._size1_rows}
-        self._axis_enabled_size2: dict[str, bool] = {s: True for s in self._size2_cols}
+        preferred = set(config.catalog_sizes_preferred(self._nominal_mode))
+        sizes_in_data_1 = {r.size1.strip() for r in table.rows if r.size1.strip()}
+        sizes_in_data_2 = {r.size2.strip() for r in table.rows if r.size2.strip()}
+        self._axis_enabled_size1: dict[str, bool] = {
+            s: (s in preferred) or (s in sizes_in_data_1) for s in self._axis_master
+        }
+        self._axis_enabled_size2: dict[str, bool] = {
+            s: (s in preferred) or (s in sizes_in_data_2) for s in self._axis_master
+        }
+        self._recompute_displayed_axes()
 
         self._labels: dict[tuple[int, int], tk.Label] = {}
         self._anchor_rc: tuple[int, int] | None = None
@@ -156,6 +164,11 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
 
         self.protocol("WM_DELETE_WINDOW", lambda: self._on_cancel())
         self.after(80, lambda: self._inner.focus_set())
+
+    def _recompute_displayed_axes(self) -> None:
+        """표시할 행/열 축을 enabled 플래그 기준으로 재계산."""
+        self._size1_rows = [s for s in self._axis_master if self._axis_enabled_size1.get(s, False)]
+        self._size2_cols = [s for s in self._axis_master if self._axis_enabled_size2.get(s, False)]
 
     def _row_axis_title(self) -> str:
         return "Header size" if self._pair_kind == "branch" else "Main Size"
@@ -244,8 +257,8 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
             tk.Label(grid_fr, text=s, width=10, anchor="e").grid(
                 row=ri + 1, column=0, sticky="nsew", padx=2, pady=1
             )
-            v1 = tk.BooleanVar(value=self._axis_enabled_size1.get(s, True))
-            v2 = tk.BooleanVar(value=self._axis_enabled_size2.get(s, True))
+            v1 = tk.BooleanVar(value=self._axis_enabled_size1.get(s, False))
+            v2 = tk.BooleanVar(value=self._axis_enabled_size2.get(s, False))
             vars1[s] = v1
             vars2[s] = v2
             ttk.Checkbutton(grid_fr, variable=v1).grid(row=ri + 1, column=1)
@@ -258,6 +271,7 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
             for s in self._nominal_dialog_rows:
                 self._axis_enabled_size1[s] = bool(vars1[s].get())
                 self._axis_enabled_size2[s] = bool(vars2[s].get())
+            self._recompute_displayed_axes()
             self._rebuild_grid()
             dismiss()
 
@@ -605,13 +619,6 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
                     )
                     continue
                 key = (s1, s2)
-                axis1_on = self._axis_enabled_size1.get(s1, True)
-                axis2_on = self._axis_enabled_size2.get(s2, True)
-                if not axis1_on or not axis2_on:
-                    tk.Label(inner, text="", width=6, relief="flat", bg="#d8d8d8").grid(
-                        row=gr0 + ri, column=ci + 1, sticky="nsew"
-                    )
-                    continue
                 txt = self._values.get(key, "")
                 lb = tk.Label(
                     inner,
@@ -732,19 +739,18 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
                 return "break"
         if self._focus_rc is None:
             self._focus_rc = self._anchor_rc
-        prev = set(self._selected_cells)
         fr, fc = self._focus_rc
         sym = event.keysym
         if sym == "Up":
             self._focus_rc = (max(0, fr - 1), fc)
         elif sym == "Down":
-            self._focus_rc = (min(len(self._size1_rows) - 1, fr + 1), fc)
+            self._focus_rc = (min(max(0, len(self._size1_rows) - 1), fr + 1), fc)
         elif sym == "Left":
             self._focus_rc = (fr, max(0, fc - 1))
         elif sym == "Right":
-            self._focus_rc = (fr, min(len(self._size2_cols) - 1, fc + 1))
+            self._focus_rc = (fr, min(max(0, len(self._size2_cols) - 1), fc + 1))
         self._clamp_anchor_focus()
-        self._selected_cells = prev | self._rect_cells_corners(self._anchor_rc, self._focus_rc)
+        self._selected_cells = set(self._rect_cells_corners(self._anchor_rc, self._focus_rc))
         self._prune_selected_to_labels()
         self._refresh_all_cell_styles()
         self._inner.focus_set()

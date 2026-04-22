@@ -144,8 +144,8 @@ def corrosion_allowance_validation_messages(workbook) -> tuple[list[str], list[s
     from class_level_model import read_global_settings_from_workbook
 
     gs = read_global_settings_from_workbook(workbook)
-    unit_system = (gs.unit_system or "Metric").strip() or "Metric"
-    ca_unit = "inch" if unit_system == "Imperial" else "mm"
+    unit_system = (gs.unit_system or "SI").strip() or "SI"
+    ca_unit = "inch" if unit_system == "US Customary" else "mm"
     empty_policy = str(
         config.config_manager.get(
             "validation_policy.corrosion_allowance.empty_value_policy",

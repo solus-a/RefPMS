@@ -7,8 +7,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from project_constraints import validate_project_constraints
-
 
 def program_root() -> Path:
     return Path(__file__).resolve().parent.parent
@@ -23,7 +21,7 @@ def item_code_db_path() -> Path:
 
 
 def config_root() -> Path:
-    """프로그램 루트의 `config/` (project·generator 하위)."""
+    """프로그램 루트의 `config/` (generator 실행 정책 전용)."""
     return program_root() / "config"
 
 
@@ -57,11 +55,6 @@ def unit_systems_path() -> Path:
     return data_dir() / "unit_systems.json"
 
 
-def project_config_dir() -> Path:
-    """프로젝트 단위 설정 JSON (`config/project/`)."""
-    return config_root() / "project"
-
-
 def generator_config_dir() -> Path:
     """Micro DB 생성기 출력·코딩 규칙 (`config/generator/`)."""
     return config_root() / "generator"
@@ -81,50 +74,28 @@ def _read_json_dict(path: Path, logger: logging.Logger) -> dict[str, Any]:
     return raw
 
 
-class ProjectConfig:
-    """프로젝트(`config/project/`)·생성기(`config/generator/`) 설정을 병합하는 싱글톤."""
+class GeneratorConfig:
+    """생성기 실행 정책(`config/generator/`) + 내장 카탈로그 병합 싱글톤.
+
+    Class 계층 값 (unit_system, nominal_size_system, design_code, pipe/bolt thread 등) 은
+    여기에 보관하지 않는다. 그런 값은 Class_Define 시트 또는 `data/*.json` 참조 데이터에서
+    직접 읽어야 한다.
+    """
 
     _instance = None
     _config: dict[str, Any] = {}
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(ProjectConfig, cls).__new__(cls)
+            cls._instance = super(GeneratorConfig, cls).__new__(cls)
             cls._instance._load_config()
         return cls._instance
 
     def _load_config(self) -> None:
         logger = logging.getLogger(__name__)
-        proj = project_config_dir()
         gen = generator_config_dir()
 
         self._config = {
-            "units_notation": _read_json_dict(proj / "units_notation.json", logger)
-            or {
-                "unit_system": {
-                    "allowed": ["Metric", "Imperial"],
-                    "selected": "Metric",
-                    "design_units": {
-                        "Metric": {
-                            "temperature": {"allowed": ["°C"], "selected": "°C"},
-                            "pressure": {
-                                "allowed": ["bar", "barg", "kPa", "MPa"],
-                                "selected": "bar",
-                            },
-                        },
-                        "Imperial": {
-                            "temperature": {"allowed": ["°F"], "selected": "°F"},
-                            "pressure": {
-                                "allowed": ["psig", "psi", "psia"],
-                                "selected": "psig",
-                            },
-                        },
-                    },
-                },
-                "nominal_size": {"allowed": ["NPS", "DN"], "selected": "DN"},
-                "pipe_thread": {"allowed": ["NPT", "PT"], "selected": "NPT"},
-                "bolt_thread": {"allowed": ["Metric", "Imperial"], "selected": "Metric"},
-            },
             "nps_catalog": _read_json_dict(nps_catalog_path(), logger)
             or {"version": 0, "nps": [], "dn": []},
             "output_settings": _read_json_dict(gen / "output_settings.json", logger)
@@ -174,28 +145,14 @@ class ProjectConfig:
                     },
                 }
             },
-            "piping_design_codes": _read_json_dict(
-                proj / "piping_design_codes.json", logger
-            )
-            or {
-                "allowed": ["ASME B31.3", "ASME B31.4"],
-                "selected": "ASME B31.3",
-                "notes": (
-                    "Typical B31.3/B31.4 scope assumes ASME B16.11 for socket-welded and screwed "
-                    "forged fittings; use Fitting_Group End_Type, not a Dim_Standard column."
-                ),
-            },
         }
         if "nps" not in self._config["nps_catalog"]:
             self._config["nps_catalog"]["nps"] = []
         if "dn" not in self._config["nps_catalog"]:
             self._config["nps_catalog"]["dn"] = []
 
-        for msg in validate_project_constraints(self._config):
-            logger.warning("Project constraints: %s", msg)
-
     def get(self, key_path: str, default: Any = None) -> Any:
-        """점 표기법(예: 'units_notation.nominal_size.selected')으로 설정값을 가져옵니다."""
+        """점 표기법(예: 'output_settings.filename')으로 설정값을 가져옵니다."""
         keys = key_path.split(".")
         value: Any = self._config
         for key in keys:
@@ -205,23 +162,18 @@ class ProjectConfig:
                 return default
         return value
 
-    def reload(self) -> list[str]:
-        """디스크에서 설정을 다시 읽고 제약 검증 경고 목록을 반환합니다."""
+    def reload(self) -> None:
+        """디스크에서 설정을 다시 읽는다."""
         self._load_config()
-        return validate_project_constraints(self._config)
 
     def snapshot(self) -> dict[str, Any]:
         """외부 변이가 불가능한 deep copy를 반환합니다."""
         import copy
         return copy.deepcopy(self._config)
 
-    def merged(self) -> dict[str, Any]:
-        """검증·다른 모듈 전달용 얕은 복사."""
-        return dict(self._config)
 
-
-# 전역 설정 인스턴스
-config_manager = ProjectConfig()
+# 전역 설정 인스턴스 (기존 이름 유지 — Class 레벨 이외 호출부는 동일 API 사용)
+config_manager = GeneratorConfig()
 
 
 # ---------------------------------------------------------------------------

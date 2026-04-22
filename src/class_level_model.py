@@ -61,6 +61,7 @@ class NamedSizeTable:
 
     table_code: str
     rows: list[SizeTableRow] = field(default_factory=list)
+    nominal_mode: str = ""  # "NPS" or "DN"; set once on creation, immutable after
 
 
 @dataclass
@@ -88,6 +89,18 @@ UNIT_SYSTEM_HEADERS = [
 ]
 
 
+_LEGACY_UNIT_SYSTEM_ALIASES = {
+    "Metric": "SI",
+    "Imperial": "US Customary",
+}
+
+
+def _normalize_unit_system_value(raw: str) -> str:
+    """레거시 템플릿의 Metric/Imperial 값을 현행 SI / US Customary 로 정규화."""
+    v = (raw or "").strip()
+    return _LEGACY_UNIT_SYSTEM_ALIASES.get(v, v)
+
+
 def read_global_settings_from_workbook(workbook) -> ClassTemplateGlobalSettings:
     """Class Template 워크북의 Unit_System 시트에서 전역 설정을 로드.
 
@@ -105,7 +118,9 @@ def read_global_settings_from_workbook(workbook) -> ClassTemplateGlobalSettings:
         return ClassTemplateGlobalSettings()
     data_row = header_row + 1
     return ClassTemplateGlobalSettings(
-        unit_system=get_cell_text(ws, data_row, htc, "Unit_System"),
+        unit_system=_normalize_unit_system_value(
+            get_cell_text(ws, data_row, htc, "Unit_System")
+        ),
         design_temperature_unit=get_cell_text(ws, data_row, htc, "Design_Temperature_Unit"),
         design_pressure_unit=get_cell_text(ws, data_row, htc, "Design_Pressure_Unit"),
     )

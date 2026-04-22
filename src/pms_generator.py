@@ -1315,20 +1315,28 @@ def _iter_output_rows(
 
             remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
 
-            exploded_sizes = _explode_size_range(size_from_1, size_to_1)
+            nominal_mode_cls = _class_nominal_mode_for(class_specs, class_name)
+            class_design_code_cls = _class_design_code_for(class_specs, class_name)
+            exploded_sizes = _explode_size_range(size_from_1, size_to_1, nominal_mode_cls)
             if not exploded_sizes:
                 size1_out = size_from_1 or size_to_1
-                th1 = lookup_schedule_thickness(schedule_rows, class_name, size1_out)
+                th1 = lookup_schedule_thickness(
+                    schedule_rows, class_name, size1_out, nominal_mode_cls
+                )
                 th2 = ""
                 if sheet_name == "Bolt_Group" or _is_valve_sheet(sheet_name):
                     th1 = ""
                     th2 = ""
                 if size2_display:
                     if "-" not in size2_display:
-                        th2 = lookup_schedule_thickness(schedule_rows, class_name, size2_display)
+                        th2 = lookup_schedule_thickness(
+                            schedule_rows, class_name, size2_display, nominal_mode_cls
+                        )
                     else:
                         part = size2_display.split("-", 1)[0].strip()
-                        th2 = lookup_schedule_thickness(schedule_rows, class_name, part)
+                        th2 = lookup_schedule_thickness(
+                            schedule_rows, class_name, part, nominal_mode_cls
+                        )
 
                 nip = (
                     _try_nipple_pipe_output(
@@ -1362,7 +1370,7 @@ def _iter_output_rows(
                         th2,
                         db_group=db_group,
                         size1_value=size1_out,
-                        class_design_code=_class_design_code_for(class_specs, class_name),
+                        class_design_code=class_design_code_cls,
                     )
                     out_item_name = catalog_item_name
                     if sheet_name == "Bolt_Group" and not out_item_name:
@@ -1387,17 +1395,23 @@ def _iter_output_rows(
                 continue
 
             for exploded_size in exploded_sizes:
-                th1 = lookup_schedule_thickness(schedule_rows, class_name, exploded_size)
+                th1 = lookup_schedule_thickness(
+                    schedule_rows, class_name, exploded_size, nominal_mode_cls
+                )
                 th2 = ""
                 if sheet_name == "Bolt_Group" or _is_valve_sheet(sheet_name):
                     th1 = ""
                     th2 = ""
                 if size2_display:
                     if "-" not in size2_display:
-                        th2 = lookup_schedule_thickness(schedule_rows, class_name, size2_display)
+                        th2 = lookup_schedule_thickness(
+                            schedule_rows, class_name, size2_display, nominal_mode_cls
+                        )
                     else:
                         part = size2_display.split("-", 1)[0].strip()
-                        th2 = lookup_schedule_thickness(schedule_rows, class_name, part)
+                        th2 = lookup_schedule_thickness(
+                            schedule_rows, class_name, part, nominal_mode_cls
+                        )
 
                 nip = (
                     _try_nipple_pipe_output(
@@ -1431,7 +1445,7 @@ def _iter_output_rows(
                         th2,
                         db_group=db_group,
                         size1_value=exploded_size,
-                        class_design_code=_class_design_code_for(class_specs, class_name),
+                        class_design_code=class_design_code_cls,
                     )
                     out_item_name = catalog_item_name
                     if sheet_name == "Bolt_Group" and not out_item_name:

@@ -5,7 +5,15 @@
       "Bash(python -m py_compile src/class_level_model.py src/class_template_wizard.py src/template_generator.py src/units_notation_headers.py src/class_spec.py)",
       "Bash(python -m py_compile src/class_template_wizard.py)",
       "Bash(xargs ls *)",
-      "Bash(xargs wc *)"
+      "Bash(xargs wc *)",
+      "Bash(rm -f src/project_settings_dialog.py src/project_config_service.py src/project_constraints.py)",
+      "Bash(ls src/project_*)",
+      "Bash(ls config/)",
+      "Bash(ls config/project/)",
+      "Bash(ls config/generator/)",
+      "Bash(PYTHONPATH=src python run.py harness --all)",
+      "Bash(PYTHONPATH=src python)",
+      "Bash(PYTHONPATH=src python -m unittest tests.test_harness -v)"
     ]
   }
 }

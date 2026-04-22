@@ -19,6 +19,3 @@ docs/chat/
 !.cursor/rules/**
 !.cursor/skills/
 !.cursor/skills/**
-
-# Project settings backups (created on each save)
-config/project/*.bak
