@@ -99,40 +99,47 @@ def validate_template_row(
 # ---------------------------------------------------------------------------
 
 def load_class_size_ranges(workbook) -> dict[str, list[str]]:
-    """템플릿 workbook 에서 Class_Size_Range 시트를 읽어 Class_Name → active sizes.
+    """템플릿 workbook 에서 Class_Define 시트의 Size_From / Size_To 와 Size_Selection 시트를 결합해
+    Class_Name → active sizes 목록을 만든다.
 
-    시트가 없거나 비어 있으면 빈 dict. 호출 측에서 빈 dict ⇒ "범위 미선언" 으로 간주하여
-    해당 검증을 건너뛸 수 있습니다.
+    Class_Define 시트가 없거나 행이 비어 있으면 빈 dict.  Active sizes = (Class 의 Nominal_Size_System 에
+    해당하는 Size_Selection) ∩ [Size_From, Size_To]  (양 끝 포함).
     """
-    if workbook is None or "Class_Size_Range" not in workbook.sheetnames:
+    if workbook is None or "Class_Define" not in workbook.sheetnames:
         return {}
-    ws = workbook["Class_Size_Range"]
+    from class_level_model import (
+        _resolve_active_sizes,
+        read_size_selection_from_workbook,
+        default_size_selection_from_catalog,
+    )
     from excel_sheet_utils import (
         build_header_index as _bhi,
         detect_header_row as _dhr,
         to_text as _tt,
     )
-    headers = ["Class_Name", "Active_Sizes"]
+
+    selection = read_size_selection_from_workbook(workbook) or default_size_selection_from_catalog()
+
+    ws = workbook["Class_Define"]
+    required = ["Class_Name"]
     try:
-        hr = _dhr(ws, headers)
+        hr = _dhr(ws, required)
     except ValueError:
         return {}
     htc = _bhi(ws, hr)
-    if any(h not in htc for h in headers):
+    if "Class_Name" not in htc:
         return {}
     out: dict[str, list[str]] = {}
     for r in range(hr + 1, ws.max_row + 1):
         name = _tt(ws.cell(row=r, column=htc["Class_Name"]).value).strip()
         if not name:
             continue
-        raw = _tt(ws.cell(row=r, column=htc["Active_Sizes"]).value)
-        sizes: list[str] = []
-        if raw:
-            for token in str(raw).replace(";", ",").replace(" ", ",").split(","):
-                t = token.strip()
-                if t:
-                    sizes.append(t)
-        out[name] = sizes
+        mode = ""
+        if "Nominal_Size_System" in htc:
+            mode = _tt(ws.cell(row=r, column=htc["Nominal_Size_System"]).value).strip()
+        sf = _tt(ws.cell(row=r, column=htc["Size_From"]).value).strip() if "Size_From" in htc else ""
+        st = _tt(ws.cell(row=r, column=htc["Size_To"]).value).strip() if "Size_To" in htc else ""
+        out[name] = _resolve_active_sizes(selection, mode or "NPS", sf, st)
     return out
 
 
@@ -173,6 +180,6 @@ def validate_size_range_for_row(
         if val not in active_set:
             messages.append(
                 f"{sheet_name} row {row_idx}: {role} {val!r} is outside Class {class_name!r} "
-                f"Size Range (declared in Class_Size_Range sheet)."
+                f"Size Range (Class_Define Size_From/Size_To ∩ Size_Selection)."
             )
     return messages

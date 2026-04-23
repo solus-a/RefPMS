@@ -11,12 +11,15 @@ from openpyxl.styles import Alignment, Font
 import config
 from class_level_model import (
     ClassLevelBundle,
-    ClassSizeRange,
     ClassTemplateGlobalSettings,
     NamedSizeTable,
+    SizeSelection,
     SizeTableRow,
+    SIZE_SELECTION_HEADERS,
+    SIZE_SELECTION_SHEET,
     UNIT_SYSTEM_HEADERS,
     UNIT_SYSTEM_SHEET,
+    default_size_selection_from_catalog,
     read_global_settings_from_workbook,
     row_dict_for_headers,
 )
@@ -72,11 +75,17 @@ SCHEDULE_HEADERS = [
     "Schedule",
 ]
 
-REDUCING_TABLE_HEADERS = ["Table_Code", "Size1", "Size2", "Item_Type", "Remarks"]
+REDUCING_TABLE_HEADERS = [
+    "Table_Code",
+    "Nominal_Size_System",
+    "Size_From",
+    "Size_To",
+    "Size1",
+    "Size2",
+    "Item_Type",
+    "Remarks",
+]
 BRANCH_TABLE_HEADERS = REDUCING_TABLE_HEADERS
-
-CLASS_SIZE_RANGE_HEADERS = ["Class_Name", "Active_Sizes"]
-CLASS_SIZE_RANGE_SHEET = "Class_Size_Range"
 
 PIPE_HEADERS = [
     "Class_Name",
@@ -377,25 +386,35 @@ def _write_dict_rows(
 
 
 def _write_named_size_tables(ws, tables: list[NamedSizeTable]) -> None:
-    """Reducing_Table / Branch_Table: 각 행에 Table_Code를 반복 기록."""
+    """Reducing_Table / Branch_Table: 각 행에 Table_Code · Nominal_Size_System · Size_From/To 를 반복 기록.
+
+    매트릭스 행이 없으면 Item_Type/Remarks 가 빈 placeholder 한 줄을 써서 표 자체의
+    존재(코드·범위)를 보존한다.
+    """
     row_idx = 2
     for tbl in tables:
         code = tbl.table_code.strip()
-        for sr in tbl.rows:
+        mode = (tbl.nominal_mode or "").strip() or "NPS"
+        sf = (tbl.size_from or "").strip()
+        st = (tbl.size_to or "").strip()
+        rows = tbl.rows or []
+        if not rows:
             ws.cell(row=row_idx, column=1, value=code)
-            ws.cell(row=row_idx, column=2, value=sr.size1)
-            ws.cell(row=row_idx, column=3, value=sr.size2)
-            ws.cell(row=row_idx, column=4, value=sr.item_type)
-            ws.cell(row=row_idx, column=5, value=sr.remarks)
+            ws.cell(row=row_idx, column=2, value=mode)
+            ws.cell(row=row_idx, column=3, value=sf)
+            ws.cell(row=row_idx, column=4, value=st)
             row_idx += 1
-
-
-def _write_class_size_ranges(ws, ranges: list[ClassSizeRange]) -> None:
-    """Class_Size_Range 시트: Class_Name 한 행에 활성 사이즈를 쉼표로 연결해 기록."""
-    for row_idx, sr in enumerate(ranges, start=2):
-        ws.cell(row=row_idx, column=1, value=(sr.class_name or "").strip())
-        sizes_text = ", ".join(str(s).strip() for s in sr.active_sizes if str(s).strip())
-        ws.cell(row=row_idx, column=2, value=sizes_text)
+            continue
+        for sr in rows:
+            ws.cell(row=row_idx, column=1, value=code)
+            ws.cell(row=row_idx, column=2, value=mode)
+            ws.cell(row=row_idx, column=3, value=sf)
+            ws.cell(row=row_idx, column=4, value=st)
+            ws.cell(row=row_idx, column=5, value=sr.size1)
+            ws.cell(row=row_idx, column=6, value=sr.size2)
+            ws.cell(row=row_idx, column=7, value=sr.item_type)
+            ws.cell(row=row_idx, column=8, value=sr.remarks)
+            row_idx += 1
 
 
 def _write_unit_system_sheet(ws, global_settings: ClassTemplateGlobalSettings) -> None:
@@ -405,16 +424,20 @@ def _write_unit_system_sheet(ws, global_settings: ClassTemplateGlobalSettings) -
     ws.cell(row=2, column=3, value=(global_settings.design_pressure_unit or "").strip())
 
 
-def _parse_active_sizes(raw: str) -> list[str]:
-    """'0.5, 1, 2' 또는 공백/세미콜론 구분 문자열을 사이즈 리스트로 변환."""
-    out: list[str] = []
-    if not raw:
-        return out
-    for token in str(raw).replace(";", ",").replace(" ", ",").split(","):
-        t = token.strip()
-        if t:
-            out.append(t)
-    return out
+def _write_size_selection_sheet(ws, selection: SizeSelection) -> None:
+    """Size_Selection 시트: NPS↔DN 페어 행마다 Use 체크 (X / 빈칸) 기록."""
+    pairs = config.load_nps_dn_pairs()
+    nps_active = set(selection.nps)
+    dn_active = set(selection.dn)
+    for ridx, pair in enumerate(pairs, start=2):
+        nps = (pair.get("nps") or "").strip()
+        dn = (pair.get("dn") or "").strip()
+        ws.cell(row=ridx, column=1, value=nps if nps else "-")
+        ws.cell(row=ridx, column=2, value=dn if dn else "-")
+        used = (nps in nps_active and nps and nps != "-") or (
+            dn in dn_active and dn and dn != "-"
+        )
+        ws.cell(row=ridx, column=3, value="X" if used else "")
 
 
 def _read_dict_rows(ws, headers: list[str]) -> list[dict[str, str]]:
@@ -433,28 +456,8 @@ def _read_dict_rows(ws, headers: list[str]) -> list[dict[str, str]]:
     return out
 
 
-def _read_class_size_ranges(ws) -> list[ClassSizeRange]:
-    if ws is None:
-        return []
-    try:
-        hr = detect_header_row(ws, CLASS_SIZE_RANGE_HEADERS)
-    except ValueError:
-        return []
-    htc = build_header_index(ws, hr)
-    if any(h not in htc for h in CLASS_SIZE_RANGE_HEADERS):
-        return []
-    out: list[ClassSizeRange] = []
-    for r in range(hr + 1, ws.max_row + 1):
-        name = _cell_to_text(ws.cell(row=r, column=htc["Class_Name"]).value).strip()
-        if not name:
-            continue
-        raw = _cell_to_text(ws.cell(row=r, column=htc["Active_Sizes"]).value)
-        out.append(ClassSizeRange(class_name=name, active_sizes=_parse_active_sizes(raw)))
-    return out
-
-
 def _read_named_size_tables(ws) -> list[NamedSizeTable]:
-    headers = REDUCING_TABLE_HEADERS
+    headers = ["Table_Code", "Size1", "Size2", "Item_Type"]
     try:
         hr = detect_header_row(ws, headers)
     except ValueError:
@@ -462,7 +465,12 @@ def _read_named_size_tables(ws) -> list[NamedSizeTable]:
     htc = build_header_index(ws, hr)
     if any(h not in htc for h in headers):
         return []
+    has_remarks = "Remarks" in htc
+    has_mode = "Nominal_Size_System" in htc
+    has_sf = "Size_From" in htc
+    has_st = "Size_To" in htc
     table_rows: dict[str, list[SizeTableRow]] = {}
+    table_meta: dict[str, dict[str, str]] = {}
     table_order: list[str] = []
     last_code = ""
     for r in range(hr + 1, ws.max_row + 1):
@@ -473,7 +481,16 @@ def _read_named_size_tables(ws) -> list[NamedSizeTable]:
         size1 = _cell_to_text(ws.cell(row=r, column=htc["Size1"]).value).strip()
         size2 = _cell_to_text(ws.cell(row=r, column=htc["Size2"]).value).strip()
         item_type = _cell_to_text(ws.cell(row=r, column=htc["Item_Type"]).value).strip().upper()
-        remarks = _cell_to_text(ws.cell(row=r, column=htc["Remarks"]).value).strip()
+        remarks = (
+            _cell_to_text(ws.cell(row=r, column=htc["Remarks"]).value).strip() if has_remarks else ""
+        )
+        mode = (
+            _cell_to_text(ws.cell(row=r, column=htc["Nominal_Size_System"]).value).strip()
+            if has_mode
+            else ""
+        )
+        sf = _cell_to_text(ws.cell(row=r, column=htc["Size_From"]).value).strip() if has_sf else ""
+        st = _cell_to_text(ws.cell(row=r, column=htc["Size_To"]).value).strip() if has_st else ""
         if not code and not size1 and not size2 and not item_type and not remarks:
             continue
         if not code:
@@ -481,10 +498,30 @@ def _read_named_size_tables(ws) -> list[NamedSizeTable]:
         if code not in table_rows:
             table_rows[code] = []
             table_order.append(code)
+            table_meta[code] = {"mode": "", "size_from": "", "size_to": ""}
+        meta = table_meta[code]
+        if mode and not meta["mode"]:
+            meta["mode"] = mode
+        if sf and not meta["size_from"]:
+            meta["size_from"] = sf
+        if st and not meta["size_to"]:
+            meta["size_to"] = st
         if not size1 and not size2 and not item_type and not remarks:
             continue
         table_rows[code].append(SizeTableRow(size1, size2, item_type, remarks))
-    return [NamedSizeTable(code, table_rows.get(code, [])) for code in table_order]
+    out: list[NamedSizeTable] = []
+    for code in table_order:
+        meta = table_meta[code]
+        out.append(
+            NamedSizeTable(
+                table_code=code,
+                rows=table_rows.get(code, []),
+                nominal_mode=meta.get("mode", ""),
+                size_from=meta.get("size_from", ""),
+                size_to=meta.get("size_to", ""),
+            )
+        )
+    return out
 
 
 def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
@@ -499,7 +536,6 @@ def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
     ws_schedule = ws_or_none("Schedule")
     ws_reducing = ws_or_none("Reducing_Table")
     ws_branch = ws_or_none("Branch_Table")
-    ws_size_range = ws_or_none(CLASS_SIZE_RANGE_SHEET)
 
     class_rows = _read_dict_rows(ws_define, class_headers) if ws_define is not None else []
     if not class_rows:
@@ -511,7 +547,6 @@ def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
         schedule_rows=_read_dict_rows(ws_schedule, SCHEDULE_HEADERS) if ws_schedule is not None else [],
         reducing_tables=_read_named_size_tables(ws_reducing) if ws_reducing is not None else [],
         branch_tables=_read_named_size_tables(ws_branch) if ws_branch is not None else [],
-        size_ranges=_read_class_size_ranges(ws_size_range),
         global_settings=global_settings,
     )
 
@@ -542,11 +577,12 @@ def generate_class_define_template(
 ) -> Path:
     """
     Create `Class_Define_Template.xlsx` with required sheets:
+    - Unit_System
+    - Size_Selection
     - Class_Define
     - Schedule
     - Reducing_Table
     - Branch_Table
-    - Class_Size_Range
     - Pipe_Group
     - Fitting_Group
     - Flange_Group
@@ -558,7 +594,7 @@ def generate_class_define_template(
 
     class_level:
         GUI에서 수집한 클래스 수준 데이터. 지정 시 Class_Define·Schedule·
-        Branch_Table·Reducing_Table·Class_Size_Range 내용을 이 값으로 채웁니다.
+        Branch_Table·Reducing_Table·Size_Selection 내용을 이 값으로 채웁니다.
         None 이면 헤더만 생성되고 데이터 행은 비워 둡니다.
     """
     logger = _get_logger()
@@ -572,7 +608,9 @@ def generate_class_define_template(
     wb = Workbook()
 
     global_settings = (
-        class_level.global_settings if class_level is not None else ClassTemplateGlobalSettings()
+        class_level.global_settings if class_level is not None else ClassTemplateGlobalSettings(
+            size_selection=default_size_selection_from_catalog()
+        )
     )
     class_headers = _class_sheet_headers(global_settings)
 
@@ -580,6 +618,10 @@ def generate_class_define_template(
     ws_unit_system.title = UNIT_SYSTEM_SHEET
     _set_headers_and_widths(ws_unit_system, UNIT_SYSTEM_HEADERS)
     _write_unit_system_sheet(ws_unit_system, global_settings)
+
+    ws_size_selection = wb.create_sheet(title=SIZE_SELECTION_SHEET)
+    _set_headers_and_widths(ws_size_selection, SIZE_SELECTION_HEADERS)
+    _write_size_selection_sheet(ws_size_selection, global_settings.size_selection)
 
     ws_define = wb.create_sheet(title="Class_Define")
     _set_headers_and_widths(ws_define, class_headers)
@@ -593,15 +635,11 @@ def generate_class_define_template(
     ws_reducing_table = wb.create_sheet(title="Reducing_Table")
     _set_headers_and_widths(ws_reducing_table, REDUCING_TABLE_HEADERS)
 
-    ws_size_range = wb.create_sheet(title=CLASS_SIZE_RANGE_SHEET)
-    _set_headers_and_widths(ws_size_range, CLASS_SIZE_RANGE_HEADERS)
-
     if class_level is not None:
         _write_dict_rows(ws_define, class_headers, class_level.class_define_rows)
         _write_dict_rows(ws_schedule, SCHEDULE_HEADERS, class_level.schedule_rows)
         _write_named_size_tables(ws_branch_table, class_level.branch_tables)
         _write_named_size_tables(ws_reducing_table, class_level.reducing_tables)
-        _write_class_size_ranges(ws_size_range, class_level.size_ranges)
 
     _append_component_group_sheets(wb)
 

@@ -1,4 +1,9 @@
-"""Matrix editor for reducing/branch size tables (Excel-like: browse + F2/edit + Ctrl+click)."""
+"""Matrix editor for reducing/branch size tables (Excel-like: browse + F2/edit + Ctrl+click).
+
+Per-table size axes are derived from a single Size_From / Size_To range intersected with the
+template's Global Size Selection. Reducing tables: cells with Size2 >= Size1 are disabled
+(reducing/swage requires Size2 < Size1). Branch tables: cells with Size2 > Size1 are disabled.
+"""
 
 from __future__ import annotations
 
@@ -9,26 +14,31 @@ import tkinter as tk
 from tkinter import ttk
 
 import config
-from class_level_model import NamedSizeTable, SizeTableRow
+from class_level_model import NamedSizeTable, SizeSelection, SizeTableRow, _resolve_active_sizes
 from size_matrix_common import (
     BRANCH_ITEM_TYPES_OK,
-    MIN_REDUCING_SIZE1_NPS,
     REDUCING_ITEM_TYPES_OK,
-    axes_from_rows,
-    cell_allowed,
-    load_axis_allowlist,
     matrix_help_text,
     normalize_nominal_mode,
     size_number,
-    sorted_nominal_master_list,
 )
 from size_matrix_edit_ops import MatrixEditOpsMixin
+
+
+def _selected_size_pool(selection: SizeSelection, mode: str) -> list[str]:
+    raw = selection.for_mode(mode)
+    if not raw:
+        return list(config.catalog_sizes_all(mode))
+    catalog = list(config.catalog_sizes_all(mode))
+    raw_set = set(raw)
+    return [s for s in catalog if s in raw_set]
 
 
 class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
     """
     Rows = Size1, columns = Size2; titles on dedicated header row/column.
     Selection is clamped to editable (label) cells only.
+    Axis sizes are derived from (table.size_from..table.size_to) ∩ Global Size Selection.
     """
 
     GRID_DATA_ROW0 = 2
@@ -40,6 +50,7 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         table: NamedSizeTable,
         pair_kind: Literal["reducing", "branch"],
         nominal_mode: str | None = None,
+        size_selection: SizeSelection | None = None,
     ) -> None:
         super().__init__(parent)
         self.title(title)
@@ -56,37 +67,17 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         self._pair_kind = pair_kind
         self._table_code = table.table_code.strip()
         self._nominal_mode = normalize_nominal_mode(nominal_mode)
-        self._allowed_sizes = load_axis_allowlist(self._nominal_mode)
-        base1, base2 = axes_from_rows(table.rows, pair_kind, self._nominal_mode)
-        self._nominal_master = sorted_nominal_master_list(self._nominal_mode)
-        extra_sizes = {s for s in base1} | {s for s in base2}
-        if self._nominal_master:
-            axis_set = sorted(
-                set(self._nominal_master) | extra_sizes,
-                key=size_number,
-            )
-            self._nominal_dialog_rows = list(self._nominal_master)
-        else:
-            axis_set = sorted(set(base1) | set(base2), key=size_number)
-            self._nominal_dialog_rows = list(axis_set)
-        self._axis_master: list[str] = list(axis_set)
+        self._size_selection = size_selection or SizeSelection()
+        self._size_pool = _selected_size_pool(self._size_selection, self._nominal_mode)
+        self._size_from = (table.size_from or "").strip()
+        self._size_to = (table.size_to or "").strip()
+        self._axis_sizes = self._compute_axis_sizes()
 
         self._values: dict[tuple[str, str], str] = {}
         for r in table.rows:
             k = (r.size1.strip(), r.size2.strip())
             if r.item_type.strip():
                 self._values[k] = r.item_type.strip().upper()
-
-        preferred = set(config.catalog_sizes_preferred(self._nominal_mode))
-        sizes_in_data_1 = {r.size1.strip() for r in table.rows if r.size1.strip()}
-        sizes_in_data_2 = {r.size2.strip() for r in table.rows if r.size2.strip()}
-        self._axis_enabled_size1: dict[str, bool] = {
-            s: (s in preferred) or (s in sizes_in_data_1) for s in self._axis_master
-        }
-        self._axis_enabled_size2: dict[str, bool] = {
-            s: (s in preferred) or (s in sizes_in_data_2) for s in self._axis_master
-        }
-        self._recompute_displayed_axes()
 
         self._labels: dict[tuple[int, int], tk.Label] = {}
         self._anchor_rc: tuple[int, int] | None = None
@@ -104,19 +95,39 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         self._drag_mouse_moved = False
         self._drag_last_rc: tuple[int, int] | None = None
 
-        self.geometry("960x640")
+        self.geometry("960x680")
         self.columnconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=1)
 
         top = ttk.Frame(self)
         top.grid(row=0, column=0, sticky="ew", padx=8, pady=6)
         ttk.Label(top, text=f"Table: {self._table_code}", font=("", 11, "bold")).pack(
             side="left", padx=(0, 12)
         )
-        ttk.Button(top, text="Help", command=self._show_help).pack(side="left")
+        ttk.Label(top, text=f"Mode: {self._nominal_mode}").pack(side="left", padx=(0, 12))
+        ttk.Button(top, text="Help", command=self._show_help).pack(side="right")
+
+        range_box = ttk.Frame(self)
+        range_box.grid(row=1, column=0, sticky="ew", padx=8, pady=(0, 6))
+        ttk.Label(range_box, text="Size_From").pack(side="left", padx=(0, 4))
+        self._cb_from = ttk.Combobox(
+            range_box, width=10, state="readonly", values=["", *self._size_pool]
+        )
+        self._cb_from.pack(side="left", padx=(0, 12))
+        ttk.Label(range_box, text="Size_To").pack(side="left", padx=(0, 4))
+        self._cb_to = ttk.Combobox(
+            range_box, width=10, state="readonly", values=["", *self._size_pool]
+        )
+        self._cb_to.pack(side="left", padx=(0, 12))
+        ttk.Button(range_box, text="Apply range", command=self._on_apply_range).pack(side="left")
+
+        if self._size_from and self._size_from in self._size_pool:
+            self._cb_from.set(self._size_from)
+        if self._size_to and self._size_to in self._size_pool:
+            self._cb_to.set(self._size_to)
 
         tb = ttk.Frame(self)
-        tb.grid(row=1, column=0, sticky="nsew", padx=4, pady=4)
+        tb.grid(row=2, column=0, sticky="nsew", padx=4, pady=4)
         tb.rowconfigure(0, weight=1)
         tb.columnconfigure(0, weight=1)
 
@@ -151,24 +162,41 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         self._ensure_inner_keybindings()
 
         ax = ttk.Frame(self)
-        ax.grid(row=2, column=0, sticky="ew", padx=4, pady=2)
-        ttk.Button(ax, text="Edit Size", command=self._open_edit_size_dialog).pack(
-            side="left", padx=2
-        )
+        ax.grid(row=3, column=0, sticky="ew", padx=4, pady=2)
         ttk.Button(ax, text="Reset", command=self._reset_template).pack(side="left", padx=8)
 
         bf = ttk.Frame(self)
-        bf.grid(row=3, column=0, pady=8)
+        bf.grid(row=4, column=0, pady=8)
         ttk.Button(bf, text="OK", command=self._on_ok).pack(side="left", padx=6)
         ttk.Button(bf, text="Cancel", command=self._on_cancel).pack(side="left", padx=6)
 
         self.protocol("WM_DELETE_WINDOW", lambda: self._on_cancel())
         self.after(80, lambda: self._inner.focus_set())
 
-    def _recompute_displayed_axes(self) -> None:
-        """표시할 행/열 축을 enabled 플래그 기준으로 재계산."""
-        self._size1_rows = [s for s in self._axis_master if self._axis_enabled_size1.get(s, False)]
-        self._size2_cols = [s for s in self._axis_master if self._axis_enabled_size2.get(s, False)]
+    def _compute_axis_sizes(self) -> list[str]:
+        """현재 Size_From / Size_To 와 Global Size Selection 의 교집합 (카탈로그 순서)."""
+        return _resolve_active_sizes(
+            self._size_selection, self._nominal_mode, self._size_from, self._size_to
+        )
+
+    def _on_apply_range(self) -> None:
+        sf = (self._cb_from.get() or "").strip()
+        st = (self._cb_to.get() or "").strip()
+        if sf and st:
+            try:
+                if float(st) < float(sf):
+                    messagebox.showerror(
+                        "Invalid range",
+                        "Size_To must be greater than or equal to Size_From.",
+                        parent=self,
+                    )
+                    return
+            except ValueError:
+                pass
+        self._size_from = sf
+        self._size_to = st
+        self._axis_sizes = self._compute_axis_sizes()
+        self._rebuild_grid()
 
     def _row_axis_title(self) -> str:
         return "Header size" if self._pair_kind == "branch" else "Main Size"
@@ -176,111 +204,15 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
     def _col_axis_title(self) -> str:
         return "Branch Size" if self._pair_kind == "branch" else "Reducing Size"
 
-    def _edit_size_col_headers(self) -> tuple[str, str]:
-        if self._pair_kind == "branch":
-            return ("Size1 (Header)", "Size2 (Branch)")
-        return ("Size1 (Main)", "Size2 (Reducing)")
-
-    def _open_edit_size_dialog(self) -> None:
-        self._end_edit(commit=True)
-        win = tk.Toplevel(self)
-        win.title("Edit Size")
-        win.transient(self)
-        had_grab = self._own_grab
-        if had_grab:
-            try:
-                self.grab_release()
-            except tk.TclError:
-                pass
+    def _cell_allowed(self, s1: str, s2: str) -> bool:
         try:
-            win.grab_set()
-        except tk.TclError:
-            pass
-
-        def dismiss() -> None:
-            try:
-                win.grab_release()
-            except tk.TclError:
-                pass
-            try:
-                win.destroy()
-            except tk.TclError:
-                pass
-            if had_grab and self.winfo_exists():
-                try:
-                    self.grab_set()
-                except tk.TclError:
-                    pass
-
-        outer = ttk.Frame(win, padding=8)
-        outer.pack(fill="both", expand=True)
-        h1, h2 = self._edit_size_col_headers()
-        ttk.Label(
-            outer,
-            text=(
-                f"One row per {self._nominal_mode} from the standard catalog. "
-                f"Checkboxes turn that label on or off for the matrix row axis ({h1}) "
-                f"and column axis ({h2}). Unchecked greys the whole row or column."
-            ),
-            wraplength=560,
-        ).pack(anchor="w", pady=(0, 6))
-
-        scroll_area = ttk.Frame(outer)
-        scroll_area.pack(fill="both", expand=True)
-        scroll_area.rowconfigure(0, weight=1)
-        scroll_area.columnconfigure(0, weight=1)
-
-        canvas = tk.Canvas(scroll_area, highlightthickness=0, height=420, width=520)
-        vsb = ttk.Scrollbar(scroll_area, orient="vertical", command=canvas.yview)
-        hsb = ttk.Scrollbar(scroll_area, orient="horizontal", command=canvas.xview)
-        canvas.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
-        grid_fr = ttk.Frame(canvas)
-        canvas.create_window((0, 0), window=grid_fr, anchor="nw")
-
-        def _cfg_inner(_e=None) -> None:
-            canvas.configure(scrollregion=canvas.bbox("all") or (0, 0, 0, 0))
-
-        grid_fr.bind("<Configure>", _cfg_inner)
-
-        canvas.grid(row=0, column=0, sticky="nsew")
-        vsb.grid(row=0, column=1, sticky="ns")
-        hsb.grid(row=1, column=0, sticky="ew")
-
-        vars1: dict[str, tk.BooleanVar] = {}
-        vars2: dict[str, tk.BooleanVar] = {}
-        tk.Label(grid_fr, text=self._nominal_mode, width=8, font=("", 9, "bold")).grid(
-            row=0, column=0, sticky="nsew", padx=2, pady=2
-        )
-        ttk.Label(grid_fr, text=h1, width=16).grid(row=0, column=1, sticky="nsew", padx=2, pady=2)
-        ttk.Label(grid_fr, text=h2, width=18).grid(row=0, column=2, sticky="nsew", padx=2, pady=2)
-        for ri, s in enumerate(self._nominal_dialog_rows):
-            tk.Label(grid_fr, text=s, width=10, anchor="e").grid(
-                row=ri + 1, column=0, sticky="nsew", padx=2, pady=1
-            )
-            v1 = tk.BooleanVar(value=self._axis_enabled_size1.get(s, False))
-            v2 = tk.BooleanVar(value=self._axis_enabled_size2.get(s, False))
-            vars1[s] = v1
-            vars2[s] = v2
-            ttk.Checkbutton(grid_fr, variable=v1).grid(row=ri + 1, column=1)
-            ttk.Checkbutton(grid_fr, variable=v2).grid(row=ri + 1, column=2)
-
-        bf = ttk.Frame(outer)
-        bf.pack(pady=(10, 0))
-
-        def on_ok() -> None:
-            for s in self._nominal_dialog_rows:
-                self._axis_enabled_size1[s] = bool(vars1[s].get())
-                self._axis_enabled_size2[s] = bool(vars2[s].get())
-            self._recompute_displayed_axes()
-            self._rebuild_grid()
-            dismiss()
-
-        def on_cancel() -> None:
-            dismiss()
-
-        ttk.Button(bf, text="OK", command=on_ok).pack(side="left", padx=6)
-        ttk.Button(bf, text="Cancel", command=on_cancel).pack(side="left", padx=6)
-        win.protocol("WM_DELETE_WINDOW", on_cancel)
+            n1 = size_number(s1)
+            n2 = size_number(s2)
+        except (TypeError, ValueError):
+            return False
+        if self._pair_kind == "reducing":
+            return n2 < n1
+        return n2 <= n1
 
     def _show_help(self) -> None:
         win = tk.Toplevel(self)
@@ -541,13 +473,21 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         return None
 
     def _size1_at(self, ri: int) -> str:
-        return self._size1_rows[ri]
+        return self._axis_sizes[ri]
 
     def _size2_at(self, ci: int) -> str:
-        return self._size2_cols[ci]
+        return self._axis_sizes[ci]
 
     def _key(self, ri: int, ci: int) -> tuple[str, str]:
         return (self._size1_at(ri), self._size2_at(ci))
+
+    @property
+    def _size1_rows(self) -> list[str]:
+        return self._axis_sizes
+
+    @property
+    def _size2_cols(self) -> list[str]:
+        return self._axis_sizes
 
     def _rebuild_grid(self) -> None:
         self._end_edit(commit=False)
@@ -572,7 +512,6 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
                 pass
 
     def _askyesno_modal(self, title: str, message: str) -> bool:
-        """askyesno while this dialog uses grab_set() (nested modal on Windows)."""
         if self._own_grab:
             try:
                 self.grab_release()
@@ -588,12 +527,27 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
                     pass
 
     def _build_grid(self, inner: ttk.Frame) -> None:
-        n2 = len(self._size2_cols)
-        n1 = len(self._size1_rows)
+        sizes = self._axis_sizes
+        n = len(sizes)
         gr0 = MatrixTableDialog.GRID_DATA_ROW0
 
+        if n == 0:
+            tk.Label(
+                inner,
+                text=(
+                    "No sizes available for this Size_From / Size_To range.\n"
+                    "Pick a Size_From / Size_To pair (Apply range) — only sizes checked in the\n"
+                    "Global Setting Size Selection will appear."
+                ),
+                fg="#666666",
+                padx=12,
+                pady=12,
+                justify="left",
+            ).grid(row=0, column=0)
+            return
+
         tk.Label(inner, text="", width=11, relief="ridge").grid(row=0, column=0, sticky="nsew")
-        col_span = max(1, n2)
+        col_span = max(1, n)
         tk.Label(
             inner,
             text=self._col_axis_title(),
@@ -604,15 +558,15 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         tk.Label(inner, text=self._row_axis_title(), relief="ridge", anchor="center").grid(
             row=1, column=0, sticky="nsew"
         )
-        for ci, s2 in enumerate(self._size2_cols):
+        for ci, s2 in enumerate(sizes):
             tk.Label(inner, text=s2, width=6, relief="ridge").grid(row=1, column=ci + 1, sticky="nsew")
 
-        for ri, s1 in enumerate(self._size1_rows):
+        for ri, s1 in enumerate(sizes):
             tk.Label(inner, text=s1, width=13, relief="ridge").grid(
                 row=gr0 + ri, column=0, sticky="nsew"
             )
-            for ci, s2 in enumerate(self._size2_cols):
-                allowed = cell_allowed(s1, s2, self._pair_kind)
+            for ci, s2 in enumerate(sizes):
+                allowed = self._cell_allowed(s1, s2)
                 if not allowed:
                     tk.Label(inner, text="", width=6, relief="flat", bg="#e0e0e0").grid(
                         row=gr0 + ri, column=ci + 1, sticky="nsew"
@@ -741,14 +695,15 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
             self._focus_rc = self._anchor_rc
         fr, fc = self._focus_rc
         sym = event.keysym
+        n = len(self._axis_sizes)
         if sym == "Up":
             self._focus_rc = (max(0, fr - 1), fc)
         elif sym == "Down":
-            self._focus_rc = (min(max(0, len(self._size1_rows) - 1), fr + 1), fc)
+            self._focus_rc = (min(max(0, n - 1), fr + 1), fc)
         elif sym == "Left":
             self._focus_rc = (fr, max(0, fc - 1))
         elif sym == "Right":
-            self._focus_rc = (fr, min(max(0, len(self._size2_cols) - 1), fc + 1))
+            self._focus_rc = (fr, min(max(0, n - 1), fc + 1))
         self._clamp_anchor_focus()
         self._selected_cells = set(self._rect_cells_corners(self._anchor_rc, self._focus_rc))
         self._prune_selected_to_labels()
@@ -757,8 +712,9 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         return "break"
 
     def _move_same_col(self, ri: int, ci: int, delta: int) -> tuple[int, int] | None:
+        n = len(self._axis_sizes)
         if delta > 0:
-            seq = range(ri + 1, len(self._size1_rows))
+            seq = range(ri + 1, n)
         else:
             seq = range(ri - 1, -1, -1)
         for r in seq:
@@ -767,8 +723,9 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         return None
 
     def _move_same_row(self, ri: int, ci: int, delta: int) -> tuple[int, int] | None:
+        n = len(self._axis_sizes)
         if delta > 0:
-            seq = range(ci + 1, len(self._size2_cols))
+            seq = range(ci + 1, n)
         else:
             seq = range(ci - 1, -1, -1)
         for c in seq:
@@ -798,8 +755,7 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
     def _reset_template(self) -> None:
         if not self._askyesno_modal(
             "Reset",
-            "Clear all Item_Type values in the matrix?\n"
-            "Size1 / Size2 axis enable flags are not changed.",
+            "Clear all Item_Type values in the matrix?",
         ):
             return
         self._values.clear()
@@ -807,13 +763,10 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
 
     def _rows_from_matrix(self) -> list[SizeTableRow]:
         out: list[SizeTableRow] = []
-        for ri, s1 in enumerate(self._size1_rows):
-            for ci, s2 in enumerate(self._size2_cols):
-                if not cell_allowed(s1, s2, self._pair_kind):
-                    continue
-                if not self._axis_enabled_size1.get(s1, True):
-                    continue
-                if not self._axis_enabled_size2.get(s2, True):
+        sizes = self._axis_sizes
+        for s1 in sizes:
+            for s2 in sizes:
+                if not self._cell_allowed(s1, s2):
                     continue
                 it = self._values.get((s1, s2), "").strip().upper()
                 if not it:
@@ -823,7 +776,28 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
 
     def _on_ok(self) -> None:
         self._end_edit(commit=True)
-        self._result = NamedSizeTable(self._table_code, self._rows_from_matrix())
+        sf = (self._cb_from.get() or "").strip()
+        st = (self._cb_to.get() or "").strip()
+        if sf and st:
+            try:
+                if float(st) < float(sf):
+                    messagebox.showerror(
+                        "Invalid range",
+                        "Size_To must be greater than or equal to Size_From.",
+                        parent=self,
+                    )
+                    return
+            except ValueError:
+                pass
+        self._size_from = sf
+        self._size_to = st
+        self._result = NamedSizeTable(
+            table_code=self._table_code,
+            rows=self._rows_from_matrix(),
+            nominal_mode=self._nominal_mode,
+            size_from=self._size_from,
+            size_to=self._size_to,
+        )
         self.destroy()
 
     def _on_cancel(self) -> None:
@@ -838,7 +812,8 @@ def run_size_matrix_editor(
     table: NamedSizeTable,
     pair_kind: Literal["reducing", "branch"],
     nominal_mode: str | None = None,
+    size_selection: SizeSelection | None = None,
 ) -> NamedSizeTable | None:
-    dlg = MatrixTableDialog(parent, title, table, pair_kind, nominal_mode)
+    dlg = MatrixTableDialog(parent, title, table, pair_kind, nominal_mode, size_selection)
     parent.winfo_toplevel().wait_window(dlg)
     return dlg._result

@@ -32,6 +32,8 @@ class ClassSpec(TypedDict, total=False):
     revision_no: str
     design_code: str
     nominal_size_system: str
+    size_from: str
+    size_to: str
     class_base_material: str
     class_rating: str
     corrosion_allowance: str

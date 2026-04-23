@@ -31,7 +31,7 @@ Project  ──▶  Class  ──▶  Component
 | Layer | Scope | Where it lives |
 |---|---|---|
 | `Project` | Global premises: design code, unit system, nominal-size system selection (**NPS or DN**), thread standards. | `config/project/*.json`, `project_constraints.py` |
-| `Class` | Inherits Project + adds classification constraints + declares the **Size Range** (the active subset of the Project's NPS/DN catalog). | `class_spec.py`, `class_level_model.py`, `Class_Define` + `Class_Size_Range` sheets |
+| `Class` | Inherits Project + adds classification constraints + declares the **Size Range** (Size_From/Size_To columns on Class_Define). The intersection with the template-wide `Size_Selection` sheet defines the Class's active size set. | `class_spec.py`, `class_level_model.py`, `Class_Define` + `Size_Selection` sheets |
 | `Component` | Inherits Class + shape/spec to uniquely identify an item. | Component sheets, `data/component_mapping.json`, `data/Item_Code_DB.xlsx` |
 
 The **size catalog itself** (ASME B36.10 NPS / ISO 6708 DN, with a `preferred` flag) is a program-internal, immutable dataset at `data/nps_catalog.json`. Project selects *which* system; Class declares *which subset* is active. Do not treat `nps_catalog.json` as user config.

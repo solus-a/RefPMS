@@ -1786,7 +1786,7 @@ def generate_piping_material_class_data(
             logger.error(_m)
         raise ValueError(
             "Schedule Size_From/Size_To outside Class Size Range; "
-            "fix Class_Size_Range sheet or Schedule rows."
+            "fix Class_Define Size_From/Size_To or Schedule rows."
         )
 
     reducing_data = _load_reducing_table(in_wb)
@@ -1834,7 +1834,7 @@ def generate_piping_material_class_data(
             logger.error(_m)
         raise ValueError(
             "Reducing/Branch table size outside Class Size Range; "
-            "fix Class_Size_Range sheet or table entries."
+            "fix Class_Define Size_From/Size_To or table entries."
         )
     ca_errors, ca_warnings = corrosion_allowance_validation_messages(in_wb)
     for msg in ca_warnings:

@@ -40,6 +40,11 @@ def nps_catalog_path() -> Path:
     return data_dir() / "nps_catalog.json"
 
 
+def nps_dn_pairing_path() -> Path:
+    """NPS↔DN 1:1 표준 매핑 (Global Setting Size Selection 표). 프로그램 내장 불변 데이터."""
+    return data_dir() / "nps_dn_pairing.json"
+
+
 def design_codes_path() -> Path:
     """배관 설계 코드 참조 목록 (Class 계층 선택 대상)."""
     return data_dir() / "design_codes.json"
@@ -282,3 +287,33 @@ def design_units_for(system: str) -> dict[str, Any]:
         return {}
     sub = blk.get(str(system).strip())
     return sub if isinstance(sub, dict) else {}
+
+
+# ---------------------------------------------------------------------------
+# NPS ↔ DN pairing (Global Setting Size Selection display)
+# ---------------------------------------------------------------------------
+
+_NPS_DN_PAIRING_CACHE: list[dict[str, str]] | None = None
+
+
+def load_nps_dn_pairs() -> list[dict[str, str]]:
+    """`data/nps_dn_pairing.json` 의 1:1 페어 목록.
+
+    각 항목은 {"nps": "<size>", "dn": "<size>"} 형태이며, 짝이 없는 경우 "-".
+    저장된 순서를 그대로 유지(ASME B36.10 / ISO 6708 카탈로그 순).
+    """
+    global _NPS_DN_PAIRING_CACHE
+    if _NPS_DN_PAIRING_CACHE is not None:
+        return [dict(p) for p in _NPS_DN_PAIRING_CACHE]
+    raw = _load_reference(nps_dn_pairing_path())
+    pairs_raw = raw.get("pairs") if isinstance(raw, dict) else []
+    out: list[dict[str, str]] = []
+    if isinstance(pairs_raw, list):
+        for item in pairs_raw:
+            if not isinstance(item, dict):
+                continue
+            nps = str(item.get("nps", "")).strip()
+            dn = str(item.get("dn", "")).strip()
+            out.append({"nps": nps, "dn": dn})
+    _NPS_DN_PAIRING_CACHE = out
+    return [dict(p) for p in out]
