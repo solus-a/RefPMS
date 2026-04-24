@@ -624,6 +624,52 @@ class ClassLevelWizard(tk.Toplevel):
         self._class_list.activate(idx)
         self._class_list.see(idx)
         _listbox_apply_stripes(self._class_list)
+        self._refresh_class_name_gate()
+
+    def _on_size_range_selected(self, changed: str) -> None:
+        """Size_From / Size_To 선택 시 From ≤ To 제약을 유지.
+
+        위반 시 방금 변경된 쪽의 반대 콤보를 비워 사용자가 재선택하도록 한다.
+        """
+        cb_f = self._class_combos.get("Size_From")
+        cb_t = self._class_combos.get("Size_To")
+        if cb_f is None or cb_t is None:
+            return
+        val_f = cb_f.get()
+        val_t = cb_t.get()
+        if val_f and val_t:
+            ns_cb = self._class_combos.get("Nominal_Size_System")
+            mode = normalize_nominal_mode(ns_cb.get() if ns_cb else "")
+            sizes = self._selected_sizes_for_mode(mode)
+            try:
+                if sizes.index(val_f) > sizes.index(val_t):
+                    if changed == "Size_From":
+                        cb_t.set("")
+                    else:
+                        cb_f.set("")
+            except ValueError:
+                pass
+        self._save_class_detail_to_row()
+
+    def _refresh_class_name_gate(self) -> None:
+        """Class_Name 입력 여부에 따라 다른 모든 입력 위젯을 활성/비활성화."""
+        name_var = self._class_entries.get("Class_Name")
+        active = bool(name_var and name_var.get().strip())
+        _EXEMPT = {"Class_Name", "Revision_No"}
+        for h, widget in getattr(self, "_class_entry_widgets", {}).items():
+            if h in _EXEMPT:
+                continue
+            widget.configure(state="normal" if active else "disabled")
+        ns_cb = getattr(self, "_class_combos", {}).get("Nominal_Size_System")
+        size_active = active and bool(ns_cb and ns_cb.get().strip())
+        for h, cb in getattr(self, "_class_combos", {}).items():
+            if not active:
+                cb.configure(state="disabled")
+            elif h in ("Size_From", "Size_To"):
+                cb.configure(state="readonly" if size_active else "disabled")
+            else:
+                normal_state = "normal" if h == _CORROSION_ALLOWANCE_KEY else "readonly"
+                cb.configure(state=normal_state)
 
     def _tab_global_setting(self, nb: ttk.Notebook) -> None:
         """Template 전역 단위 체계 + Size Selection 편집 탭 — 모든 Class 에 공통 적용."""
@@ -632,15 +678,6 @@ class ClassLevelWizard(tk.Toplevel):
 
         box = ttk.LabelFrame(tab, text="Template-global unit system")
         box.pack(fill="x", padx=12, pady=(12, 6))
-
-        ttk.Label(
-            box,
-            text=(
-                "These units apply to ALL classes in this template. "
-                "Temperature and pressure columns on Class_Define use the unit selected here."
-            ),
-            wraplength=560,
-        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(6, 8))
 
         lw = 22
         ttk.Label(box, text="Unit System", width=lw, anchor="w").grid(
@@ -683,31 +720,13 @@ class ClassLevelWizard(tk.Toplevel):
         self._build_size_selection_panel(tab)
 
     def _build_size_selection_panel(self, parent: tk.Widget) -> None:
-        """Global Size Selection panel — NPS / DN / Use 표 + Save 버튼.
-
-        - 한 행 = NPS↔DN 1:1 페어. 짝 없는 쪽은 '-'.
-        - 체크는 메모리에만 적용되고, Save 를 눌러야 self._global_settings.size_selection 에 반영.
-        - Save 시점에 사용 중인 사이즈를 해제하면 위반 목록을 띄우고 차단.
-        """
-        box = ttk.LabelFrame(parent, text="Size Selection (Global) — sizes available to all classes")
+        """Global Size Selection panel — NPS / DN / Use 표 + Save 버튼."""
+        box = ttk.LabelFrame(parent, text="Size Selection (Global)")
         box.pack(fill="both", expand=True, padx=12, pady=(6, 12))
 
-        ttk.Label(
-            box,
-            text=(
-                "Check the sizes you want to make available in this template. "
-                "Class_Define / Reducing / Branch tables can only pick Size_From / Size_To from checked sizes. "
-                "Press Save to apply."
-            ),
-            wraplength=720,
-        ).pack(anchor="w", padx=8, pady=(6, 4))
-
         toolbar = ttk.Frame(box)
-        toolbar.pack(fill="x", padx=8, pady=(0, 4))
-        save_btn = ttk.Button(
-            toolbar, text="Save", command=lambda: self._save_size_selection()
-        )
-        save_btn.pack(side="right")
+        toolbar.pack(fill="x", padx=8, pady=(8, 4))
+        ttk.Button(toolbar, text="Save", command=lambda: self._save_size_selection()).pack(side="right")
         ttk.Button(
             toolbar,
             text="Defaults (preferred only)",
@@ -728,12 +747,20 @@ class ClassLevelWizard(tk.Toplevel):
         scroll_host.pack(fill="both", expand=True, padx=8, pady=(0, 8))
         scroll_host.rowconfigure(0, weight=1)
         scroll_host.columnconfigure(0, weight=1)
-        canvas = tk.Canvas(scroll_host, highlightthickness=0)
+
+        _BG_HEADER = "#d0d0d0"
+        _BG_ODD    = "#ffffff"
+        _BG_EVEN   = "#f2f2f2"
+        _BG_SEP    = "#c8c8c8"
+
+        canvas = tk.Canvas(scroll_host, highlightthickness=0, bg=_BG_ODD)
         canvas.grid(row=0, column=0, sticky="nsew")
         vsb = ttk.Scrollbar(scroll_host, orient="vertical", command=canvas.yview)
         vsb.grid(row=0, column=1, sticky="ns")
         canvas.configure(yscrollcommand=vsb.set)
-        grid_frame = ttk.Frame(canvas)
+
+        # _BG_SEP as frame bg bleeds through padx/pady gaps → acts as separator lines
+        grid_frame = tk.Frame(canvas, bg=_BG_SEP)
         canvas_window = canvas.create_window((0, 0), window=grid_frame, anchor="nw")
 
         def _on_grid_config(_e=None) -> None:
@@ -753,15 +780,16 @@ class ClassLevelWizard(tk.Toplevel):
         grid_frame.bind("<MouseWheel>", _mw)
 
         # Header row
-        ttk.Label(grid_frame, text="NPS", width=10, anchor="center", font=("", 9, "bold")).grid(
-            row=0, column=0, padx=8, pady=(4, 6), sticky="w"
-        )
-        ttk.Label(grid_frame, text="DN", width=10, anchor="center", font=("", 9, "bold")).grid(
-            row=0, column=1, padx=8, pady=(4, 6), sticky="w"
-        )
-        ttk.Label(grid_frame, text="Use", width=6, anchor="center", font=("", 9, "bold")).grid(
-            row=0, column=2, padx=8, pady=(4, 6), sticky="w"
-        )
+        for col, (text, w) in enumerate([("NPS", 10), ("DN", 10), ("Use", 6)]):
+            tk.Label(
+                grid_frame, text=text, width=w, anchor="center",
+                font=("", 9, "bold"), bg=_BG_HEADER, pady=5,
+            ).grid(row=0, column=col, sticky="nsew",
+                   padx=(0, 1) if col < 2 else 0, pady=(0, 1))
+
+        grid_frame.columnconfigure(0, weight=1)
+        grid_frame.columnconfigure(1, weight=1)
+        grid_frame.columnconfigure(2, weight=0)
 
         pairs = config.load_nps_dn_pairs()
         nps_active = set(self._global_settings.size_selection.nps)
@@ -769,30 +797,28 @@ class ClassLevelWizard(tk.Toplevel):
 
         self._size_sel_pairs: list[dict[str, str]] = pairs
         self._size_sel_vars: list[tk.BooleanVar] = []
-        for pair in pairs:
+
+        for idx, pair in enumerate(pairs):
             nps = (pair.get("nps") or "-").strip() or "-"
             dn = (pair.get("dn") or "-").strip() or "-"
             checked = (nps != "-" and nps in nps_active) or (dn != "-" and dn in dn_active)
-            self._size_sel_vars.append(tk.BooleanVar(value=checked))
+            var = tk.BooleanVar(value=checked)
+            self._size_sel_vars.append(var)
 
-        # Use 2-column layout to keep panel compact (col group 0..2 and col group 3..5).
-        rows_per_col_group = (len(pairs) + 1) // 2
-        for idx, pair in enumerate(pairs):
-            col_group = 0 if idx < rows_per_col_group else 1
-            within = idx if col_group == 0 else idx - rows_per_col_group
-            base_col = col_group * 4  # 0 or 4
-            r = within + 1
-            nps = (pair.get("nps") or "-").strip() or "-"
-            dn = (pair.get("dn") or "-").strip() or "-"
-            ttk.Label(grid_frame, text=nps, width=10, anchor="e").grid(
-                row=r, column=base_col + 0, padx=(8, 4), pady=1, sticky="e"
+            bg = _BG_ODD if idx % 2 == 0 else _BG_EVEN
+            r = idx + 1
+
+            tk.Label(grid_frame, text=nps, width=10, anchor="e", bg=bg, padx=8, pady=3).grid(
+                row=r, column=0, sticky="nsew", padx=(0, 1), pady=(0, 1)
             )
-            ttk.Label(grid_frame, text=dn, width=10, anchor="e").grid(
-                row=r, column=base_col + 1, padx=(4, 4), pady=1, sticky="e"
+            tk.Label(grid_frame, text=dn, width=10, anchor="e", bg=bg, padx=8, pady=3).grid(
+                row=r, column=1, sticky="nsew", padx=(0, 1), pady=(0, 1)
             )
-            ttk.Checkbutton(grid_frame, variable=self._size_sel_vars[idx]).grid(
-                row=r, column=base_col + 2, padx=(4, 16), pady=1, sticky="w"
-            )
+            cb_frame = tk.Frame(grid_frame, bg=bg)
+            cb_frame.grid(row=r, column=2, sticky="nsew", pady=(0, 1))
+            tk.Checkbutton(
+                cb_frame, variable=var, bg=bg, activebackground=bg, relief="flat"
+            ).pack(anchor="center", pady=1)
 
     def _set_all_size_selection(self, value: bool) -> None:
         for v in getattr(self, "_size_sel_vars", []):
@@ -1028,11 +1054,12 @@ class ClassLevelWizard(tk.Toplevel):
                 pass
         self._class_entries = {}
         self._class_combos = {}
+        self._class_entry_widgets: dict[str, ttk.Entry] = {}
         rows_f = ttk.Frame(self._class_rf)
         rows_f.pack(fill="both", expand=True)
         self._class_rows_frame = rows_f
 
-        pair_skip: set[str] = set()
+        pair_skip: set[str] = {"Size_To"}
         if self._use_combined_temperature_pressure_rows():
             pair_skip.add(self._class_temp_to_h)
             pair_skip.add(self._class_press_to_h)
@@ -1045,11 +1072,13 @@ class ClassLevelWizard(tk.Toplevel):
                 continue
 
             if self._use_combined_temperature_pressure_rows() and h == self._class_temp_from_h:
-                ttk.Label(
-                    rows_f,
-                    text=bracket_unit_header("Design Temperature", self._class_design_temp_u),
-                    width=lw,
-                ).grid(row=grid_row, column=0, sticky="w", pady=1)
+                lf_t = ttk.Frame(rows_f)
+                lf_t.grid(row=grid_row, column=0, sticky="w", pady=1)
+                if self._class_design_temp_u.strip():
+                    ttk.Label(lf_t, text=bracket_unit_header("Design Temperature", self._class_design_temp_u), width=lw, anchor="w").pack(side="left")
+                else:
+                    ttk.Label(lf_t, text="Design Temperature", anchor="w").pack(side="left")
+                    ttk.Label(lf_t, text=" [unit]", foreground="red").pack(side="left")
                 sub = ttk.Frame(rows_f)
                 sub.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
                 v_tf = tk.StringVar()
@@ -1061,17 +1090,21 @@ class ClassLevelWizard(tk.Toplevel):
                 e_tt = ttk.Entry(sub, textvariable=v_tt, width=18)
                 e_tf.grid(row=0, column=0, sticky="ew")
                 e_tt.grid(row=0, column=2, sticky="ew")
+                self._class_entry_widgets[self._class_temp_from_h] = e_tf
+                self._class_entry_widgets[self._class_temp_to_h] = e_tt
                 sub.columnconfigure(0, weight=1)
                 sub.columnconfigure(2, weight=1)
                 grid_row += 1
                 continue
 
             if self._use_combined_temperature_pressure_rows() and h == self._class_press_from_h:
-                ttk.Label(
-                    rows_f,
-                    text=bracket_unit_header("Design Pressure", self._class_design_press_u),
-                    width=lw,
-                ).grid(row=grid_row, column=0, sticky="w", pady=1)
+                lf_p = ttk.Frame(rows_f)
+                lf_p.grid(row=grid_row, column=0, sticky="w", pady=1)
+                if self._class_design_press_u.strip():
+                    ttk.Label(lf_p, text=bracket_unit_header("Design Pressure", self._class_design_press_u), width=lw, anchor="w").pack(side="left")
+                else:
+                    ttk.Label(lf_p, text="Design Pressure", anchor="w").pack(side="left")
+                    ttk.Label(lf_p, text=" [unit]", foreground="red").pack(side="left")
                 subp = ttk.Frame(rows_f)
                 subp.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
                 v_pf = tk.StringVar()
@@ -1083,8 +1116,30 @@ class ClassLevelWizard(tk.Toplevel):
                 e_pt = ttk.Entry(subp, textvariable=v_pt, width=18)
                 e_pf.grid(row=0, column=0, sticky="ew")
                 e_pt.grid(row=0, column=2, sticky="ew")
+                self._class_entry_widgets[self._class_press_from_h] = e_pf
+                self._class_entry_widgets[self._class_press_to_h] = e_pt
                 subp.columnconfigure(0, weight=1)
                 subp.columnconfigure(2, weight=1)
+                grid_row += 1
+                continue
+
+            if h == "Size_From":
+                ttk.Label(rows_f, text="Size Range", width=lw).grid(
+                    row=grid_row, column=0, sticky="w", pady=1
+                )
+                sub_s = ttk.Frame(rows_f)
+                sub_s.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
+                cb_sf = ttk.Combobox(sub_s, width=18, state="readonly", values=[""])
+                ttk.Label(sub_s, text="~").grid(row=0, column=1, padx=6)
+                cb_st = ttk.Combobox(sub_s, width=18, state="readonly", values=[""])
+                cb_sf.grid(row=0, column=0, sticky="ew")
+                cb_st.grid(row=0, column=2, sticky="ew")
+                sub_s.columnconfigure(0, weight=1)
+                sub_s.columnconfigure(2, weight=1)
+                cb_sf.bind("<<ComboboxSelected>>", lambda _e: self._on_size_range_selected("Size_From"))
+                cb_st.bind("<<ComboboxSelected>>", lambda _e: self._on_size_range_selected("Size_To"))
+                self._class_combos["Size_From"] = cb_sf
+                self._class_combos["Size_To"] = cb_st
                 grid_row += 1
                 continue
 
@@ -1124,15 +1179,6 @@ class ClassLevelWizard(tk.Toplevel):
                     lambda _e: self._on_nominal_size_system_changed(),
                 )
                 self._class_combos[h] = cb
-            elif h in ("Size_From", "Size_To"):
-                cb = ttk.Combobox(
-                    rows_f,
-                    width=42,
-                    state="readonly",
-                    values=[""],
-                )
-                cb.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
-                self._class_combos[h] = cb
             elif h == "Class_Base_Material":
                 cb = ttk.Combobox(
                     rows_f,
@@ -1164,12 +1210,15 @@ class ClassLevelWizard(tk.Toplevel):
                 e = ttk.Entry(rows_f, textvariable=v, width=44)
                 e.grid(row=grid_row, column=1, sticky="ew", pady=1, padx=px)
                 self._class_entries[h] = v
+                self._class_entry_widgets[h] = e
                 if h == "Class_Name":
                     e.bind("<FocusOut>", self._on_class_name_focus_out, add="+")
+                    e.bind("<KeyRelease>", lambda _e: self._refresh_class_name_gate(), add="+")
                 elif h == "Revision_No":
                     e.bind("<FocusOut>", self._on_revision_no_focus_out, add="+")
             grid_row += 1
         rows_f.columnconfigure(1, weight=1)
+        self._refresh_class_name_gate()
 
     def _on_nominal_size_system_changed(self) -> None:
         """선택된 Class 의 Nominal_Size_System 이 바뀌면 Size_From/Size_To 드롭다운 후보를 갱신.
@@ -1194,6 +1243,7 @@ class ClassLevelWizard(tk.Toplevel):
             if cur and cur not in sizes_set:
                 cb.set("")
         self._save_class_detail_to_row()
+        self._refresh_class_name_gate()
 
     def _refresh_combo_lists(self) -> None:
         rvals = list(self._reducing_names())
@@ -1264,6 +1314,7 @@ class ClassLevelWizard(tk.Toplevel):
         for h, cb in self._class_combos.items():
             cb.set(row.get(h, ""))
         self._last_shown_class_idx = idx
+        self._refresh_class_name_gate()
 
     def _add_class_row(self) -> None:
         self._save_class_detail_to_row()
