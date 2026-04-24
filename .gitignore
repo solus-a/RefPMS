@@ -13,6 +13,9 @@ build-output/
 docs/chat/
 .specstory/
 
+# Project-config save backups
+config/project/*.bak
+
 # Cursor: shared rules and skills only
 .cursor/*
 !.cursor/rules/

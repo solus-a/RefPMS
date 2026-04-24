@@ -1,108 +1,169 @@
-# CLAUDE.md
+# CLAUDE.md — Project Constitution
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file is the top-level, invariant guidance for Claude Code in this repository.
+It declares **what** RefPMS is and **why** it is structured the way it is.
+It deliberately avoids naming specific files, modules, or commands — those belong in `ARCHITECTURE.md` and `README.md` and will change as the code evolves.
 
-## Project Overview
+If something below ever contradicts the code, the principles win and the code is wrong. Fix the code (or update this file if the principle itself has genuinely changed).
 
-RefPMS is a transformation engine that takes project-level piping constraints, class-level definitions, and component-level item data, and generates a **Micro DB** for 3D plant-design systems as `Piping_Material_Class_Data.xlsx`.
+---
 
-- Stack: Python, **tkinter** (GUI), **openpyxl** (Excel I/O), **PyInstaller** (packaging).
-- Entry point: `run.py` launches the Tk GUI. No CLI "generate" command — generation is triggered from the UI after loading an input template.
+## 1. Mission
 
-## Common Commands
+RefPMS is a transformation engine. It consumes:
 
-- Run the GUI: `python run.py`
-- Run the result-validation harness (all cases): `python run.py harness --all`
-- Run a single harness case: `python run.py harness --case <case_name>`
-- Run with ad-hoc paths: `python run.py harness --input <template.xlsx> --expected <expected.xlsx>`
-- Run the unittest wrapper around the harness: `python -m unittest tests.test_harness -v`
+- **Project-level constraints** (global premises),
+- **Class-level definitions** (classification + allowed ranges),
+- **Component-level item data** (specific shapes and specs),
 
-Harness cases live under `tests/input/<case_name>/Class_Define_Template.xlsx` and must mirror `tests/expected/<case_name>/Piping_Material_Class_Data.xlsx`. When output behavior changes intentionally, add/update a harness case rather than documenting the diff in prose.
+and it produces a **Micro DB** consumable by 3D plant-design systems.
 
-## Architecture — the Decision Hierarchy
+The transformation is rule-based: upstream layers constrain downstream layers, and output is fully determined by (inputs × rules × configuration). There is no hidden state.
 
-The whole system is a top-down hierarchy; upstream **Constraints** narrow downstream choices. Internalize this before editing generation or validation code:
+---
+
+## 2. Decision Hierarchy (Domain Model)
+
+RefPMS is organized as a strict three-layer hierarchy. Upstream layers **constrain** downstream layers; they never merely suggest.
 
 ```
-Project  ──▶  Class  ──▶  Component
- (global)    (grade)    (specific item)
+Project   ──▶   Class   ──▶   Component
+(global)      (grade)       (specific item)
 ```
 
-| Layer | Scope | Where it lives |
-|---|---|---|
-| `Project` | Global premises: design code, unit system, nominal-size system selection (**NPS or DN**), thread standards. | `config/project/*.json`, `project_constraints.py` |
-| `Class` | Inherits Project + adds classification constraints + declares the **Size Range** (Size_From/Size_To columns on Class_Define). The intersection with the template-wide `Size_Selection` sheet defines the Class's active size set. | `class_spec.py`, `class_level_model.py`, `Class_Define` + `Size_Selection` sheets |
-| `Component` | Inherits Class + shape/spec to uniquely identify an item. | Component sheets, `data/component_mapping.json`, `data/Item_Code_DB.xlsx` |
-
-The **size catalog itself** (ASME B36.10 NPS / ISO 6708 DN, with a `preferred` flag) is a program-internal, immutable dataset at `data/nps_catalog.json`. Project selects *which* system; Class declares *which subset* is active. Do not treat `nps_catalog.json` as user config.
-
-## Config Boundary (critical)
-
-- `config/project/*` = project-level **Constraints** (SSOT). Only domain constraints — no behavior.
-- `config/generator/*` = generation/validation **execution policy** (`output_settings.json`, `coding_rules.json`, `validation_policy.json`).
-- `data/*` = program-internal datasets (size catalog, mappings, Item_Code_DB).
-
-Do NOT put generator behavior, validation policy, UI defaults, or runtime toggles under `config/project/`. The boundary is enforced in code (`config.py`) and in the terminology rules.
-
-All config is loaded through the `ProjectConfig` singleton in `src/config.py`; read values via `config.config_manager.get("dotted.key")`. On load/reload, `validate_project_constraints` runs and surfaces warnings.
-
-## Module Roles
-
-| Module | Role |
+| Layer | Scope |
 |---|---|
-| `controller.py` | Orchestration between GUI and engine — flow control only, no business rules. |
-| `gui.py`, `main.py` | UI and entrypoint only. |
-| `project_settings_dialog.py`, `project_config_service.py` | Project-settings UI + load/validate/save/backup/reload of `config/project/*`. |
-| `class_template_wizard.py`, `size_matrix_*` | Class-level wizard and Size Range editor (UI). |
-| `template_generator.py` | Build or re-open the `Class_Define_Template.xlsx` input workbook. |
-| `pms_generator.py` | Main transformation pipeline: template → `Piping_Material_Class_Data.xlsx`. |
-| `class_spec.py` | `Class_Define` → class technical envelope (material, rating, temp/pressure, etc.). |
-| `thickness_engine.py` | Size/class → Schedule (thickness) lookup against the `Schedule` sheet. |
-| `validator.py` | Per-row template validation driven by `data/component_mapping.json`; includes `validate_size_range_for_row`. |
-| `project_constraints.py` | Validates the merged project-level config before generation. |
-| `data_defaults.py` | Overridable default values seeded into templates. |
+| `Project` | Global premises: design code, unit system, nominal size system selection (NPS or DN), thread standards. |
+| `Class` | Inherits Project, adds classification constraints, and declares the active **Size Range** (a subset of the Project-chosen size system). |
+| `Component` | Inherits Class and fixes shape + specification enough to uniquely identify an item. |
 
-Keep business logic in the engine modules (`pms_generator`, `class_spec`, `thickness_engine`, `validator`, `project_constraints`). `gui.py` / `main.py` / `controller.py` must not implement domain rules.
+### Invariants
 
-## UI ↔ Logic Separation
+- The **size catalog itself** (ASME B36.10 NPS / ISO 6708 DN) is a program-internal, immutable reference dataset. Project selects *which system*; Class declares *which subset*. The catalog is never user configuration.
+- A Component never contradicts its Class. A Class never contradicts its Project. If a conflict is detected, it is a validation failure, not a silent override.
+- The lowest hierarchy level is always `Component`, never `Material`. `Material` is one attribute of a Component, not a layer.
 
-- tkinter imports are allowed **only** in UI-layer files. Engine/service modules must be pure Python.
-- Logic raises exceptions for domain/validation errors; the UI layer catches them and decides how to present them (status bar, messagebox, …). Never call `messagebox` from business-logic modules.
-- Inject UI actions (file pickers, dialogs) via callbacks — see how `controller.py` wires `gui.build_gui` and `project_config_service.save_and_reload`.
+---
 
-## Coding Style (non-obvious rules)
+## 3. Config Boundary (Critical Separation)
 
-- **Immutability is mandatory.** Return new objects; do not mutate inputs. This applies to settings/config values, class-level bundles, size-range structures, etc. See `ProjectSettings` (slotted value object) and `ProjectConfig.snapshot()` (deep-copy).
-- File size guideline: 200–400 lines typical, 800 max — extract utilities when a module grows (see `excel_sheet_utils.py`, `size_matrix_common.py`).
-- Validate at system boundaries (user input, file content, JSON). Trust internal callers.
-- Existing code uses a mix of `snake_case` (Python norm) and `camelCase` (rule-style helpers like `normalizeScheduleValue`, `scheduleAllowlist`). Match the surrounding file's convention; don't mass-rename.
+Configuration is split into three kinds, each with a distinct responsibility. **Do not mix them.**
 
-## Domain Terminology (share this vocabulary with the user)
-
-Full glossary: `docs/domain-glossary.md`. The distinctions below are **enforced in conversation and code**:
-
-| Term | Definition | Question |
+| Kind | Responsibility | What it must NOT contain |
 |---|---|---|
-| `Constraint` | Mandatory limit or permissible range | *What must be?* |
-| `Condition` | Observable state / input fact evaluated by a Rule | *What is?* |
-| `Rule` | Decision logic that combines Conditions + Constraints → outcome | *What should be decided?* |
-| `Validation` | Conformance check against established criteria | *Is it valid?* |
-| `Default` | Overridable standard applied when user didn't specify | *What applies if unspecified?* |
+| **Project config** | Domain constraints (SSOT for the project's premises). | Generator behavior, validation policy, UI defaults, runtime toggles. |
+| **Generator config** | Execution policy for generation and validation (output settings, coding rules, validation policy). | Domain constraints, user project premises. |
+| **Program-internal data** | Immutable reference datasets (size catalog, mappings, code DB). | Anything user-editable or project-specific. |
 
-- Precedence: `Constraint > Rule > Default`. An Override at a lower scope must still satisfy all applicable Constraints.
-- Name disambiguation: `RefPMS` = the software; `Project` = the domain hierarchy layer. Clarify when ambiguous.
-- The lowest hierarchy level is **`Component`**, never `Material` (which collides with 재질, a mere attribute).
-- Don't conflate `Rule` with `Validation` (decide vs check) or `Default` with `Constraint` (overridable vs mandatory).
+Rules:
 
-## Output Contract
+- Project config is the **Single Source of Truth** for project-level constraints. Read through a single config accessor; never bypass it.
+- Validation runs on load and on reload. Surfacing warnings early is preferable to silently accepting malformed config.
+- Behavior that changes with the user's project belongs in Project config. Behavior that changes with the generation pipeline belongs in Generator config. Facts about the world (catalogs, standards) belong in program-internal data.
 
-- Output filename: `Piping_Material_Class_Data.xlsx` (sheet `Piping_Material_Class_Data`).
-- `Item_Code` ordering comes **only** from `config/generator/output_settings.json` → `item_order`.
-- `pms_generator.py` is the single place that assembles the output workbook.
+---
 
-## Gotchas
+## 4. UI ↔ Logic Separation
 
-- `config/project/*.bak` files are created on each save (configurable) and are `.gitignore`'d.
-- Generated directories `output/`, `template/`, and `build-output/` are `.gitignore`'d — don't commit sample outputs into the repo; add harness cases instead.
-- Harness case directory names must be **identical** between `tests/input/` and `tests/expected/`.
-- Platform is Windows + PowerShell for daily work; use forward slashes in Python paths and `/dev/null` sparingly — prefer `Path` from `pathlib`.
+A hard architectural boundary, not a suggestion.
+
+- **UI-layer files** may import the GUI framework. **Engine/service/logic files** must be pure Python with zero UI imports.
+- Logic raises exceptions for domain and validation errors. The UI layer catches them and decides presentation (status bar, dialog, toast, log).
+- Never invoke UI alerts (message boxes, pop-ups) from business-logic modules.
+- UI actions required by logic (file pickers, confirmations) are injected as callbacks, not imported.
+
+This boundary is what allows RefPMS to be tested, scripted, and repackaged without dragging GUI state through the engine.
+
+---
+
+## 5. Coding Style — Non-Negotiable
+
+### 5.1 Immutability (CRITICAL)
+Return new objects. Do not mutate inputs. This applies to settings, config snapshots, class-level bundles, size-range structures, and any value passed across module boundaries. Mutation hides causes and breaks reasoning.
+
+### 5.2 KISS / DRY / YAGNI
+- **KISS** — the simplest thing that actually works. Clarity over cleverness.
+- **DRY** — extract when repetition is real, not speculative. Three near-duplicates beat a premature abstraction.
+- **YAGNI** — do not build for hypothetical futures. No feature flags, fallbacks, or shims for scenarios that cannot occur.
+
+### 5.3 Validate at Boundaries, Trust the Interior
+Validate user input, file contents, and external data at the edge. Inside the engine, trust your callers. Defensive code at every layer is noise, not safety.
+
+### 5.4 Error Handling
+Handle errors explicitly; never swallow them silently. Logic raises; UI decides presentation. Error messages must be actionable — name the constraint that failed and the value that failed it.
+
+### 5.5 File Size and Cohesion
+Prefer many small, focused files over few large ones. 200–400 lines is typical, 800 is the ceiling. When a module grows past that, extract utilities by responsibility, not by type.
+
+### 5.6 Naming
+- Python code is `snake_case` by default.
+- Existing rule-style helpers use `camelCase` (e.g. schedule-rule normalizers). Match the surrounding file's convention; do not mass-rename.
+- Booleans read as predicates: `is_…`, `has_…`, `should_…`, `can_…`.
+- Constants are `UPPER_SNAKE_CASE`. Classes are `PascalCase`.
+
+### 5.7 Code Smells to Avoid
+- Deep nesting — use early returns.
+- Magic numbers — name meaningful thresholds.
+- Long functions — split by responsibility.
+- Comments that restate the code — a good name replaces a comment. Comments are reserved for non-obvious *why*.
+
+---
+
+## 6. Domain Terminology (Shared Vocabulary)
+
+Full glossary: `docs/domain-glossary.md`. The following distinctions are enforced in both code and conversation.
+
+### 6.1 Core Concepts
+
+| Term | Definition | Key Question |
+|---|---|---|
+| `Constraint` | Mandatory limit or permissible range — must be respected. | *What must be?* |
+| `Condition` | Observable state or input fact that a Rule evaluates. | *What is?* |
+| `Rule` | Decision logic combining Conditions + Constraints into an outcome. | *What should be decided?* |
+| `Validation` | Conformance check against established criteria. | *Is it valid?* |
+| `Default` | Overridable standard applied when unspecified; never overrides a Constraint. | *What applies if unspecified?* |
+| `Domain Knowledge` | Professional expertise behind exceptions and priorities; the source Rules are designed from. | *Why this rule?* |
+
+### 6.2 Precedence
+
+```
+Constraint  >  Rule  >  Default
+```
+
+An override at a lower scope must still satisfy all applicable Constraints.
+
+### 6.3 Prohibited Confusions
+
+- Do not use bare "조건" — always specify `Condition` or `Constraint`.
+- Do not conflate `Rule` with `Validation` — Rule *decides*, Validation *checks*.
+- Do not treat `Default` as mandatory — Defaults are overridable; Constraints are not.
+- Do not call the lowest hierarchy level `Material` — use `Component`.
+- Do not reduce `Class` to a data-entry form — it is a classification layer with its own constraints.
+
+### 6.4 Name Disambiguation
+
+- `RefPMS` — this software.
+- `Project` — the domain hierarchy layer whose global constraints govern Classes and Components.
+- When ambiguous, clarify explicitly.
+
+---
+
+## 7. Output Contract
+
+- RefPMS produces exactly one canonical output artifact per run — the Micro DB workbook for the downstream 3D system.
+- Item ordering in the output is determined **only** by Generator config, never by input order or ad-hoc heuristics.
+- Output assembly is centralized in a single engine module. There is one assembler, not many.
+
+(Specific filenames and sheet names live in `ARCHITECTURE.md`.)
+
+---
+
+## 8. What Belongs Elsewhere
+
+This file is deliberately silent about:
+
+- **Specific module names, file paths, commands** → see `ARCHITECTURE.md` and `README.md`.
+- **How to run, test, or package** → see `README.md`.
+- **Recent decisions, in-progress work, debugging notes** → these live in commits, PRs, and the task tracker, not here.
+
+If you find yourself wanting to add a file path or a command to this file, you are almost certainly writing in the wrong document.
