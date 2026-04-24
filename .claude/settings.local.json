@@ -13,7 +13,11 @@
       "Bash(ls config/generator/)",
       "Bash(PYTHONPATH=src python run.py harness --all)",
       "Bash(PYTHONPATH=src python)",
-      "Bash(PYTHONPATH=src python -m unittest tests.test_harness -v)"
+      "Bash(PYTHONPATH=src python -m unittest tests.test_harness -v)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git log *)"
     ]
   }
 }
