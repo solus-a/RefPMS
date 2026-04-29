@@ -18,7 +18,6 @@ from class_level_model import NamedSizeTable, SizeSelection, SizeTableRow, _reso
 from size_matrix_common import (
     BRANCH_ITEM_TYPES_OK,
     REDUCING_ITEM_TYPES_OK,
-    matrix_help_text,
     normalize_nominal_mode,
     size_number,
 )
@@ -105,7 +104,6 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
             side="left", padx=(0, 12)
         )
         ttk.Label(top, text=f"Mode: {self._nominal_mode}").pack(side="left", padx=(0, 12))
-        ttk.Button(top, text="Help", command=self._show_help).pack(side="right")
 
         range_box = ttk.Frame(self)
         range_box.grid(row=1, column=0, sticky="ew", padx=8, pady=(0, 6))
@@ -119,7 +117,7 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
             range_box, width=10, state="readonly", values=["", *self._size_pool]
         )
         self._cb_to.pack(side="left", padx=(0, 12))
-        ttk.Button(range_box, text="Apply range", command=self._on_apply_range).pack(side="left")
+        ttk.Button(range_box, text="Apply", command=self._on_apply_range).pack(side="left")
 
         if self._size_from and self._size_from in self._size_pool:
             self._cb_from.set(self._size_from)
@@ -174,7 +172,12 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         self.after(80, lambda: self._inner.focus_set())
 
     def _compute_axis_sizes(self) -> list[str]:
-        """현재 Size_From / Size_To 와 Global Size Selection 의 교집합 (카탈로그 순서)."""
+        """현재 Size_From / Size_To 와 Global Size Selection 의 교집합 (카탈로그 순서).
+
+        Size_From / Size_To 중 하나라도 비어 있으면 빈 축으로 간주 — Apply range 전에는 매트릭스가 렌더되지 않음.
+        """
+        if not self._size_from or not self._size_to:
+            return []
         return _resolve_active_sizes(
             self._size_selection, self._nominal_mode, self._size_from, self._size_to
         )
@@ -214,16 +217,6 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
             return n2 < n1
         return n2 <= n1
 
-    def _show_help(self) -> None:
-        win = tk.Toplevel(self)
-        win.title("Matrix editor — Help")
-        win.transient(self)
-        txt = tk.Text(win, wrap="word", width=88, height=28, font=("Segoe UI", 10))
-        txt.pack(fill="both", expand=True, padx=8, pady=8)
-        txt.insert("1.0", matrix_help_text(self._pair_kind, self._nominal_mode))
-        txt.config(state="disabled")
-        ttk.Button(win, text="Close", command=win.destroy).pack(pady=(0, 8))
-
     def _item_ok(self, raw: str) -> bool:
         v = raw.strip().upper()
         if not v:
@@ -231,6 +224,26 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         if self._pair_kind == "branch":
             return v in BRANCH_ITEM_TYPES_OK
         return v in REDUCING_ITEM_TYPES_OK
+
+    def _value_allowed_for_cell(self, s1: str, s2: str, raw: str) -> bool:
+        """셀 (s1, s2) 에 raw 값을 저장할 수 있는지.
+
+        Branch:
+          - 대각셀 (Size1 == Size2): 'T' (Equal Tee) 만 허용
+          - 비대각셀 (Size1 != Size2): 'T' 는 불가 — 'RT' / 'TH' 만 허용
+        Reducing: 타입 집합 검사만.
+        """
+        v = raw.strip().upper()
+        if not v:
+            return True
+        if not self._item_ok(v):
+            return False
+        if self._pair_kind == "branch":
+            on_diagonal = s1.strip() == s2.strip()
+            if on_diagonal:
+                return v == "T"
+            return v != "T"
+        return True
 
     def _rect_cells_corners(self, a: tuple[int, int], b: tuple[int, int]) -> set[tuple[int, int]]:
         ar, ac = a
@@ -404,7 +417,7 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
     def _cell_display_bg(self, ri: int, ci: int) -> str:
         s1, s2 = self._key(ri, ci)
         val = self._values.get((s1, s2), "")
-        ok = self._item_ok(val)
+        ok = self._value_allowed_for_cell(s1, s2, val)
         in_sel = (ri, ci) in self._selected_cells
         if in_sel:
             return "#fff9c4" if ok else "#ffcc99"
@@ -534,15 +547,10 @@ class MatrixTableDialog(MatrixEditOpsMixin, tk.Toplevel):
         if n == 0:
             tk.Label(
                 inner,
-                text=(
-                    "No sizes available for this Size_From / Size_To range.\n"
-                    "Pick a Size_From / Size_To pair (Apply range) — only sizes checked in the\n"
-                    "Global Setting Size Selection will appear."
-                ),
+                text="Please select Size Range.",
                 fg="#666666",
                 padx=12,
                 pady=12,
-                justify="left",
             ).grid(row=0, column=0)
             return
 

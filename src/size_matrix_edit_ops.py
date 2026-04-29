@@ -91,9 +91,12 @@ class MatrixEditOpsMixin:
         if commit:
             val = ent.get().strip().upper()
             s1, s2 = self._key(ri, ci)
-            self._values[(s1, s2)] = val
-            if lb:
-                lb.config(text=val)
+            if self._value_allowed_for_cell(s1, s2, val):
+                self._values[(s1, s2)] = val
+                if lb:
+                    lb.config(text=val)
+            elif lb:
+                lb.config(text=self._values.get((s1, s2), ""))
         ent.place_forget()
         ent.destroy()
         self._inner.focus_set()
@@ -118,6 +121,8 @@ class MatrixEditOpsMixin:
         val = self._active_cell_value()
         for ri, ci in targets:
             s1, s2 = self._key(ri, ci)
+            if not self._value_allowed_for_cell(s1, s2, val):
+                continue
             self._values[(s1, s2)] = val
             self._labels[(ri, ci)].config(text=val)
         self._refresh_all_cell_styles()
@@ -172,6 +177,8 @@ class MatrixEditOpsMixin:
                 if (ri, ci) in self._labels:
                     s1, s2 = self._key(ri, ci)
                     v = part.strip().upper()
+                    if not self._value_allowed_for_cell(s1, s2, v):
+                        continue
                     self._values[(s1, s2)] = v
                     self._labels[(ri, ci)].config(text=v)
         self._refresh_all_cell_styles()

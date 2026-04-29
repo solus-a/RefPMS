@@ -12,8 +12,8 @@
         "default": "°C"
       },
       "pressure": {
-        "allowed": ["bar", "barg", "kPa", "MPa"],
-        "default": "bar"
+        "allowed": ["bar", "barg", "kg/cm2", "kPa", "MPa"],
+        "default": "barg"
       }
     },
     "US Customary": {

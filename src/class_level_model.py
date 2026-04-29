@@ -249,6 +249,21 @@ class ClassLevelBundle:
 
         r_codes = {t.table_code.strip() for t in self.reducing_tables}
         b_codes = {t.table_code.strip() for t in self.branch_tables}
+
+        def _norm_mode(m: str) -> str:
+            x = (m or "").strip().upper()
+            return "DN" if x == "DN" else "NPS"
+
+        reducing_table_modes = {
+            t.table_code.strip(): _norm_mode(t.nominal_mode)
+            for t in self.reducing_tables
+            if t.table_code.strip()
+        }
+        branch_table_modes = {
+            t.table_code.strip(): _norm_mode(t.nominal_mode)
+            for t in self.branch_tables
+            if t.table_code.strip()
+        }
         for i, row in enumerate(self.class_define_rows):
             label = f"Class_Define row {i + 1}"
             cn = (row.get("Class_Name") or "").strip()
@@ -290,6 +305,19 @@ class ClassLevelBundle:
                 if v and v not in allowed_codes:
                     errs.append(
                         f"{label}: {col} value {v!r} is not a registered branch table name."
+                    )
+            class_mode_norm = _norm_mode(mode)
+            for col, ref_modes in (
+                ("Reducing_Table_1", reducing_table_modes),
+                ("Reducing_Table_2", reducing_table_modes),
+                ("Branch_Table_1", branch_table_modes),
+                ("Branch_Table_2", branch_table_modes),
+            ):
+                v = (row.get(col) or "").strip()
+                if v and v in ref_modes and ref_modes[v] != class_mode_norm:
+                    errs.append(
+                        f"{label}: {col} {v!r} nominal mode is {ref_modes[v]} "
+                        f"but Class Nominal_Size_System is {class_mode_norm}."
                     )
             ca_raw = str(row.get("Corrosion_Allowance", "") or "").strip()
             if ca_raw:
