@@ -1,5 +1,5 @@
 ---
-name: today-work-end
+name: TodayWorkEnd
 description: >-
   End-of-day git wrap-up — review changes, guard .gitignore, commit with a
   meaningful message, and push. Invoke when the user says "TodayWorkEnd",

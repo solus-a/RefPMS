@@ -202,6 +202,7 @@ class ClassLevelBundle:
     global_settings: ClassTemplateGlobalSettings = field(
         default_factory=ClassTemplateGlobalSettings
     )
+    component_rows: dict[str, list[dict[str, str]]] = field(default_factory=dict)
 
     def all_table_codes(self) -> list[str]:
         return [t.table_code.strip() for t in self.reducing_tables + self.branch_tables]

@@ -180,6 +180,15 @@ VALVE_HEADERS = [
     "Remarks",
 ]
 
+COMPONENT_GROUP_DEFS: list[tuple[str, str, list[str]]] = [
+    ("Pipe_Group",    "Pipe Group",    PIPE_HEADERS),
+    ("Fitting_Group", "Fitting Group", FITTING_HEADERS),
+    ("Flange_Group",  "Flange Group",  FLANGE_HEADERS),
+    ("Gasket_Group",  "Gasket Group",  GASKET_HEADERS),
+    ("Bolt_Group",    "Bolt Group",    BOLT_HEADERS),
+    ("Valve_Group",   "Valve Group",   VALVE_HEADERS),
+]
+
 HEADER_FONT = Font(bold=True)
 HEADER_ALIGNMENT = Alignment(horizontal="center", vertical="center", wrap_text=True)
 FREEZE_PANES = "A2"
@@ -542,12 +551,19 @@ def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
         blank = row_dict_for_headers(class_headers)
         class_rows = [blank]
 
+    component_rows: dict[str, list[dict[str, str]]] = {}
+    for sheet_name, _, headers in COMPONENT_GROUP_DEFS:
+        ws_comp = ws_or_none(sheet_name)
+        if ws_comp is not None:
+            component_rows[sheet_name] = _read_dict_rows(ws_comp, headers)
+
     return ClassLevelBundle(
         class_define_rows=class_rows,
         schedule_rows=_read_dict_rows(ws_schedule, SCHEDULE_HEADERS) if ws_schedule is not None else [],
         reducing_tables=_read_named_size_tables(ws_reducing) if ws_reducing is not None else [],
         branch_tables=_read_named_size_tables(ws_branch) if ws_branch is not None else [],
         global_settings=global_settings,
+        component_rows=component_rows,
     )
 
 
@@ -642,6 +658,12 @@ def generate_class_define_template(
         _write_named_size_tables(ws_reducing_table, class_level.reducing_tables)
 
     _append_component_group_sheets(wb)
+
+    if class_level is not None:
+        for sheet_name, _, headers in COMPONENT_GROUP_DEFS:
+            rows = class_level.component_rows.get(sheet_name, [])
+            if rows:
+                _write_dict_rows(wb[sheet_name], headers, rows)
 
     try:
         wb.save(template_path)

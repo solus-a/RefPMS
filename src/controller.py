@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable
 
 import tkinter as tk
 from tkinter import messagebox
@@ -25,10 +25,6 @@ def create_controller(root: tk.Tk) -> None:
     - controller.py: 버튼 클릭 시 처리 흐름
     - 실제 비즈니스 로직 호출은 필요해질 때 각 버튼 핸들러에서 연결
     """
-
-    state: dict[str, Optional[str]] = {
-        "selected_input_path": None,
-    }
 
     status_setter: Callable[[str], None] = lambda _msg: None
 
@@ -91,19 +87,11 @@ def create_controller(root: tk.Tk) -> None:
         except Exception as exc:
             status_setter(f"템플릿 저장 실패: {exc}")
 
-    def on_file_load() -> None:
-        status_setter("파일 선택 중...")
-        selected = file_handler.select_excel_file(root)
-        if not selected:
-            status_setter("대기중")
-            return
-        state["selected_input_path"] = selected
-        status_setter(f"파일 불러옴: {selected}")
-
     def on_pms_generate() -> None:
-        input_path = state["selected_input_path"]
+        status_setter("템플릿 파일 선택 중...")
+        input_path = file_handler.select_excel_file(root)
         if not input_path:
-            status_setter("먼저 파일 불러오기를 해주세요.")
+            status_setter("대기중")
             return
 
         save_root = file_handler.select_pms_output_folder(root)
@@ -131,7 +119,6 @@ def create_controller(root: tk.Tk) -> None:
         root=root,
         on_template_create=on_template_create,
         on_template_edit=on_template_edit,
-        on_file_load=on_file_load,
         on_pms_generate=on_pms_generate,
     )
 

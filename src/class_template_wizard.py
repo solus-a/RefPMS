@@ -23,6 +23,7 @@ from size_matrix_common import normalize_nominal_mode
 from size_matrix_editor import run_size_matrix_editor
 from template_generator import (
     BOLT_HEADERS,
+    COMPONENT_GROUP_DEFS as COMPONENT_GROUPS,
     FITTING_HEADERS,
     FLANGE_HEADERS,
     GASKET_HEADERS,
@@ -30,15 +31,6 @@ from template_generator import (
     SCHEDULE_HEADERS,
     VALVE_HEADERS,
 )
-
-COMPONENT_GROUPS: list[tuple[str, str, list[str]]] = [
-    ("Pipe_Group", "Pipe Group", PIPE_HEADERS),
-    ("Fitting_Group", "Fitting Group", FITTING_HEADERS),
-    ("Flange_Group", "Flange Group", FLANGE_HEADERS),
-    ("Gasket_Group", "Gasket Group", GASKET_HEADERS),
-    ("Bolt_Group", "Bolt Group", BOLT_HEADERS),
-    ("Valve_Group", "Valve Group", VALVE_HEADERS),
-]
 from units_notation_headers import bracket_unit_header, class_define_headers
 
 _CLASS_DETAIL_LABEL_WIDTH = 28
@@ -443,10 +435,184 @@ def _build_named_tables_panel(
     return refill
 
 
+# ── Component preview helpers ──────────────────────────────────────────────────
+
+_STRUCTURAL_FIELDS: frozenset[str] = frozenset({
+    "Class_Name", "Item_Code",
+    "Size_From", "Size_To",
+    "Size1_From", "Size1_To",
+    "Size2_From", "Size2_To",
+    "Remarks",
+})
+_SHEET_SIZE_FROM: dict[str, str] = {"Flange_Group": "Size1_From", "Valve_Group": "Size1_From"}
+_SHEET_SIZE_TO:   dict[str, str] = {"Flange_Group": "Size1_To",   "Valve_Group": "Size1_To"}
+
+
+def _combined_component_name(row: dict[str, str]) -> str:
+    """Non-structural field values joined — placeholder until combination rules are defined."""
+    return " ".join(v.strip() for k, v in row.items() if k not in _STRUCTURAL_FIELDS and v.strip())
+
+
+# ── Component row editor ───────────────────────────────────────────────────────
+
+class _ComponentRowEditDialog(tk.Toplevel):
+    """Single-row field editor for Add / Edit in the component sheet."""
+
+    def __init__(
+        self,
+        parent: tk.Misc,
+        *,
+        title: str,
+        headers: list[str],
+        initial: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.title(title)
+        self.resizable(False, True)
+        self.transient(parent)
+        self.grab_set()
+        self.result: dict[str, str] | None = None
+
+        form = ttk.Frame(self, padding=10)
+        form.pack(fill="both", expand=True)
+
+        self._vars: dict[str, tk.StringVar] = {}
+        for i, h in enumerate(headers):
+            ttk.Label(form, text=h, width=24, anchor="e").grid(
+                row=i, column=0, padx=(0, 6), pady=2, sticky="e"
+            )
+            var = tk.StringVar(value=(initial or {}).get(h, ""))
+            self._vars[h] = var
+            ttk.Entry(form, textvariable=var, width=34).grid(
+                row=i, column=1, pady=2, sticky="ew"
+            )
+        form.columnconfigure(1, weight=1)
+
+        bf = ttk.Frame(self, padding=(10, 0, 10, 10))
+        bf.pack(fill="x")
+        ttk.Button(bf, text="OK",     command=self._ok).pack(side="right", padx=(4, 0))
+        ttk.Button(bf, text="Cancel", command=self.destroy).pack(side="right")
+
+        self.bind("<Return>", lambda _: self._ok())
+        self.bind("<Escape>", lambda _: self.destroy())
+        self.focus_force()
+
+    def _ok(self) -> None:
+        self.result = {h: v.get().strip() for h, v in self._vars.items()}
+        self.destroy()
+
+
+# ── Component group edit dialog ────────────────────────────────────────────────
+
+class _ComponentsEditDialog(tk.Toplevel):
+    """Full edit dialog for one component group sheet × one class."""
+
+    def __init__(
+        self,
+        parent: tk.Misc,
+        *,
+        class_name: str,
+        sheet_name: str,
+        label: str,
+        headers: list[str],
+        rows: list[dict[str, str]],
+    ) -> None:
+        super().__init__(parent)
+        self.title(f"{class_name} — {label}")
+        self.geometry("960x480")
+        self.resizable(True, True)
+        self.transient(parent)
+        self.grab_set()
+        self.result: list[dict[str, str]] | None = None
+
+        self._sheet_name  = sheet_name
+        self._display_hdrs = [h for h in headers if h != "Class_Name"]
+        self._rows: list[dict[str, str]] = [
+            {h: r.get(h, "") for h in self._display_hdrs} for r in rows
+        ]
+
+        # Treeview -------------------------------------------------------
+        tree_frame = ttk.Frame(self)
+        tree_frame.pack(fill="both", expand=True, padx=8, pady=(8, 4))
+
+        self._tv = ttk.Treeview(tree_frame, columns=self._display_hdrs, show="headings")
+        for h in self._display_hdrs:
+            self._tv.heading(h, text=h)
+            self._tv.column(h, width=max(80, len(h) * 8), stretch=False, anchor="w")
+
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical",   command=self._tv.yview)
+        hsb = ttk.Scrollbar(tree_frame, orient="horizontal",  command=self._tv.xview)
+        self._tv.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        vsb.pack(side="right",  fill="y")
+        hsb.pack(side="bottom", fill="x")
+        self._tv.pack(fill="both", expand=True)
+        self._tv.bind("<Double-1>", lambda _: self._edit_selected())
+
+        # Button bar -----------------------------------------------------
+        bf = ttk.Frame(self, padding=(8, 0, 8, 8))
+        bf.pack(fill="x")
+        ttk.Button(bf, text="Add",    command=self._add_row).pack(side="left", padx=(0, 4))
+        ttk.Button(bf, text="Edit",   command=self._edit_selected).pack(side="left", padx=(0, 4))
+        ttk.Button(bf, text="Delete", command=self._delete_selected).pack(side="left")
+        ttk.Button(bf, text="Save",   command=self._save).pack(side="right", padx=(4, 0))
+        ttk.Button(bf, text="Close",  command=self.destroy).pack(side="right")
+
+        self._populate_tree()
+        self.focus_force()
+
+    def _populate_tree(self) -> None:
+        for item in self._tv.get_children():
+            self._tv.delete(item)
+        for row in self._rows:
+            self._tv.insert("", "end", values=tuple(row.get(h, "") for h in self._display_hdrs))
+
+    def _add_row(self) -> None:
+        dlg = _ComponentRowEditDialog(
+            self,
+            title=f"Add — {self._sheet_name}",
+            headers=self._display_hdrs,
+        )
+        self.wait_window(dlg)
+        if dlg.result is not None:
+            self._rows.append(dlg.result)
+            self._populate_tree()
+
+    def _edit_selected(self) -> None:
+        sel = self._tv.selection()
+        if not sel:
+            return
+        idx = self._tv.index(sel[0])
+        dlg = _ComponentRowEditDialog(
+            self,
+            title=f"Edit — {self._sheet_name}",
+            headers=self._display_hdrs,
+            initial=self._rows[idx],
+        )
+        self.wait_window(dlg)
+        if dlg.result is not None:
+            self._rows[idx] = dlg.result
+            self._populate_tree()
+            children = self._tv.get_children()
+            if idx < len(children):
+                self._tv.selection_set(children[idx])
+
+    def _delete_selected(self) -> None:
+        sel = self._tv.selection()
+        if not sel:
+            return
+        idx = self._tv.index(sel[0])
+        del self._rows[idx]
+        self._populate_tree()
+
+    def _save(self) -> None:
+        self.result = list(self._rows)
+        self.destroy()
+
+
 class ClassLevelWizard(tk.Toplevel):
     def __init__(self, parent: tk.Tk, initial_bundle: ClassLevelBundle | None = None) -> None:
         super().__init__(parent)
-        self.title("Class-level template data")
+        self.title("RefPMS")
         self.geometry("920x620")
         self.transient(parent)
         self.grab_set()
@@ -508,10 +674,11 @@ class ClassLevelWizard(tk.Toplevel):
         self._tab_reducing_tables(nb)
         self._tab_class(nb)
         self._tab_components(nb)
+        nb.bind("<<NotebookTabChanged>>", lambda _e: self._on_tab_changed())
 
         bf = ttk.Frame(self)
         bf.pack(fill="x", padx=8, pady=8)
-        ttk.Button(bf, text="OK — build template", command=self._on_ok).pack(side="right", padx=6)
+        ttk.Button(bf, text="Confirm", command=self._on_ok).pack(side="right", padx=6)
         ttk.Button(bf, text="Cancel", command=self._on_cancel).pack(side="right", padx=6)
 
     def _refresh_derived_from_global_settings(self) -> None:
@@ -1388,6 +1555,10 @@ class ClassLevelWizard(tk.Toplevel):
             return
         self._save_class_row_at_index(idx)
 
+    def _on_tab_changed(self) -> None:
+        """탭 전환 시 Class_Define 폼을 bundle에 flush."""
+        self._save_class_detail_to_row()
+
     def _load_class_detail(self) -> None:
         idx = self._current_class_idx()
         if idx is None:
@@ -2162,8 +2333,9 @@ class ClassLevelWizard(tk.Toplevel):
         canvas.bind("<MouseWheel>", _mw)
         sections_frame.bind("<MouseWheel>", _mw)
 
+        _PREV_COLS = ("Item_Code", "size_from", "size_to", "component_name")
         self._comp_group_trees: dict[str, ttk.Treeview] = {}
-        for sheet_name, label, headers in COMPONENT_GROUPS:
+        for sheet_name, label, _headers in COMPONENT_GROUPS:
             section = ttk.LabelFrame(sections_frame, text=label)
             section.pack(fill="x", padx=4, pady=(4, 6))
 
@@ -2175,16 +2347,11 @@ class ClassLevelWizard(tk.Toplevel):
                 command=lambda s=sheet_name: self._on_components_edit(s),
             ).pack(side="right")
 
-            display_cols = [h for h in headers if h != "Class_Name"]
-            tv = ttk.Treeview(
-                section,
-                columns=display_cols,
-                show="headings",
-                height=4,
-            )
-            for col in display_cols:
-                tv.heading(col, text=col)
-                tv.column(col, width=110, stretch=False, anchor="w")
+            tv = ttk.Treeview(section, columns=_PREV_COLS, show="headings", height=4)
+            tv.heading("Item_Code",       text="Item Code");    tv.column("Item_Code",       width=120, stretch=False, anchor="w")
+            tv.heading("size_from",       text="Size From");    tv.column("size_from",       width=80,  stretch=False, anchor="center")
+            tv.heading("size_to",         text="Size To");      tv.column("size_to",         width=80,  stretch=False, anchor="center")
+            tv.heading("component_name",  text="Component");    tv.column("component_name",  width=300, stretch=True,  anchor="w")
             tv.pack(fill="x", padx=4, pady=(0, 4))
             self._comp_group_trees[sheet_name] = tv
 
@@ -2216,27 +2383,96 @@ class ClassLevelWizard(tk.Toplevel):
         return (self._bundle.class_define_rows[idx].get("Class_Name") or "").strip()
 
     def _refresh_components_preview(self) -> None:
-        """선택된 Class 의 component 행을 6개 group Treeview 에 채워 넣음 (skeleton: 데이터 없음)."""
         if not hasattr(self, "_comp_group_trees"):
             return
-        for tv in self._comp_group_trees.values():
+        cn = self._current_components_class_name()
+        for sheet_name, _, _headers in COMPONENT_GROUPS:
+            tv = self._comp_group_trees[sheet_name]
             for item in tv.get_children():
                 tv.delete(item)
+            if not cn:
+                continue
+            all_rows = self._bundle.component_rows.get(sheet_name, [])
+            sf_col = _SHEET_SIZE_FROM.get(sheet_name, "Size_From")
+            st_col = _SHEET_SIZE_TO.get(sheet_name, "Size_To")
+            for row in all_rows:
+                if (row.get("Class_Name") or "").strip() != cn:
+                    continue
+                tv.insert("", "end", values=(
+                    row.get("Item_Code", ""),
+                    row.get(sf_col, ""),
+                    row.get(st_col, ""),
+                    _combined_component_name(row),
+                ))
+
+    def _class_define_missing_fields(self, class_name: str) -> list[str]:
+        """Edit를 허용하기 전 Class_Define 필수 항목 미설정 목록 반환. 빈 리스트 = 통과."""
+        row = next(
+            (r for r in self._bundle.class_define_rows
+             if (r.get("Class_Name") or "").strip() == class_name),
+            None,
+        )
+        if row is None:
+            return ["Class not found in Class_Define"]
+
+        t = self._global_settings.design_temperature_unit
+        p = self._global_settings.design_pressure_unit
+        required: list[str] = [
+            "Nominal_Size_System",
+            "Size_From",
+            "Size_To",
+            "Design_Code",
+            "Class_Base_Material",
+            "Class_Rating",
+            "Corrosion_Allowance",
+            bracket_unit_header("Design_Temperature_From", t),
+            bracket_unit_header("Design_Temperature_To", t),
+            bracket_unit_header("Design_Pressure_From", p),
+            bracket_unit_header("Design_Pressure_To", p),
+        ]
+        missing = [f for f in required if not str(row.get(f, "") or "").strip()]
+
+        has_schedule = any(
+            (r.get("Class_Name") or "").strip() == class_name
+            for r in self._bundle.schedule_rows
+        )
+        if not has_schedule:
+            missing.append("Schedule (no rows defined for this class)")
+
+        return missing
 
     def _on_components_edit(self, sheet_name: str) -> None:
         cn = self._current_components_class_name()
         if not cn:
-            messagebox.showinfo(
-                "Components",
-                "Select a Class on the left first.",
+            messagebox.showinfo("Components", "Select a Class on the left first.", parent=self)
+            return
+        self._save_class_detail_to_row()
+        missing = self._class_define_missing_fields(cn)
+        if missing:
+            messagebox.showwarning(
+                "Class not ready",
+                f"Class '{cn}' must have these fields set before editing components:\n\n"
+                + "\n".join(f"  • {f}" for f in missing),
                 parent=self,
             )
             return
-        messagebox.showinfo(
-            "Components",
-            f"Edit dialog for {sheet_name} (class {cn!r}) is not implemented yet.",
-            parent=self,
+        _, label, headers = next(g for g in COMPONENT_GROUPS if g[0] == sheet_name)
+        all_rows = self._bundle.component_rows.get(sheet_name, [])
+        class_rows = [r for r in all_rows if (r.get("Class_Name") or "").strip() == cn]
+        dlg = _ComponentsEditDialog(
+            self,
+            class_name=cn,
+            sheet_name=sheet_name,
+            label=label,
+            headers=headers,
+            rows=class_rows,
         )
+        self.wait_window(dlg)
+        if dlg.result is not None:
+            other_rows = [r for r in all_rows if (r.get("Class_Name") or "").strip() != cn]
+            new_rows = [{**r, "Class_Name": cn} for r in dlg.result]
+            self._bundle.component_rows[sheet_name] = other_rows + new_rows
+            self._refresh_components_preview()
 
     def _on_ok(self) -> None:
         idx = self._current_class_idx()
