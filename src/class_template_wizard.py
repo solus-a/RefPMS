@@ -22,14 +22,8 @@ from class_spec import class_base_material_group_keys, flange_pt_class_rating_op
 from size_matrix_common import normalize_nominal_mode
 from size_matrix_editor import run_size_matrix_editor
 from template_generator import (
-    BOLT_HEADERS,
     COMPONENT_GROUP_DEFS as COMPONENT_GROUPS,
-    FITTING_HEADERS,
-    FLANGE_HEADERS,
-    GASKET_HEADERS,
-    PIPE_HEADERS,
     SCHEDULE_HEADERS,
-    VALVE_HEADERS,
 )
 from units_notation_headers import bracket_unit_header, class_define_headers
 
@@ -444,8 +438,13 @@ _STRUCTURAL_FIELDS: frozenset[str] = frozenset({
     "Size2_From", "Size2_To",
     "Remarks",
 })
-_SHEET_SIZE_FROM: dict[str, str] = {"Flange_Group": "Size1_From", "Valve_Group": "Size1_From"}
-_SHEET_SIZE_TO:   dict[str, str] = {"Flange_Group": "Size1_To",   "Valve_Group": "Size1_To"}
+_SIZE1_SHEETS: frozenset[str] = frozenset({
+    "Flange_Group",
+    "Gate_Valve_Group", "Globe_Valve_Group", "Check_Valve_Group",
+    "Ball_Valve_Group", "Butterfly_Valve_Group", "Plug_Valve_Group",
+})
+_SHEET_SIZE_FROM: dict[str, str] = {s: "Size1_From" for s in _SIZE1_SHEETS}
+_SHEET_SIZE_TO:   dict[str, str] = {s: "Size1_To"   for s in _SIZE1_SHEETS}
 
 
 def _combined_component_name(row: dict[str, str]) -> str:

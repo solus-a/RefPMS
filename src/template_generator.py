@@ -47,15 +47,15 @@ ITEM_CODE_DB_DEFAULT_ROWS = [
     ("JNP1", "NIPPLE (PBE) 100mm", "NIPPLE", "Pipe_Group"),
     ("JNT", "NIPPLE (TBE) 75mm", "NIPPLE", "Pipe_Group"),
     ("JNT1", "NIPPLE (TBE) 100mm", "NIPPLE", "Pipe_Group"),
-    ("RC", "REDUCER CON", "REDUCER CON", "Fitting_Group"),
-    ("RE", "REDUCER ECC", "REDUCER ECC", "Fitting_Group"),
-    ("RCS", "SWAGE CON", "SWAGE CON", "Fitting_Group"),
-    ("RES", "SWAGE ECC", "SWAGE ECC", "Fitting_Group"),
-    ("E", "ELBOW 90 DEG LR", "ELBOW 90 DEG LR", "Fitting_Group"),
-    ("ES", "ELBOW 90 DEG SR", "ELBOW 90 DEG SR", "Fitting_Group"),
-    ("E4", "ELBOW 45 DEG LR", "ELBOW 45 DEG LR", "Fitting_Group"),
-    ("ES4", "ELBOW 45 DEG SR", "ELBOW 45 DEG SR", "Fitting_Group"),
-    ("PL", "PLUG", "PLUG", "Fitting_Group"),
+    ("RC", "REDUCER CON", "REDUCER CON", "Wrought_Fitting_Group"),
+    ("RE", "REDUCER ECC", "REDUCER ECC", "Wrought_Fitting_Group"),
+    ("RCS", "SWAGE CON", "SWAGE CON", "Wrought_Fitting_Group"),
+    ("RES", "SWAGE ECC", "SWAGE ECC", "Wrought_Fitting_Group"),
+    ("E", "ELBOW 90 DEG LR", "ELBOW 90 DEG LR", "Wrought_Fitting_Group"),
+    ("ES", "ELBOW 90 DEG SR", "ELBOW 90 DEG SR", "Wrought_Fitting_Group"),
+    ("E4", "ELBOW 45 DEG LR", "ELBOW 45 DEG LR", "Wrought_Fitting_Group"),
+    ("ES4", "ELBOW 45 DEG SR", "ELBOW 45 DEG SR", "Wrought_Fitting_Group"),
+    ("PL", "PLUG", "PLUG", "Forged_Fitting_Group"),
     ("F", "FLANGE", "FLANGE", "Flange_Group"),
     ("G", "GASKET", "GASKET", "Gasket_Group"),
     ("B", "BOLT&NUT", "BOLT", "Bolt_Group"),
@@ -92,26 +92,41 @@ PIPE_HEADERS = [
     "Item_Code",
     "Size_From",
     "Size_To",
-    "Mat_Code",
-    "Mat_Class",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
     "Manufacturing_Method",
-    "End_Type_1",
-    "End_Type_2",
+    "End_Type",
     "Length",
+    "Option_Code",
     "Remarks",
 ]
 
-FITTING_HEADERS = [
+FORGED_FITTING_HEADERS = [
     "Class_Name",
     "Item_Code",
     "Size_From",
     "Size_To",
-    "Mat_Code",
-    "Mat_Class",
-    "Manufacturing_Method",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
     "Rating",
-    "End_Type_1",
-    "End_Type_2",
+    "End_Type",
+    "Option_Code",
+    "Remarks",
+]
+
+WROUGHT_FITTING_HEADERS = [
+    "Class_Name",
+    "Item_Code",
+    "Size_From",
+    "Size_To",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
+    "Manufacturing_Method",
+    "End_Type",
+    "Option_Code",
     "Remarks",
 ]
 
@@ -120,13 +135,13 @@ FLANGE_HEADERS = [
     "Item_Code",
     "Size1_From",
     "Size1_To",
-    "Size2_From",
-    "Size2_To",
-    "Mat_Code",
-    "Mat_Class",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
     "Rating",
     "Facing",
     "Flange_Type",
+    "Option_Code",
     "Remarks",
 ]
 
@@ -143,6 +158,7 @@ GASKET_HEADERS = [
     "Rating",
     "Facing",
     "Thickness",
+    "Option_Code",
     "Remarks",
 ]
 
@@ -152,41 +168,139 @@ BOLT_HEADERS = [
     "Size_From",
     "Size_To",
     "Bolt_Type",
-    "Bolt_Mat_Code",
-    "Bolt_Mat_Class",
+    "Bolt_Matl_Category",
+    "Bolt_Matl_Std",
+    "Bolt_Matl_Code",
     "Nut_Type",
-    "Nut_Mat_Code",
-    "Nut_Mat_Class",
+    "Nut_Matl_Category",
+    "Nut_Matl_Std",
+    "Nut_Matl_Code",
     "Bolt_Length_Table",
     "Remarks",
 ]
 
-VALVE_HEADERS = [
+GATE_VALVE_HEADERS = [
     "Class_Name",
     "Item_Code",
-    "Valve_Type",
     "Size1_From",
     "Size1_To",
-    "Size2_From",
-    "Size2_To",
-    "Body_Mat",
-    "Stem/Disc/Ball_Mat",
-    "Seat_Mat",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
+    "Trim_Matl",
+    "Seat_Matl",
+    "Rating",
+    "End_Type",
+    "Bonnet_Type",
+    "Operation",
+    "Bore",
+    "Option_Code",
+    "Remarks",
+]
+
+GLOBE_VALVE_HEADERS = [
+    "Class_Name",
+    "Item_Code",
+    "Size1_From",
+    "Size1_To",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
+    "Trim_Matl",
+    "Seat_Matl",
     "Rating",
     "End_Type",
     "Bonnet_Type",
     "Operation",
     "Disc_Type",
+    "Option_Code",
+    "Remarks",
+]
+
+CHECK_VALVE_HEADERS = [
+    "Class_Name",
+    "Item_Code",
+    "Size1_From",
+    "Size1_To",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
+    "Trim_Matl",
+    "Seat_Matl",
+    "Rating",
+    "End_Type",
+    "Disc_Type",
+    "Option_Code",
+    "Remarks",
+]
+
+BALL_VALVE_HEADERS = [
+    "Class_Name",
+    "Item_Code",
+    "Size1_From",
+    "Size1_To",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
+    "Trim_Matl",
+    "Seat_Matl",
+    "Rating",
+    "End_Type",
+    "Bore",
+    "Entry_Type",
+    "Operation",
+    "Option_Code",
+    "Remarks",
+]
+
+BUTTERFLY_VALVE_HEADERS = [
+    "Class_Name",
+    "Item_Code",
+    "Size1_From",
+    "Size1_To",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
+    "Disc_Matl",
+    "Seat_Matl",
+    "Rating",
+    "End_Type",
+    "Operation",
+    "Option_Code",
+    "Remarks",
+]
+
+PLUG_VALVE_HEADERS = [
+    "Class_Name",
+    "Item_Code",
+    "Size1_From",
+    "Size1_To",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
+    "Plug_Matl",
+    "Seat_Matl",
+    "Rating",
+    "End_Type",
+    "Operation",
+    "Plug_Type",
+    "Option_Code",
     "Remarks",
 ]
 
 COMPONENT_GROUP_DEFS: list[tuple[str, str, list[str]]] = [
-    ("Pipe_Group",    "Pipe Group",    PIPE_HEADERS),
-    ("Fitting_Group", "Fitting Group", FITTING_HEADERS),
-    ("Flange_Group",  "Flange Group",  FLANGE_HEADERS),
-    ("Gasket_Group",  "Gasket Group",  GASKET_HEADERS),
-    ("Bolt_Group",    "Bolt Group",    BOLT_HEADERS),
-    ("Valve_Group",   "Valve Group",   VALVE_HEADERS),
+    ("Pipe_Group",            "Pipe Group",           PIPE_HEADERS),
+    ("Forged_Fitting_Group",  "Forged Fitting Group", FORGED_FITTING_HEADERS),
+    ("Wrought_Fitting_Group", "Wrought Fitting Group",WROUGHT_FITTING_HEADERS),
+    ("Flange_Group",          "Flange Group",         FLANGE_HEADERS),
+    ("Gasket_Group",          "Gasket Group",         GASKET_HEADERS),
+    ("Bolt_Group",            "Bolt Group",           BOLT_HEADERS),
+    ("Gate_Valve_Group",      "Gate Valve Group",     GATE_VALVE_HEADERS),
+    ("Globe_Valve_Group",     "Globe Valve Group",    GLOBE_VALVE_HEADERS),
+    ("Check_Valve_Group",     "Check Valve Group",    CHECK_VALVE_HEADERS),
+    ("Ball_Valve_Group",      "Ball Valve Group",     BALL_VALVE_HEADERS),
+    ("Butterfly_Valve_Group", "Butterfly Valve Group",BUTTERFLY_VALVE_HEADERS),
+    ("Plug_Valve_Group",      "Plug Valve Group",     PLUG_VALVE_HEADERS),
 ]
 
 HEADER_FONT = Font(bold=True)
@@ -568,23 +682,9 @@ def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
 
 
 def _append_component_group_sheets(wb: Workbook) -> None:
-    ws_pipe = wb.create_sheet(title="Pipe_Group")
-    _set_headers_and_widths(ws_pipe, PIPE_HEADERS)
-
-    ws_fitting = wb.create_sheet(title="Fitting_Group")
-    _set_headers_and_widths(ws_fitting, FITTING_HEADERS)
-
-    ws_flange = wb.create_sheet(title="Flange_Group")
-    _set_headers_and_widths(ws_flange, FLANGE_HEADERS)
-
-    ws_gasket = wb.create_sheet(title="Gasket_Group")
-    _set_headers_and_widths(ws_gasket, GASKET_HEADERS)
-
-    ws_bolt = wb.create_sheet(title="Bolt_Group")
-    _set_headers_and_widths(ws_bolt, BOLT_HEADERS)
-
-    ws_valve = wb.create_sheet(title="Valve_Group")
-    _set_headers_and_widths(ws_valve, VALVE_HEADERS)
+    for sheet_name, _, headers in COMPONENT_GROUP_DEFS:
+        ws = wb.create_sheet(title=sheet_name)
+        _set_headers_and_widths(ws, headers)
 
 
 def generate_class_define_template(
@@ -593,18 +693,12 @@ def generate_class_define_template(
 ) -> Path:
     """
     Create `Class_Define_Template.xlsx` with required sheets:
-    - Unit_System
-    - Size_Selection
-    - Class_Define
-    - Schedule
-    - Reducing_Table
-    - Branch_Table
-    - Pipe_Group
-    - Fitting_Group
-    - Flange_Group
-    - Gasket_Group
-    - Bolt_Group
-    - Valve_Group
+    - Unit_System / Size_Selection / Class_Define / Schedule
+    - Reducing_Table / Branch_Table
+    - Pipe_Group / Forged_Fitting_Group / Wrought_Fitting_Group
+    - Flange_Group / Gasket_Group / Bolt_Group
+    - Gate_Valve_Group / Globe_Valve_Group / Check_Valve_Group
+    - Ball_Valve_Group / Butterfly_Valve_Group / Plug_Valve_Group
 
     동시에 data/Item_Code_DB.xlsx 가 없으면 생성합니다(기존 파일은 유지).
 

@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "version": 1,
+    "purpose": "Per-group Item Code definitions. code = identifier used in templates; code_name = label appearing in PMS output descriptions."
+  },
+
+  "Pipe_Group": [
+    {"code": "P",  "code_name": "PIPE"},
+    {"code": "JN", "code_name": "NIPPLE"}
+  ],
+
+  "Forged_Fitting_Group": [
+    {"code": "EL90", "code_name": "ELBOW 90 DEG"},
+    {"code": "EL45", "code_name": "ELBOW 45 DEG"},
+    {"code": "TEE",  "code_name": "TEE"},
+    {"code": "CAP",  "code_name": "CAP"},
+    {"code": "CUP",  "code_name": "COUPLING"},
+    {"code": "HCUP", "code_name": "HALF COUPLING"},
+    {"code": "UNI",  "code_name": "UNION"},
+    {"code": "PL",   "code_name": "PLUG"}
+  ],
+
+  "Wrought_Fitting_Group": [
+    {"code": "E",   "code_name": "ELBOW 90 DEG LR"},
+    {"code": "ES",  "code_name": "ELBOW 90 DEG SR"},
+    {"code": "E4",  "code_name": "ELBOW 45 DEG LR"},
+    {"code": "ES4", "code_name": "ELBOW 45 DEG SR"},
+    {"code": "T",   "code_name": "TEE"},
+    {"code": "TR",  "code_name": "REDUCING TEE"},
+    {"code": "RC",  "code_name": "REDUCER CON"},
+    {"code": "RE",  "code_name": "REDUCER ECC"},
+    {"code": "RCS", "code_name": "SWAGE CON"},
+    {"code": "RES", "code_name": "SWAGE ECC"},
+    {"code": "CAP", "code_name": "CAP"},
+    {"code": "SE",  "code_name": "STUB END"}
+  ],
+
+  "Flange_Group": [
+    {"code": "F", "code_name": "FLANGE"}
+  ],
+
+  "Gasket_Group": [
+    {"code": "G", "code_name": "GASKET"}
+  ],
+
+  "Bolt_Group": [
+    {"code": "B", "code_name": "BOLT & NUT"}
+  ],
+
+  "Gate_Valve_Group": [
+    {"code": "VG", "code_name": "GATE VALVE"}
+  ],
+
+  "Globe_Valve_Group": [
+    {"code": "VGL", "code_name": "GLOBE VALVE"}
+  ],
+
+  "Check_Valve_Group": [
+    {"code": "VC", "code_name": "CHECK VALVE"}
+  ],
+
+  "Ball_Valve_Group": [
+    {"code": "VB", "code_name": "BALL VALVE"}
+  ],
+
+  "Butterfly_Valve_Group": [
+    {"code": "VBF", "code_name": "BUTTERFLY VALVE"}
+  ],
+
+  "Plug_Valve_Group": [
+    {"code": "VP", "code_name": "PLUG VALVE"}
+  ]
+}
