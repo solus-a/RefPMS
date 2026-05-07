@@ -20,6 +20,16 @@ def item_code_db_path() -> Path:
     return data_dir() / "Item_Code_DB.xlsx"
 
 
+def field_values_db_path() -> Path:
+    """그룹별 컴포넌트 필드 드롭다운 값(JSON). Components 탭 다이얼로그에서 사용."""
+    return data_dir() / "field_values.json"
+
+
+def item_code_db_json_path() -> Path:
+    """그룹별 Item Code 레지스트리(JSON). Components 탭 다이얼로그의 Item_Code 드롭다운 소스."""
+    return data_dir() / "item_code_db.json"
+
+
 def config_root() -> Path:
     """프로그램 루트의 `config/` (generator 실행 정책 전용)."""
     return program_root() / "config"

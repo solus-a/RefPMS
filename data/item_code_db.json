@@ -10,14 +10,14 @@
   ],
 
   "Forged_Fitting_Group": [
-    {"code": "EL90", "code_name": "ELBOW 90 DEG"},
-    {"code": "EL45", "code_name": "ELBOW 45 DEG"},
-    {"code": "TEE",  "code_name": "TEE"},
-    {"code": "CAP",  "code_name": "CAP"},
-    {"code": "CUP",  "code_name": "COUPLING"},
-    {"code": "HCUP", "code_name": "HALF COUPLING"},
-    {"code": "UNI",  "code_name": "UNION"},
-    {"code": "PL",   "code_name": "PLUG"}
+    {"code": "E", "code_name": "ELBOW 90 DEG"},
+    {"code": "E4", "code_name": "ELBOW 45 DEG"},
+    {"code": "T",  "code_name": "TEE"},
+    {"code": "CP",  "code_name": "CAP"},
+    {"code": "JF",  "code_name": "FULL COUPLING"},
+    {"code": "TH", "code_name": "HALF COUPLING"},
+    {"code": "JU",  "code_name": "UNION"},
+    {"code": "JP",   "code_name": "PLUG"}
   ],
 
   "Wrought_Fitting_Group": [
@@ -31,7 +31,7 @@
     {"code": "RE",  "code_name": "REDUCER ECC"},
     {"code": "RCS", "code_name": "SWAGE CON"},
     {"code": "RES", "code_name": "SWAGE ECC"},
-    {"code": "CAP", "code_name": "CAP"},
+    {"code": "CP", "code_name": "CAP"},
     {"code": "SE",  "code_name": "STUB END"}
   ],
 
@@ -48,11 +48,11 @@
   ],
 
   "Gate_Valve_Group": [
-    {"code": "VG", "code_name": "GATE VALVE"}
+    {"code": "VA", "code_name": "GATE VALVE"}
   ],
 
   "Globe_Valve_Group": [
-    {"code": "VGL", "code_name": "GLOBE VALVE"}
+    {"code": "VB", "code_name": "GLOBE VALVE"}
   ],
 
   "Check_Valve_Group": [
@@ -60,11 +60,11 @@
   ],
 
   "Ball_Valve_Group": [
-    {"code": "VB", "code_name": "BALL VALVE"}
+    {"code": "VL", "code_name": "BALL VALVE"}
   ],
 
   "Butterfly_Valve_Group": [
-    {"code": "VBF", "code_name": "BUTTERFLY VALVE"}
+    {"code": "VU", "code_name": "BUTTERFLY VALVE"}
   ],
 
   "Plug_Valve_Group": [
