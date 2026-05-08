@@ -14,6 +14,7 @@ from class_level_model import (
     ClassLevelBundle,
     ClassTemplateGlobalSettings,
     NamedSizeTable,
+    PIPE_GROUP_REQUIRED_FIELDS,
     SizeSelection,
     default_size_selection_from_catalog,
     normalizeScheduleValue,
@@ -609,18 +610,6 @@ def _std_filtered_options_for(
 
 # ── Component row editor ───────────────────────────────────────────────────────
 
-_PIPE_GROUP_REQUIRED_FIELDS: tuple[str, ...] = (
-    "Item_Code",
-    "Size_From",
-    "Size_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Manufacturing_Method",
-    "End_Type",
-    "Option_Code",
-)
-
 
 class _ComponentRowEditDialog(tk.Toplevel):
     """Single-row field editor for Add / Edit in the component sheet."""
@@ -749,7 +738,7 @@ class _ComponentRowEditDialog(tk.Toplevel):
         if self._sheet_name != "Pipe_Group":
             return []
         return [
-            h for h in _PIPE_GROUP_REQUIRED_FIELDS
+            h for h in PIPE_GROUP_REQUIRED_FIELDS
             if not (values.get(h) or "").strip()
         ]
 
@@ -2780,67 +2769,10 @@ class ClassLevelWizard(tk.Toplevel):
                     _combined_component_name(sheet_name, row),
                 ))
 
-    def _class_define_value_errors(self, class_name: str) -> list[str]:
-        """Class_Define 값 형식/관계 검증 (From <= To 등). 빈 리스트 = 통과."""
-        row = next(
-            (r for r in self._bundle.class_define_rows
-             if (r.get("Class_Name") or "").strip() == class_name),
-            None,
-        )
-        if row is None:
-            return []
-        errors: list[str] = []
-
-        def check_pair(from_h: str, to_h: str, label: str) -> None:
-            fv = _parse_signed_decimal(row.get(from_h, ""))
-            tv = _parse_signed_decimal(row.get(to_h, ""))
-            if fv is not None and tv is not None and fv > tv:
-                errors.append(f"{label}: From ({fv}) > To ({tv})")
-
-        if self._class_temp_from_h and self._class_temp_to_h:
-            check_pair(self._class_temp_from_h, self._class_temp_to_h, "Design_Temperature")
-        if self._class_press_from_h and self._class_press_to_h:
-            check_pair(self._class_press_from_h, self._class_press_to_h, "Design_Pressure")
-        return errors
-
-    def _class_define_missing_fields(self, class_name: str) -> list[str]:
-        """Edit를 허용하기 전 Class_Define 필수 항목 미설정 목록 반환. 빈 리스트 = 통과."""
-        row = next(
-            (r for r in self._bundle.class_define_rows
-             if (r.get("Class_Name") or "").strip() == class_name),
-            None,
-        )
-        if row is None:
-            return ["Class not found in Class_Define"]
-
-        required: list[str] = [
-            "Nominal_Size_System",
-            "Size_From",
-            "Size_To",
-            "Design_Code",
-            "Class_Base_Material",
-            "Class_Rating",
-            "Corrosion_Allowance",
-            "Design_Temperature_From",
-            "Design_Temperature_To",
-            "Design_Pressure_From",
-            "Design_Pressure_To",
-        ]
-        missing = [f for f in required if not str(row.get(f, "") or "").strip()]
-
-        has_schedule = any(
-            (r.get("Class_Name") or "").strip() == class_name
-            for r in self._bundle.schedule_rows
-        )
-        if not has_schedule:
-            missing.append("Schedule (no rows defined for this class)")
-
-        return missing
-
     def _ensure_components_class_ready(self, cn: str) -> bool:
         """Add/Edit를 허용하기 전 Class_Define 필수 필드/Schedule/값 검증을 모두 통과해야 True."""
         self._save_class_detail_to_row()
-        missing = self._class_define_missing_fields(cn)
+        missing = self._bundle.class_define_missing_fields(cn)
         if missing:
             messagebox.showwarning(
                 "Class not ready",
@@ -2849,7 +2781,7 @@ class ClassLevelWizard(tk.Toplevel):
                 parent=self,
             )
             return False
-        errors = self._class_define_value_errors(cn)
+        errors = self._bundle.class_define_value_errors(cn)
         if errors:
             messagebox.showerror(
                 "Invalid values",
@@ -2965,7 +2897,7 @@ class ClassLevelWizard(tk.Toplevel):
             cn = (row.get("Class_Name") or "").strip()
             if not cn:
                 continue
-            for e in self._class_define_value_errors(cn):
+            for e in self._bundle.class_define_value_errors(cn):
                 value_errors.append(f"[{cn}] {e}")
         if value_errors:
             messagebox.showerror("Validation", "\n".join(value_errors), parent=self)

@@ -86,6 +86,43 @@ class SizeSelection:
         return list(self.dn) if m == "DN" else list(self.nps)
 
 
+CLASS_DEFINE_REQUIRED_FIELDS: tuple[str, ...] = (
+    "Nominal_Size_System",
+    "Size_From",
+    "Size_To",
+    "Design_Code",
+    "Class_Base_Material",
+    "Class_Rating",
+    "Corrosion_Allowance",
+    "Design_Temperature_From",
+    "Design_Temperature_To",
+    "Design_Pressure_From",
+    "Design_Pressure_To",
+)
+
+PIPE_GROUP_REQUIRED_FIELDS: tuple[str, ...] = (
+    "Item_Code",
+    "Size_From",
+    "Size_To",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
+    "Manufacturing_Method",
+    "End_Type",
+    "Option_Code",
+)
+
+
+def _parse_signed_decimal(value: str | None) -> float | None:
+    raw = (value or "").strip()
+    if not raw or raw == "-":
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
 @dataclass
 class ClassTemplateGlobalSettings:
     """Class Template 전역 설정 (Unit_System + Size_Selection 시트). 모든 Class 에 공통 적용."""
@@ -226,6 +263,68 @@ class ClassLevelBundle:
             st = (row.get("Size_To") or "").strip()
             return _resolve_active_sizes(self.global_settings.size_selection, mode, sf, st)
         return []
+
+    def class_define_value_errors(self, class_name: str) -> list[str]:
+        """Class_Define cross-field 검증 (Design_Temperature/Pressure From > To 등).
+
+        Empty list means OK. The class_name is matched against Class_Define rows.
+        """
+        row = next(
+            (r for r in self.class_define_rows
+             if (r.get("Class_Name") or "").strip() == class_name),
+            None,
+        )
+        if row is None:
+            return []
+        errors: list[str] = []
+
+        def check_pair(from_h: str, to_h: str, label: str) -> None:
+            fv = _parse_signed_decimal(row.get(from_h, ""))
+            tv = _parse_signed_decimal(row.get(to_h, ""))
+            if fv is not None and tv is not None and fv > tv:
+                errors.append(f"{label}: From ({fv}) > To ({tv})")
+
+        check_pair("Design_Temperature_From", "Design_Temperature_To", "Design_Temperature")
+        check_pair("Design_Pressure_From", "Design_Pressure_To", "Design_Pressure")
+        return errors
+
+    def class_define_missing_fields(self, class_name: str) -> list[str]:
+        """Class_Define 필수 항목 미설정 + Schedule 행 부재 목록. Empty list means OK."""
+        row = next(
+            (r for r in self.class_define_rows
+             if (r.get("Class_Name") or "").strip() == class_name),
+            None,
+        )
+        if row is None:
+            return ["Class not found in Class_Define"]
+
+        missing = [
+            f for f in CLASS_DEFINE_REQUIRED_FIELDS
+            if not str(row.get(f, "") or "").strip()
+        ]
+
+        has_schedule = any(
+            (r.get("Class_Name") or "").strip() == class_name
+            for r in self.schedule_rows
+        )
+        if not has_schedule:
+            missing.append("Schedule (no rows defined for this class)")
+
+        return missing
+
+    def validate_component_row(
+        self, sheet_name: str, values: dict[str, str]
+    ) -> list[str]:
+        """Component sheet의 단일 행 필수 필드 검증. Empty list means OK.
+
+        현재는 Pipe_Group만 정책이 정의되어 있다 (PIPE_GROUP_REQUIRED_FIELDS).
+        """
+        if sheet_name != "Pipe_Group":
+            return []
+        return [
+            field for field in PIPE_GROUP_REQUIRED_FIELDS
+            if not (values.get(field) or "").strip()
+        ]
 
     def validate(self) -> list[str]:
         """Empty list means OK. Error strings for the wizard (English)."""
