@@ -23,7 +23,12 @@ from class_level_model import (
     read_global_settings_from_workbook,
     row_dict_for_headers,
 )
-from units_notation_headers import class_define_headers
+from units_notation_headers import (
+    class_define_display_headers,
+    class_define_display_to_storage_row,
+    class_define_storage_headers,
+    class_define_storage_to_display_row,
+)
 from data_defaults import DEFAULT_CLASS_MATERIAL_MAPPING, DEFAULT_COMPONENT_MAPPING
 from excel_sheet_utils import build_header_index, detect_header_row, to_text as _cell_to_text
 
@@ -64,8 +69,11 @@ ITEM_CODE_DB_DEFAULT_ROWS = [
 def _class_sheet_headers(
     global_settings: ClassTemplateGlobalSettings | None = None,
 ) -> list[str]:
+    """xlsx Class_Define column headers — temperature/pressure carry [unit] notation."""
     gs = global_settings or ClassTemplateGlobalSettings()
-    return class_define_headers(gs.design_temperature_unit, gs.design_pressure_unit)
+    return class_define_display_headers(
+        gs.design_temperature_unit, gs.design_pressure_unit
+    )
 
 
 SCHEDULE_HEADERS = [
@@ -660,10 +668,20 @@ def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
     ws_reducing = ws_or_none("Reducing_Table")
     ws_branch = ws_or_none("Branch_Table")
 
-    class_rows = _read_dict_rows(ws_define, class_headers) if ws_define is not None else []
+    if ws_define is not None:
+        display_rows = _read_dict_rows(ws_define, class_headers)
+        class_rows = [
+            class_define_display_to_storage_row(
+                row,
+                global_settings.design_temperature_unit,
+                global_settings.design_pressure_unit,
+            )
+            for row in display_rows
+        ]
+    else:
+        class_rows = []
     if not class_rows:
-        blank = row_dict_for_headers(class_headers)
-        class_rows = [blank]
+        class_rows = [row_dict_for_headers(class_define_storage_headers())]
 
     component_rows: dict[str, list[dict[str, str]]] = {}
     for sheet_name, _, headers in COMPONENT_GROUP_DEFS:
@@ -746,7 +764,15 @@ def generate_class_define_template(
     _set_headers_and_widths(ws_reducing_table, REDUCING_TABLE_HEADERS)
 
     if class_level is not None:
-        _write_dict_rows(ws_define, class_headers, class_level.class_define_rows)
+        display_class_rows = [
+            class_define_storage_to_display_row(
+                row,
+                global_settings.design_temperature_unit,
+                global_settings.design_pressure_unit,
+            )
+            for row in class_level.class_define_rows
+        ]
+        _write_dict_rows(ws_define, class_headers, display_class_rows)
         _write_dict_rows(ws_schedule, SCHEDULE_HEADERS, class_level.schedule_rows)
         _write_named_size_tables(ws_branch_table, class_level.branch_tables)
         _write_named_size_tables(ws_reducing_table, class_level.reducing_tables)

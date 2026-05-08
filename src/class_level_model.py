@@ -193,7 +193,13 @@ def read_global_settings_from_workbook(workbook) -> ClassTemplateGlobalSettings:
 
 @dataclass
 class ClassLevelBundle:
-    """템플릿 xlsx의 클래스 수준 시트 내용."""
+    """템플릿 xlsx의 클래스 수준 시트 내용.
+
+    class_define_rows의 dict 키는 단위에 무관한 storage 키
+    (`Design_Temperature_From`, `Design_Pressure_From` 등) 를 사용한다.
+    xlsx 컬럼 헤더(`Design_Temperature_From [°C]`)는 export/import 경계에서만
+    변환되며 모델 내부 어디에서도 사용하지 않는다.
+    """
 
     class_define_rows: list[dict[str, str]]
     schedule_rows: list[dict[str, str]]

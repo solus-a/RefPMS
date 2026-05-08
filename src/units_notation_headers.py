@@ -1,6 +1,41 @@
-"""Class Template 전역 단위 → Class_Define 컬럼 헤더 (``[unit]`` notation)."""
+"""Class_Define column headers — storage keys (unit-free) vs display headers (with [unit])."""
 
 from __future__ import annotations
+
+
+CLASS_DEFINE_STORAGE_KEYS: tuple[str, ...] = (
+    "Revision_No",
+    "Class_Name",
+    "Nominal_Size_System",
+    "Size_From",
+    "Size_To",
+    "Design_Code",
+    "Class_Base_Material",
+    "Class_Rating",
+    "Corrosion_Allowance",
+    "Design_Temperature_From",
+    "Design_Temperature_To",
+    "Design_Pressure_From",
+    "Design_Pressure_To",
+    "Fluid_Service",
+    "Branch_Table_1",
+    "Branch_Table_2",
+    "Reducing_Table_1",
+    "Reducing_Table_2",
+    "Global_Special_Req",
+    "Remarks",
+)
+
+
+_TEMPERATURE_KEYS: frozenset[str] = frozenset({
+    "Design_Temperature_From",
+    "Design_Temperature_To",
+})
+
+_PRESSURE_KEYS: frozenset[str] = frozenset({
+    "Design_Pressure_From",
+    "Design_Pressure_To",
+})
 
 
 def bracket_unit_header(base_column_name: str, unit_display: str) -> str:
@@ -10,31 +45,73 @@ def bracket_unit_header(base_column_name: str, unit_display: str) -> str:
     return f"{base_column_name} [{u}]"
 
 
+def class_define_storage_headers() -> list[str]:
+    """Domain (unit-free) keys used inside ClassLevelBundle.class_define_rows."""
+    return list(CLASS_DEFINE_STORAGE_KEYS)
+
+
+def class_define_display_headers(
+    design_temperature_unit: str, design_pressure_unit: str
+) -> list[str]:
+    """xlsx column headers — temperature/pressure keys carry [unit] notation."""
+    out: list[str] = []
+    for key in CLASS_DEFINE_STORAGE_KEYS:
+        if key in _TEMPERATURE_KEYS:
+            out.append(bracket_unit_header(key, design_temperature_unit))
+        elif key in _PRESSURE_KEYS:
+            out.append(bracket_unit_header(key, design_pressure_unit))
+        else:
+            out.append(key)
+    return out
+
+
 def class_define_headers(design_temperature_unit: str, design_pressure_unit: str) -> list[str]:
-    t = design_temperature_unit
-    p = design_pressure_unit
-    return [
-        "Revision_No",
-        "Class_Name",
-        "Nominal_Size_System",
-        "Size_From",
-        "Size_To",
-        "Design_Code",
-        "Class_Base_Material",
-        "Class_Rating",
-        "Corrosion_Allowance",
-        bracket_unit_header("Design_Temperature_From", t),
-        bracket_unit_header("Design_Temperature_To", t),
-        bracket_unit_header("Design_Pressure_From", p),
-        bracket_unit_header("Design_Pressure_To", p),
-        "Fluid_Service",
-        "Branch_Table_1",
-        "Branch_Table_2",
-        "Reducing_Table_1",
-        "Reducing_Table_2",
-        "Global_Special_Req",
-        "Remarks",
-    ]
+    """Backward-compatible alias for :func:`class_define_display_headers`."""
+    return class_define_display_headers(design_temperature_unit, design_pressure_unit)
+
+
+def class_define_storage_to_display_key(
+    storage_key: str, design_temperature_unit: str, design_pressure_unit: str
+) -> str:
+    if storage_key in _TEMPERATURE_KEYS:
+        return bracket_unit_header(storage_key, design_temperature_unit)
+    if storage_key in _PRESSURE_KEYS:
+        return bracket_unit_header(storage_key, design_pressure_unit)
+    return storage_key
+
+
+def class_define_storage_to_display_row(
+    row: dict[str, str],
+    design_temperature_unit: str,
+    design_pressure_unit: str,
+) -> dict[str, str]:
+    """Convert a row keyed by storage keys to a row keyed by display headers (xlsx export)."""
+    return {
+        class_define_storage_to_display_key(
+            key, design_temperature_unit, design_pressure_unit
+        ): str(row.get(key, "") or "")
+        for key in CLASS_DEFINE_STORAGE_KEYS
+    }
+
+
+def class_define_display_to_storage_row(
+    row: dict[str, str],
+    design_temperature_unit: str,
+    design_pressure_unit: str,
+) -> dict[str, str]:
+    """Convert a row keyed by display headers to a row keyed by storage keys (xlsx import)."""
+    return {
+        key: str(
+            row.get(
+                class_define_storage_to_display_key(
+                    key, design_temperature_unit, design_pressure_unit
+                ),
+                "",
+            )
+            or ""
+        )
+        for key in CLASS_DEFINE_STORAGE_KEYS
+    }
 
 
 def class_define_excel_to_spec_key(

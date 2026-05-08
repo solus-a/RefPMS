@@ -27,7 +27,7 @@ from template_generator import (
     COMPONENT_GROUP_DEFS as COMPONENT_GROUPS,
     SCHEDULE_HEADERS,
 )
-from units_notation_headers import bracket_unit_header, class_define_headers
+from units_notation_headers import bracket_unit_header, class_define_storage_headers
 
 _CLASS_DETAIL_LABEL_WIDTH = 28
 _CLASS_DETAIL_VALUE_PADX = (8, 0)
@@ -827,19 +827,19 @@ class ClassLevelWizard(tk.Toplevel):
         ttk.Button(bf, text="Cancel", command=self._on_cancel).pack(side="right", padx=6)
 
     def _refresh_derived_from_global_settings(self) -> None:
-        """Global settings 변경 시 헤더·corrosion 레퍼런스·temp/press 키 재계산."""
+        """Global settings 변경 시 표시용 단위 라벨과 corrosion 레퍼런스를 재계산.
+
+        class_define row dict 키는 단위에 무관한 storage 키로 고정되므로
+        unit 변경 시에도 키 재매핑이 필요 없다.
+        """
         gs = self._global_settings
         self._class_design_temp_u = gs.design_temperature_unit
         self._class_design_press_u = gs.design_pressure_unit
-        self._class_define_headers = class_define_headers(
-            gs.design_temperature_unit, gs.design_pressure_unit
-        )
-        (
-            self._class_temp_from_h,
-            self._class_temp_to_h,
-            self._class_press_from_h,
-            self._class_press_to_h,
-        ) = ClassLevelWizard._resolve_temperature_pressure_header_keys(self._class_define_headers)
+        self._class_define_headers = class_define_storage_headers()
+        self._class_temp_from_h = "Design_Temperature_From"
+        self._class_temp_to_h = "Design_Temperature_To"
+        self._class_press_from_h = "Design_Pressure_From"
+        self._class_press_to_h = "Design_Pressure_To"
         self._corrosion_unit_symbol = _corrosion_allowance_unit_symbol(gs.unit_system)
         self._corrosion_combo_values = _corrosion_reference_values_for(gs.unit_system)
 
@@ -847,26 +847,6 @@ class ClassLevelWizard(tk.Toplevel):
         row = row_dict_for_headers(self._class_define_headers)
         row[_CORROSION_ALLOWANCE_KEY] = self._corrosion_default_value
         return row
-
-    def _rekey_class_rows_to_current_headers(
-        self, old_temp_from: str, old_temp_to: str, old_press_from: str, old_press_to: str
-    ) -> None:
-        """단위 변경으로 헤더 키가 바뀐 경우 각 row 의 키를 새 헤더로 재매핑."""
-        rename_map: dict[str, str] = {}
-        if old_temp_from and old_temp_from != self._class_temp_from_h:
-            rename_map[old_temp_from] = self._class_temp_from_h
-        if old_temp_to and old_temp_to != self._class_temp_to_h:
-            rename_map[old_temp_to] = self._class_temp_to_h
-        if old_press_from and old_press_from != self._class_press_from_h:
-            rename_map[old_press_from] = self._class_press_from_h
-        if old_press_to and old_press_to != self._class_press_to_h:
-            rename_map[old_press_to] = self._class_press_to_h
-        if not rename_map:
-            return
-        for row in self._bundle.class_define_rows:
-            for old_key, new_key in rename_map.items():
-                if old_key in row:
-                    row[new_key] = row.pop(old_key)
 
     def _nominal_mode_for_class_name(self, class_name: str) -> str:
         """주어진 Class_Name 의 nominal_size_system (NPS/DN, 빈 값 시 NPS 폴백)."""
@@ -931,22 +911,6 @@ class ClassLevelWizard(tk.Toplevel):
                 if t.table_code.strip() and normalize_nominal_mode(t.nominal_mode) == m
             ),
         )
-
-    @staticmethod
-    def _resolve_temperature_pressure_header_keys(
-        headers: list[str],
-    ) -> tuple[str, str, str, str]:
-        tf = tt = pf = pt = ""
-        for x in headers:
-            if x.startswith("Design_Temperature_From"):
-                tf = x
-            elif x.startswith("Design_Temperature_To"):
-                tt = x
-            elif x.startswith("Design_Pressure_From"):
-                pf = x
-            elif x.startswith("Design_Pressure_To"):
-                pt = x
-        return tf, tt, pf, pt
 
     def _use_combined_temperature_pressure_rows(self) -> bool:
         return bool(
@@ -1326,11 +1290,6 @@ class ClassLevelWizard(tk.Toplevel):
         new_temp = (self._design_temp_var.get() or "").strip()
         new_press = (self._design_press_combo.get() or "").strip()
 
-        old_temp_from = self._class_temp_from_h
-        old_temp_to = self._class_temp_to_h
-        old_press_from = self._class_press_from_h
-        old_press_to = self._class_press_to_h
-
         self._save_class_detail_to_row()
         self._global_settings = ClassTemplateGlobalSettings(
             unit_system=new_system,
@@ -1339,9 +1298,6 @@ class ClassLevelWizard(tk.Toplevel):
             size_selection=copy.deepcopy(self._global_settings.size_selection),
         )
         self._refresh_derived_from_global_settings()
-        self._rekey_class_rows_to_current_headers(
-            old_temp_from, old_temp_to, old_press_from, old_press_to
-        )
         self._rebuild_class_detail_widgets()
         self._refresh_class_listbox()
         if self._bundle.class_define_rows:
@@ -2857,8 +2813,6 @@ class ClassLevelWizard(tk.Toplevel):
         if row is None:
             return ["Class not found in Class_Define"]
 
-        t = self._global_settings.design_temperature_unit
-        p = self._global_settings.design_pressure_unit
         required: list[str] = [
             "Nominal_Size_System",
             "Size_From",
@@ -2867,10 +2821,10 @@ class ClassLevelWizard(tk.Toplevel):
             "Class_Base_Material",
             "Class_Rating",
             "Corrosion_Allowance",
-            bracket_unit_header("Design_Temperature_From", t),
-            bracket_unit_header("Design_Temperature_To", t),
-            bracket_unit_header("Design_Pressure_From", p),
-            bracket_unit_header("Design_Pressure_To", p),
+            "Design_Temperature_From",
+            "Design_Temperature_To",
+            "Design_Pressure_From",
+            "Design_Pressure_To",
         ]
         missing = [f for f in required if not str(row.get(f, "") or "").strip()]
 
