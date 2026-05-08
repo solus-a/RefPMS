@@ -609,6 +609,19 @@ def _std_filtered_options_for(
 
 # ── Component row editor ───────────────────────────────────────────────────────
 
+_PIPE_GROUP_REQUIRED_FIELDS: tuple[str, ...] = (
+    "Item_Code",
+    "Size_From",
+    "Size_To",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
+    "Manufacturing_Method",
+    "End_Type",
+    "Option_Code",
+)
+
+
 class _ComponentRowEditDialog(tk.Toplevel):
     """Single-row field editor for Add / Edit in the component sheet."""
 
@@ -718,8 +731,27 @@ class _ComponentRowEditDialog(tk.Toplevel):
                 out[h] = self._reverse_maps[h].get(raw, "")
             else:
                 out[h] = raw
+
+        missing = self._missing_required_fields(out)
+        if missing:
+            messagebox.showwarning(
+                "Missing required fields",
+                f"Pipe Group requires the following field(s):\n\n  • "
+                + "\n  • ".join(missing),
+                parent=self,
+            )
+            return
+
         self.result = out
         self.destroy()
+
+    def _missing_required_fields(self, values: dict[str, str]) -> list[str]:
+        if self._sheet_name != "Pipe_Group":
+            return []
+        return [
+            h for h in _PIPE_GROUP_REQUIRED_FIELDS
+            if not (values.get(h) or "").strip()
+        ]
 
 
 class ClassLevelWizard(tk.Toplevel):
@@ -2642,8 +2674,8 @@ class ClassLevelWizard(tk.Toplevel):
                 lambda _e, s=sheet_name: self._on_components_edit_row(s),
             )
             tv.bind(
-                "<<TreeviewSelect>>",
-                lambda _e, s=sheet_name: self._on_component_tree_select(s),
+                "<Button-1>",
+                lambda _e, s=sheet_name: self._clear_other_group_selections(s),
                 add="+",
             )
             self._comp_group_trees[sheet_name] = tv
@@ -2651,7 +2683,6 @@ class ClassLevelWizard(tk.Toplevel):
         self._comp_working_rows: dict[str, list[dict[str, str]]] = {sn: [] for sn, _, _ in COMPONENT_GROUPS}
         self._comp_working_class: str | None = None
         self._comp_select_guard: bool = False
-        self._comp_tree_select_lock: bool = False
 
         self._refresh_components_class_list()
 
@@ -2709,23 +2740,19 @@ class ClassLevelWizard(tk.Toplevel):
         self._load_components_buffer_for(new_cn)
         self._refresh_components_preview()
 
-    def _on_component_tree_select(self, sheet_name: str) -> None:
-        """그룹 섹션 트리에서 행 선택 시, 다른 그룹 트리들의 선택을 해제 (단일 선택 동기화)."""
-        if getattr(self, "_comp_tree_select_lock", False):
-            return
+    def _clear_other_group_selections(self, sheet_name: str) -> None:
+        """사용자 클릭 시 다른 그룹 트리의 선택을 해제 — 단일 그룹 선택 동기화.
+        <Button-1>에 바인딩되어 사용자 클릭에만 반응하므로 selection_remove로 인한
+        <<TreeviewSelect>> 캐스케이드가 발생하지 않는다."""
         trees = getattr(self, "_comp_group_trees", None)
         if not trees:
             return
-        self._comp_tree_select_lock = True
-        try:
-            for sn, tv in trees.items():
-                if sn == sheet_name:
-                    continue
-                sel = tv.selection()
-                if sel:
-                    tv.selection_remove(*sel)
-        finally:
-            self._comp_tree_select_lock = False
+        for sn, tv in trees.items():
+            if sn == sheet_name:
+                continue
+            sel = tv.selection()
+            if sel:
+                tv.selection_remove(*sel)
 
     def _restore_components_class_selection(self) -> None:
         target = self._comp_working_class
