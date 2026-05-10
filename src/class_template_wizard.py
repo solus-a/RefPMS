@@ -5,7 +5,9 @@ from __future__ import annotations
 import copy
 import json
 import tkinter as tk
+from datetime import datetime
 from functools import lru_cache
+from pathlib import Path
 from tkinter import messagebox, simpledialog, ttk
 from typing import Callable, Literal
 
@@ -26,9 +28,13 @@ from size_matrix_common import normalize_nominal_mode
 from size_matrix_editor import run_size_matrix_editor
 from template_generator import (
     COMPONENT_GROUP_DEFS as COMPONENT_GROUPS,
+    DEFAULT_TEMPLATE_FILENAME,
     SCHEDULE_HEADERS,
+    generate_class_define_template,
 )
 from units_notation_headers import bracket_unit_header, class_define_storage_headers
+import file_handler
+from project_codec import ProjectFileError, save_project
 
 _CLASS_DETAIL_LABEL_WIDTH = 28
 _CLASS_DETAIL_VALUE_PADX = (8, 0)
@@ -38,7 +44,6 @@ _STRIPE_A = "#ffffff"
 _STRIPE_B = "#f0f1f4"
 _LIST_HOVER = "#dceaf7"
 
-_LAST_CLASS_LEVEL_BUNDLE: ClassLevelBundle | None = None
 _CORROSION_ALLOWANCE_KEY = "Corrosion_Allowance"
 
 
@@ -744,13 +749,18 @@ class _ComponentRowEditDialog(tk.Toplevel):
 
 
 class ClassLevelWizard(tk.Toplevel):
-    def __init__(self, parent: tk.Tk, initial_bundle: ClassLevelBundle | None = None) -> None:
+    def __init__(
+        self,
+        parent: tk.Tk,
+        initial_bundle: ClassLevelBundle | None = None,
+        initial_project_path: str | None = None,
+    ) -> None:
         super().__init__(parent)
         self.title("RefPMS")
         self.geometry("920x620")
         self.transient(parent)
         self.grab_set()
-        self.result: ClassLevelBundle | None = None
+        self._project_path: str | None = initial_project_path
         self._material_combo_values = ["", *class_base_material_group_keys()]
         self._rating_combo_values = ["", *flange_pt_class_rating_options()]
         self._design_code_options: list[str] = ["", *config.design_codes_allowed()]
@@ -812,8 +822,12 @@ class ClassLevelWizard(tk.Toplevel):
 
         bf = ttk.Frame(self)
         bf.pack(fill="x", padx=8, pady=8)
-        ttk.Button(bf, text="Confirm", command=self._on_ok).pack(side="right", padx=6)
-        ttk.Button(bf, text="Cancel", command=self._on_cancel).pack(side="right", padx=6)
+        ttk.Button(bf, text="Close", command=self._on_close).pack(side="right", padx=6)
+        ttk.Button(bf, text="Export xlsx", command=self._on_export_xlsx).pack(side="right", padx=6)
+        ttk.Button(bf, text="Save Project", command=self._on_save_project).pack(side="right", padx=6)
+
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+        self._on_disk_snapshot: ClassLevelBundle = copy.deepcopy(self._bundle)
 
     def _refresh_derived_from_global_settings(self) -> None:
         """Global settings 변경 시 표시용 단위 라벨과 corrosion 레퍼런스를 재계산.
@@ -2888,7 +2902,8 @@ class ClassLevelWizard(tk.Toplevel):
         del rows[idx]
         self._refresh_components_preview()
 
-    def _on_ok(self) -> None:
+    def _flush_and_validate(self) -> bool:
+        """현재 폼 입력을 bundle에 반영하고 모델 검증을 통과하면 True."""
         idx = self._current_class_idx()
         if idx is not None:
             self._save_class_row_at_index(idx)
@@ -2901,34 +2916,76 @@ class ClassLevelWizard(tk.Toplevel):
                 value_errors.append(f"[{cn}] {e}")
         if value_errors:
             messagebox.showerror("Validation", "\n".join(value_errors), parent=self)
-            return
+            return False
         self._bundle.global_settings = copy.deepcopy(self._global_settings)
         errs = self._bundle.validate()
         if errs:
             messagebox.showerror("Validation", "\n".join(errs), parent=self)
-            return
+            return False
         warns = self._bundle.validation_warnings()
         if warns:
             messagebox.showwarning("Validation Warning", "\n".join(warns), parent=self)
-        self.result = copy.deepcopy(self._bundle)
-        self.destroy()
+        return True
 
-    def _on_cancel(self) -> None:
-        self.result = None
+    def _on_save_project(self) -> None:
+        if not self._flush_and_validate():
+            return
+        path = self._project_path
+        if not path:
+            chosen = file_handler.select_project_save_path(self)
+            if not chosen:
+                return
+            path = chosen
+        try:
+            save_project(self._bundle, path)
+        except (OSError, ProjectFileError) as exc:
+            messagebox.showerror("Save Project", f"저장 실패:\n{exc}", parent=self)
+            return
+        self._project_path = path
+        self._on_disk_snapshot = copy.deepcopy(self._bundle)
+        self.title(f"RefPMS — {Path(path).name}")
+        messagebox.showinfo("Save Project", f"Saved:\n{path}", parent=self)
+
+    def _on_export_xlsx(self) -> None:
+        if not self._flush_and_validate():
+            return
+        save_dir = file_handler.select_save_folder(self)
+        if not save_dir:
+            return
+        try:
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            out_dir = Path(save_dir) / "template" / stamp
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out_path = out_dir / DEFAULT_TEMPLATE_FILENAME
+            generate_class_define_template(output_path=out_path, class_level=self._bundle)
+        except Exception as exc:
+            messagebox.showerror("Export xlsx", f"내보내기 실패:\n{exc}", parent=self)
+            return
+        messagebox.showinfo("Export xlsx", f"Exported:\n{out_path}", parent=self)
+
+    def _on_close(self) -> None:
+        idx = self._current_class_idx()
+        if idx is not None:
+            self._save_class_row_at_index(idx)
+        self._bundle.global_settings = copy.deepcopy(self._global_settings)
+        if self._bundle != self._on_disk_snapshot:
+            if not messagebox.askyesno(
+                "Close Project",
+                "저장하지 않은 변경이 있습니다. 그래도 닫으시겠습니까?",
+                parent=self,
+            ):
+                return
         self.destroy()
 
 
 def run_class_level_wizard(
     parent: tk.Tk,
     initial_bundle: ClassLevelBundle | None = None,
-) -> ClassLevelBundle | None:
-    global _LAST_CLASS_LEVEL_BUNDLE
-    if initial_bundle is not None:
-        seed = copy.deepcopy(initial_bundle)
-    else:
-        seed = copy.deepcopy(_LAST_CLASS_LEVEL_BUNDLE) if _LAST_CLASS_LEVEL_BUNDLE is not None else None
-    dlg = ClassLevelWizard(parent, initial_bundle=seed)
+    initial_project_path: str | None = None,
+) -> None:
+    """프로젝트 wizard 실행. Save / Export / Close 모두 wizard 내부에서 처리."""
+    seed = copy.deepcopy(initial_bundle) if initial_bundle is not None else None
+    dlg = ClassLevelWizard(
+        parent, initial_bundle=seed, initial_project_path=initial_project_path
+    )
     parent.wait_window(dlg)
-    if dlg.result is not None:
-        _LAST_CLASS_LEVEL_BUNDLE = copy.deepcopy(dlg.result)
-    return dlg.result
