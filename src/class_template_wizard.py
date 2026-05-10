@@ -18,6 +18,7 @@ from class_level_model import (
     NamedSizeTable,
     PIPE_GROUP_REQUIRED_FIELDS,
     SizeSelection,
+    component_row_size_pair_errors,
     default_size_selection_from_catalog,
     normalizeScheduleValue,
     row_dict_for_headers,
@@ -732,6 +733,15 @@ class _ComponentRowEditDialog(tk.Toplevel):
                 "Missing required fields",
                 f"Pipe Group requires the following field(s):\n\n  • "
                 + "\n  • ".join(missing),
+                parent=self,
+            )
+            return
+
+        size_errors = component_row_size_pair_errors(self._sheet_name, out)
+        if size_errors:
+            messagebox.showerror(
+                "Invalid size range",
+                "\n".join(f"  • {e}" for e in size_errors),
                 parent=self,
             )
             return

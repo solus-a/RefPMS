@@ -123,6 +123,27 @@ def _parse_signed_decimal(value: str | None) -> float | None:
         return None
 
 
+def component_row_size_pair_errors(
+    sheet_name: str, values: dict[str, str]
+) -> list[str]:
+    """Component row 의 size pair (From <= To) 검증.
+
+    빈 리스트 = OK. 현재 Pipe_Group 만 정책 정의됨; 다른 시트는 그 시트 작업 시 보강.
+    """
+    if sheet_name != "Pipe_Group":
+        return []
+    sf = (values.get("Size_From") or "").strip()
+    st = (values.get("Size_To") or "").strip()
+    if not sf or not st:
+        return []
+    try:
+        if float(sf) > float(st):
+            return [f"Size_From ({sf}) > Size_To ({st})"]
+    except ValueError:
+        return []
+    return []
+
+
 @dataclass
 class ClassTemplateGlobalSettings:
     """Class Template 전역 설정 (Unit_System + Size_Selection 시트). 모든 Class 에 공통 적용."""
