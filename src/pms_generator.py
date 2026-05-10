@@ -590,130 +590,57 @@ def _load_item_code_db(logger: logging.Logger) -> dict[str, dict[str, str]]:
     return out
 
 
-def _load_reducing_table(workbook) -> dict[str, dict[tuple[str, str], str]]:
-    """
-    Reducing_Table 시트 로드.
-    Table_Code가 빈칸이면 직전 값으로 forward fill 하여 item_type 매핑을 구성합니다.
-    reducing_data[table_code][(size1, size2)] = item_type
-    """
-    if "Reducing_Table" not in workbook.sheetnames:
-        return {}
-
-    ws = workbook["Reducing_Table"]
-    try:
-        header_row = _detect_header_row(ws, REDUCING_TABLE_REQUIRED_HEADERS)
-    except ValueError:
-        return {}
-
-    header_to_col = _build_header_index(ws, header_row)
-    missing = [h for h in REDUCING_TABLE_REQUIRED_HEADERS if h not in header_to_col]
-    if missing:
-        return {}
-
-    reducing_data: dict[str, dict[tuple[str, str], str]] = {}
-    previous_table_code = ""
-    for row_idx in range(header_row + 1, ws.max_row + 1):
-        table_code_raw = _get_cell_text(ws, row_idx, header_to_col, "Table_Code")
-        if table_code_raw:
-            previous_table_code = table_code_raw
-        table_code = previous_table_code
-
-        size1 = _get_cell_text(ws, row_idx, header_to_col, "Size1")
-        size2 = _get_cell_text(ws, row_idx, header_to_col, "Size2")
-        item_type = _get_cell_text(ws, row_idx, header_to_col, "Item_Type").upper()
-        if not table_code or not size1 or not size2 or not item_type:
+def _build_size_table_data(
+    tables,
+) -> dict[str, dict[tuple[str, str], str]]:
+    """NamedSizeTable 리스트 -> {table_code: {(size1, size2): item_type}}."""
+    out: dict[str, dict[tuple[str, str], str]] = {}
+    for tbl in tables:
+        code = (tbl.table_code or "").strip()
+        if not code:
             continue
+        for sr in tbl.rows:
+            s1 = (sr.size1 or "").strip()
+            s2 = (sr.size2 or "").strip()
+            it = (sr.item_type or "").strip().upper()
+            if not s1 or not s2 or not it:
+                continue
+            out.setdefault(code, {})[(s1, s2)] = it
+    return out
 
-        if table_code not in reducing_data:
-            reducing_data[table_code] = {}
-        reducing_data[table_code][(size1, size2)] = item_type
 
-    return reducing_data
+def _load_reducing_table(bundle) -> dict[str, dict[tuple[str, str], str]]:
+    """ClassLevelBundle.reducing_tables -> {table_code: {(size1, size2): item_type}}.
 
-
-def _load_class_reducing_table_codes(workbook) -> dict[str, str]:
+    Table_Code 가 빈칸인 SizeTableRow 는 그 표에 묶이지 않은 헤더-only 행이므로 무시.
     """
-    Class_Define 시트에서 Class_Name -> Reducing_Table_1 코드 매핑을 읽습니다.
-    """
-    if "Class_Define" not in workbook.sheetnames:
-        return {}
-
-    ws = workbook["Class_Define"]
-    required = ["Class_Name", "Reducing_Table_1"]
-    try:
-        header_row = _detect_header_row(ws, required)
-    except ValueError:
-        return {}
-
-    header_to_col = _build_header_index(ws, header_row)
-    class_to_table: dict[str, str] = {}
-    for row_idx in range(header_row + 1, ws.max_row + 1):
-        class_name = _get_cell_text(ws, row_idx, header_to_col, "Class_Name")
-        table_code = _get_cell_text(ws, row_idx, header_to_col, "Reducing_Table_1")
-        if class_name and table_code:
-            class_to_table[class_name] = table_code
-    return class_to_table
+    return _build_size_table_data(bundle.reducing_tables)
 
 
-def _load_branch_table(workbook) -> dict[str, dict[tuple[str, str], str]]:
-    """
-    Branch_Table 시트: Reducing_Table 과 동일 헤더(Table_Code, Size1, Size2, Item_Type).
-    branch_data[table_code][(size1, size2)] = item_type  (T, RT, …)
-    """
-    if "Branch_Table" not in workbook.sheetnames:
-        return {}
-
-    ws = workbook["Branch_Table"]
-    try:
-        header_row = _detect_header_row(ws, BRANCH_TABLE_REQUIRED_HEADERS)
-    except ValueError:
-        return {}
-
-    header_to_col = _build_header_index(ws, header_row)
-    missing = [h for h in BRANCH_TABLE_REQUIRED_HEADERS if h not in header_to_col]
-    if missing:
-        return {}
-
-    branch_data: dict[str, dict[tuple[str, str], str]] = {}
-    previous_table_code = ""
-    for row_idx in range(header_row + 1, ws.max_row + 1):
-        table_code_raw = _get_cell_text(ws, row_idx, header_to_col, "Table_Code")
-        if table_code_raw:
-            previous_table_code = table_code_raw
-        table_code = previous_table_code
-
-        size1 = _get_cell_text(ws, row_idx, header_to_col, "Size1")
-        size2 = _get_cell_text(ws, row_idx, header_to_col, "Size2")
-        item_type = _get_cell_text(ws, row_idx, header_to_col, "Item_Type").upper()
-        if not table_code or not size1 or not size2 or not item_type:
-            continue
-
-        if table_code not in branch_data:
-            branch_data[table_code] = {}
-        branch_data[table_code][(size1, size2)] = item_type
-
-    return branch_data
-
-
-def _load_class_branch_table_codes(workbook) -> dict[str, str]:
-    """Class_Define: Class_Name -> Branch_Table_1 코드."""
-    if "Class_Define" not in workbook.sheetnames:
-        return {}
-
-    ws = workbook["Class_Define"]
-    required = ["Class_Name", "Branch_Table_1"]
-    try:
-        header_row = _detect_header_row(ws, required)
-    except ValueError:
-        return {}
-
-    header_to_col = _build_header_index(ws, header_row)
+def _load_class_reducing_table_codes(bundle) -> dict[str, str]:
+    """Class_Define -> Class_Name -> Reducing_Table_1 코드 매핑."""
     out: dict[str, str] = {}
-    for row_idx in range(header_row + 1, ws.max_row + 1):
-        class_name = _get_cell_text(ws, row_idx, header_to_col, "Class_Name")
-        table_code = _get_cell_text(ws, row_idx, header_to_col, "Branch_Table_1")
-        if class_name and table_code:
-            out[class_name] = table_code
+    for row in bundle.class_define_rows:
+        cn = (row.get("Class_Name") or "").strip()
+        rt = (row.get("Reducing_Table_1") or "").strip()
+        if cn and rt:
+            out[cn] = rt
+    return out
+
+
+def _load_branch_table(bundle) -> dict[str, dict[tuple[str, str], str]]:
+    """ClassLevelBundle.branch_tables -> {table_code: {(size1, size2): item_type}}."""
+    return _build_size_table_data(bundle.branch_tables)
+
+
+def _load_class_branch_table_codes(bundle) -> dict[str, str]:
+    """Class_Define -> Class_Name -> Branch_Table_1 코드 매핑."""
+    out: dict[str, str] = {}
+    for row in bundle.class_define_rows:
+        cn = (row.get("Class_Name") or "").strip()
+        bt = (row.get("Branch_Table_1") or "").strip()
+        if cn and bt:
+            out[cn] = bt
     return out
 
 
@@ -1746,13 +1673,17 @@ def generate_piping_material_class_data(
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    from template_generator import ensure_all_program_data_files
+    from template_generator import (
+        ensure_all_program_data_files,
+        load_class_level_bundle_from_template,
+    )
 
     ensure_all_program_data_files()
     item_code_db = _load_item_code_db(logger)
     component_mapping = load_component_mapping()
 
     in_wb = load_workbook(template_path, data_only=True)
+    bundle = load_class_level_bundle_from_template(template_path)
     schedule_rows = load_schedule_rows(in_wb)
     class_specs = load_class_specs_from_workbook(in_wb)
     class_size_ranges = load_class_size_ranges(in_wb)
@@ -1789,10 +1720,10 @@ def generate_piping_material_class_data(
             "fix Class_Define Size_From/Size_To or Schedule rows."
         )
 
-    reducing_data = _load_reducing_table(in_wb)
-    class_reducing_codes = _load_class_reducing_table_codes(in_wb)
-    branch_data = _load_branch_table(in_wb)
-    class_branch_codes = _load_class_branch_table_codes(in_wb)
+    reducing_data = _load_reducing_table(bundle)
+    class_reducing_codes = _load_class_reducing_table_codes(bundle)
+    branch_data = _load_branch_table(bundle)
+    class_branch_codes = _load_class_branch_table_codes(bundle)
 
     def _check_size_table(
         table_label: str,
