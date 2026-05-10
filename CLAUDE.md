@@ -27,3 +27,4 @@ Constraint > Rule > Default
 For coding conventions, see CODING_STYLE.md.
 For full glossary, see docs/domain-glossary.md.
 For module structure, commands, and file paths, see ARCHITECTURE.md and README.md.
+For the agent-based work flow on coding requests, see WORKFLOW.md.

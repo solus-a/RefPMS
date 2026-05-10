@@ -15,7 +15,13 @@ Validate user input, file contents, and external data at the edge. Inside the en
 Handle errors explicitly; never swallow them silently. Logic raises; UI decides presentation. Error messages must be actionable — name the constraint that failed and the value that failed it.
 
 ## 5. File Size and Cohesion
-Prefer many small, focused files over few large ones. 200–400 lines is typical, 800 is the ceiling. When a module grows past that, extract utilities by responsibility, not by type.
+Prefer many small, focused files over few large ones.
+
+**Engine / service modules** (`pms_generator`, `class_spec`, `validator`, `project_constraints`, etc.):
+200–400 lines is typical, 800 is the hard ceiling. Growing past that is a signal that responsibilities have mixed — extract utilities by responsibility, not by type.
+
+**UI wizard / dialog files** (`class_template_wizard`, `project_settings_dialog`, etc.):
+No hard line. tkinter has no component model, so a multi-tab wizard accumulates setup, event handlers, and refresh logic that cannot be split across files without artificial seams. Keep cohesion by grouping private helpers near the method that uses them, and extract self-contained helper classes (dialogs, validators, formatters) into the same file or a dedicated `_helpers` module when they grow large enough to obscure the main class.
 
 ## 6. Naming
 - Python code is `snake_case` by default.

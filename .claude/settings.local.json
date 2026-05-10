@@ -20,7 +20,10 @@
       "Bash(git log *)",
       "Bash(git push *)",
       "Bash(git rev-list *)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(mkdir -p \"D:\\\\Programing\\\\Cursor\\\\pms_test\\\\.claude\\\\skills\\\\ui-checklist\")",
+      "Bash(mkdir -p \"D:\\\\Programing\\\\Cursor\\\\pms_test\\\\.claude\\\\skills\\\\pre-code\")",
+      "Bash(git *)"
     ]
   }
 }
