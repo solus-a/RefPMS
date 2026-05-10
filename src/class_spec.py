@@ -121,6 +121,52 @@ def load_class_specs_from_workbook(workbook) -> dict[str, ClassSpec]:
     return out
 
 
+_STORAGE_KEY_TO_SPEC_KEY: dict[str, str] = {
+    "Class_Name": "class_name",
+    "Revision_No": "revision_no",
+    "Nominal_Size_System": "nominal_size_system",
+    "Size_From": "size_from",
+    "Size_To": "size_to",
+    "Design_Code": "design_code",
+    "Class_Base_Material": "class_base_material",
+    "Class_Rating": "class_rating",
+    "Corrosion_Allowance": "corrosion_allowance",
+    "Design_Temperature_From": "design_temperature_from",
+    "Design_Temperature_To": "design_temperature_to",
+    "Design_Pressure_From": "design_pressure_from",
+    "Design_Pressure_To": "design_pressure_to",
+    "Fluid_Service": "fluid_service",
+    "Branch_Table_1": "branch_table_1",
+    "Branch_Table_2": "branch_table_2",
+    "Reducing_Table_1": "reducing_table_1",
+    "Reducing_Table_2": "reducing_table_2",
+    "Global_Special_Req": "global_special_req",
+    "Remarks": "remarks",
+}
+
+
+def load_class_specs_from_bundle(bundle) -> dict[str, ClassSpec]:
+    """ClassLevelBundle.class_define_rows 에서 클래스별 ClassSpec dict를 구성합니다.
+
+    storage 키 기반 row dict 를 spec key (snake_case) 로 변환합니다.
+    workbook 기반 :func:`load_class_specs_from_workbook` 와 결과 동등.
+    """
+    out: dict[str, ClassSpec] = {}
+    for row in bundle.class_define_rows:
+        name = (row.get("Class_Name") or "").strip()
+        if not name:
+            continue
+        spec: ClassSpec = {"class_name": name}
+        for storage_key, spec_key in _STORAGE_KEY_TO_SPEC_KEY.items():
+            if storage_key == "Class_Name":
+                continue
+            val = (row.get(storage_key) or "").strip()
+            if val:
+                spec[spec_key] = val  # type: ignore[literal-required]
+        out[name] = spec
+    return out
+
+
 def corrosion_allowance_validation_messages(workbook) -> tuple[list[str], list[str]]:
     """
     Class_Define.Corrosion_Allowance 검증.
@@ -289,6 +335,109 @@ def mat_code_grade_for_constraint(
     if mat_code and mat_grade:
         return f"{mat_code}-{mat_grade}"
     return mat_code or mat_grade
+
+
+def corrosion_allowance_validation_messages_from_bundle(
+    bundle,
+) -> tuple[list[str], list[str]]:
+    """Bundle 기반 corrosion_allowance 검증."""
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    unit_system = (bundle.global_settings.unit_system or "SI").strip() or "SI"
+    ca_unit = "inch" if unit_system == "US Customary" else "mm"
+    empty_policy = str(
+        config.config_manager.get(
+            "validation_policy.corrosion_allowance.empty_value_policy",
+            "warning",
+        )
+        or "warning"
+    ).strip().lower()
+
+    for idx, row in enumerate(bundle.class_define_rows, start=1):
+        class_name = (row.get("Class_Name") or "").strip()
+        if not class_name:
+            continue
+        ca_raw = (row.get("Corrosion_Allowance") or "").strip()
+        if not ca_raw:
+            msg = (
+                f"Class_Define row {idx} Class {class_name}: "
+                f"Corrosion_Allowance is empty ({ca_unit})."
+            )
+            if empty_policy == "error":
+                errors.append(msg)
+            else:
+                warnings.append(msg)
+            continue
+        try:
+            float(ca_raw)
+        except ValueError:
+            errors.append(
+                f"Class_Define row {idx} Class {class_name}: "
+                f"Corrosion_Allowance must be numeric; got {ca_raw!r}."
+            )
+    return errors, warnings
+
+
+def log_class_constraint_warnings_for_row(
+    logger,
+    sheet_name: str,
+    class_name: str,
+    row_idx: int,
+    row: dict[str, str],
+    class_specs: dict[str, ClassSpec],
+) -> None:
+    """log_class_constraint_warnings 의 dict-row 버전."""
+    spec = class_specs.get(class_name)
+    if not spec:
+        return
+
+    if sheet_name not in ("Valve", "Valve_Group"):
+        class_rating = spec.get("class_rating", "")
+        row_rating = _row_rating_for_constraint_check_dict(sheet_name, row)
+        rmsg = rating_mismatch_message(row_rating, class_rating)
+        if rmsg:
+            logger.warning(f"{sheet_name} row {row_idx} Class {class_name}: {rmsg}")
+
+    class_base = spec.get("class_base_material", "")
+    if sheet_name in ("Valve", "Valve_Group"):
+        part_mat = to_text(row.get("Body_Mat") or "")
+    elif sheet_name in ("Pipe_Group", "Fitting_Group", "Flange_Group"):
+        part_mat = _mat_code_grade_for_constraint_dict(row)
+    else:
+        part_mat = ""
+
+    mmsg = base_material_hint_message(part_mat, class_base, _load_base_material_allowlist())
+    if mmsg:
+        logger.warning(f"{sheet_name} row {row_idx} Class {class_name}: {mmsg}")
+
+
+def _row_rating_for_constraint_check_dict(sheet_name: str, row: dict[str, str]) -> str:
+    if sheet_name == "Flange_Group":
+        return _pick_first_non_empty_dict(row, ["Rating", "Rating_Thickness"])
+    if sheet_name in ("Valve", "Valve_Group"):
+        return _pick_first_non_empty_dict(row, ["Rating", "Rating_Thickness"])
+    if sheet_name == "Fitting_Group":
+        return to_text(row.get("Rating") or "")
+    return ""
+
+
+def _mat_code_grade_for_constraint_dict(row: dict[str, str]) -> str:
+    mat_code = to_text(row.get("Mat_Code") or "")
+    mat_grade = _pick_first_non_empty_dict(
+        row, ["Mat_Grade", "Material_Code_Grade", "Mat_Class"]
+    )
+    if mat_code and mat_grade:
+        return f"{mat_code}-{mat_grade}"
+    return mat_code or mat_grade
+
+
+def _pick_first_non_empty_dict(row: dict[str, str], fields: list[str]) -> str:
+    for f in fields:
+        v = to_text(row.get(f) or "")
+        if v:
+            return v
+    return ""
 
 
 def log_class_constraint_warnings(

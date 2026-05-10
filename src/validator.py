@@ -183,3 +183,114 @@ def validate_size_range_for_row(
                 f"Size Range (Class_Define Size_From/Size_To ∩ Size_Selection)."
             )
     return messages
+
+
+# ---------------------------------------------------------------------------
+# Bundle-based equivalents (no Workbook dependency)
+# ---------------------------------------------------------------------------
+
+def class_size_ranges_from_bundle(bundle) -> dict[str, list[str]]:
+    """ClassLevelBundle 에서 Class_Name → active sizes 목록을 만든다."""
+    out: dict[str, list[str]] = {}
+    for row in bundle.class_define_rows:
+        name = (row.get("Class_Name") or "").strip()
+        if not name:
+            continue
+        out[name] = bundle.active_sizes_for_class(name)
+    return out
+
+
+def validate_template_row_dict(
+    sheet_name: str,
+    row_idx: int,
+    row: dict[str, str],
+    mapping: dict[str, Any],
+) -> list[str]:
+    """Workbook 의존 없는 dict-row 버전. row_idx 는 메시지에만 사용."""
+    sheets = mapping.get("sheets") or {}
+    rules = sheets.get(sheet_name)
+    if not rules or not isinstance(rules, dict):
+        return []
+
+    def _v(field: str) -> str:
+        return str(row.get(field, "") or "")
+
+    messages: list[str] = []
+
+    for field in rules.get("required_non_empty", []):
+        if field not in row:
+            continue
+        if not _v(field):
+            messages.append(
+                f"{sheet_name} row {row_idx}: required field empty: {field!r}"
+            )
+
+    for group in rules.get("xor_at_most_one_filled", []):
+        if not isinstance(group, list) or len(group) < 2:
+            continue
+        filled = [f for f in group if f in row and _v(f)]
+        if len(filled) >= 2:
+            messages.append(
+                f"{sheet_name} row {row_idx}: at most one of {group!r} may be filled; got: {filled!r}"
+            )
+
+    for cond in rules.get("conditional_required", []):
+        if not isinstance(cond, dict):
+            continue
+        when_field = cond.get("when_field")
+        if not when_field or when_field not in row:
+            continue
+        when_raw = _v(when_field)
+        when_values = cond.get("when_values") or []
+        if not isinstance(when_values, list):
+            continue
+        allowed = {str(v).strip().upper() for v in when_values}
+        if allowed and when_raw.strip().upper() not in allowed:
+            continue
+        for req in cond.get("require_non_empty", []):
+            if req not in row:
+                continue
+            if not _v(req):
+                messages.append(
+                    f"{sheet_name} row {row_idx}: when {when_field}={when_raw!r}, "
+                    f"field {req!r} is required"
+                )
+
+    return messages
+
+
+def validate_size_range_for_row_dict(
+    sheet_name: str,
+    row_idx: int,
+    class_name: str,
+    row: dict[str, str],
+    size_from_field: str | None,
+    size_to_field: str | None,
+    class_size_ranges: dict[str, list[str]],
+    size_label: str = "Size",
+) -> list[str]:
+    """validate_size_range_for_row 의 dict-row 버전."""
+    if not class_name or not class_size_ranges:
+        return []
+    active = class_size_ranges.get(class_name)
+    if active is None:
+        return []
+    active_set = {str(s).strip() for s in active if str(s).strip()}
+    if not active_set:
+        return []
+    messages: list[str] = []
+    for field_name, role in (
+        (size_from_field, f"{size_label} (From)"),
+        (size_to_field, f"{size_label} (To)"),
+    ):
+        if not field_name:
+            continue
+        val = str(row.get(field_name, "") or "").strip()
+        if not val:
+            continue
+        if val not in active_set:
+            messages.append(
+                f"{sheet_name} row {row_idx}: {role} {val!r} is outside Class {class_name!r} "
+                f"Size Range (Class_Define Size_From/Size_To ∩ Size_Selection)."
+            )
+    return messages

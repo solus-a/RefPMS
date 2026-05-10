@@ -98,6 +98,27 @@ def load_schedule_rows(workbook) -> list[dict[str, str]]:
     return rows
 
 
+def load_schedule_rows_from_bundle(bundle) -> list[dict[str, str]]:
+    """ClassLevelBundle.schedule_rows 에서 기존 workbook loader 와 동일 형태의 list 를 만듦.
+
+    빈 Class_Name row 는 제외. 키는 ``Class_Name / Size_From / Size_To / Schedule``.
+    """
+    rows: list[dict[str, str]] = []
+    for row in bundle.schedule_rows:
+        class_name = str(row.get("Class_Name") or "").strip()
+        if not class_name:
+            continue
+        rows.append(
+            {
+                "Class_Name": class_name,
+                "Size_From": str(row.get("Size_From") or ""),
+                "Size_To": str(row.get("Size_To") or ""),
+                "Schedule": str(row.get("Schedule") or ""),
+            }
+        )
+    return rows
+
+
 def lookup_schedule_thickness(
     schedule_rows: list[dict[str, str]],
     class_name: str,
