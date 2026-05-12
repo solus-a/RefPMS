@@ -320,7 +320,7 @@ def _format_size2(size_from: str, size_to: str) -> str:
     return f"{a}-{b}"
 
 
-NIPPLE_PIPE_CODES = frozenset({"JN", "JN1", "JNP", "JNP1", "JNT", "JNT1"})
+NIPPLE_PIPE_CODES = frozenset({"JN"})
 
 
 def _apply_length_to_catalog_nipple_name(catalog: str, length_val: str) -> str:
@@ -348,7 +348,8 @@ def _try_nipple_pipe_output(
     description_prefix: str,
 ) -> Optional[tuple[str, str, str]]:
     """
-    Pipe_Group 니플: Item_Description 선두는 Item_Code_DB 의 Description_Prefix.
+    Pipe_Group 니플 (JN): 양 끝 End_Type 은 End_Type_1 / End_Type_2 컬럼으로
+    표현 (예: PE/TE(NPT)). Item_Description 선두는 Item_Code_DB 의 Description_Prefix.
     길이는 Length 열만 사용(Remarks 에서 길이 폴백 없음). 특수 조건은 Remarks 를 설명·출력에 반영.
     Item_Name 은 Catalog_Item_Name 을 기준으로 길이 열을 반영해 정리합니다.
     """
@@ -368,33 +369,11 @@ def _try_nipple_pipe_output(
         ws, row_idx, header_to_col, ["Rating_Thickness", "Schedule", "Rating"]
     )
     prefix = _to_text(description_prefix) or "NIPPLE"
-    if code in ("JN", "JN1"):
-        pair = f"{et1}/{et2}".strip("/") if et2 else et1
-        desc = _join_tokens(prefix, mat, method, pair, sch, length_note, remarks, dim_standard)
-        out_name = _apply_length_to_catalog_nipple_name(catalog_item_name, length_note)
-        if not out_name:
-            out_name = f"{prefix} ({pair}) {length_note}".strip()
-        return desc, out_name, remarks
-    if code in ("JNP", "JNP1"):
-        desc = _join_tokens(prefix, mat, method, "PBE", sch, length_note, remarks, dim_standard)
-        out_name = _apply_length_to_catalog_nipple_name(catalog_item_name, length_note)
-        if not out_name:
-            out_name = f"{prefix} (PBE) {length_note}".strip()
-        return desc, out_name, remarks
-    # JNT / JNT1: 양끝 나사(TE/TE) → TBE
-    desc = _join_tokens(
-        prefix,
-        mat,
-        method,
-        "TBE",
-        sch,
-        length_note,
-        remarks,
-        dim_standard,
-    )
+    pair = f"{et1}/{et2}".strip("/") if et2 else et1
+    desc = _join_tokens(prefix, mat, method, pair, sch, length_note, remarks, dim_standard)
     out_name = _apply_length_to_catalog_nipple_name(catalog_item_name, length_note)
     if not out_name:
-        out_name = f"{prefix} (TBE) {length_note}".strip()
+        out_name = f"{prefix} ({pair}) {length_note}".strip()
     return desc, out_name, remarks
 
 

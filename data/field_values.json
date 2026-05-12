@@ -27,6 +27,7 @@
     ],
     "Matl_Std": [
       {"short": "ASTM", "long": "ASTM (American Society for Testing and Materials)"},
+      {"short": "ASME", "long": "ASME (American Society of Mechanical Engineers)"},
       {"short": "JIS",  "long": "JIS (Japanese Industrial Standards)"},
       {"short": "KS",   "long": "KS (Korean Industrial Standards)"},
       {"short": "EN",   "long": "EN (European Norm)"},
@@ -44,10 +45,10 @@
       {"short": "A312-TP316L",     "std": "ASTM", "long": "ASTM A312 TP316L"},
       {"short": "A335-P11",        "std": "ASTM", "long": "ASTM A335 P11 (1.25Cr-0.5Mo)"},
       {"short": "A335-P22",        "std": "ASTM", "long": "ASTM A335 P22 (2.25Cr-1Mo)"},
-      {"short": "STPG370-S-H",     "std": "JIS",  "long": "JIS STPG370 Seamless Hot-Finished"},
-      {"short": "STPG410-S-H",     "std": "JIS",  "long": "JIS STPG410 Seamless Hot-Finished"},
-      {"short": "SUS304TP-S",      "std": "JIS",  "long": "JIS SUS304 Seamless"},
-      {"short": "SUS316TP-S",      "std": "JIS",  "long": "JIS SUS316 Seamless"}
+      {"short": "STPG370",         "std": "JIS",  "long": "JIS STPG370 (CS Pipe, High Pressure)"},
+      {"short": "STPG410",         "std": "JIS",  "long": "JIS STPG410 (CS Pipe, High Pressure)"},
+      {"short": "SUS304TP",        "std": "JIS",  "long": "JIS SUS304TP (SS304 Pipe)"},
+      {"short": "SUS316TP",        "std": "JIS",  "long": "JIS SUS316TP (SS316 Pipe)"}
     ],
     "Manufacturing_Method": [
       {"short": "SMLS", "long": "Seamless"},

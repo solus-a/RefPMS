@@ -46,12 +46,7 @@ ITEM_CODE_DB_HEADERS = [
 ]
 ITEM_CODE_DB_DEFAULT_ROWS = [
     ("P", "PIPE", "PIPE", "Pipe_Group"),
-    ("JN", "NIPPLE (PE/TE) 75mm", "NIPPLE", "Pipe_Group"),
-    ("JNP", "NIPPLE (PBE) 75mm", "NIPPLE", "Pipe_Group"),
-    ("JN1", "NIPPLE (PE/TE) 100mm", "NIPPLE", "Pipe_Group"),
-    ("JNP1", "NIPPLE (PBE) 100mm", "NIPPLE", "Pipe_Group"),
-    ("JNT", "NIPPLE (TBE) 75mm", "NIPPLE", "Pipe_Group"),
-    ("JNT1", "NIPPLE (TBE) 100mm", "NIPPLE", "Pipe_Group"),
+    ("JN", "NIPPLE", "NIPPLE", "Pipe_Group"),
     ("RC", "REDUCER CON", "REDUCER CON", "Wrought_Fitting_Group"),
     ("RE", "REDUCER ECC", "REDUCER ECC", "Wrought_Fitting_Group"),
     ("RCS", "SWAGE CON", "SWAGE CON", "Wrought_Fitting_Group"),
