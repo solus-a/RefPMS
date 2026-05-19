@@ -10,14 +10,18 @@
   ],
 
   "Forged_Fitting_Group": [
-    {"code": "E", "code_name": "ELBOW 90 DEG"},
-    {"code": "E4", "code_name": "ELBOW 45 DEG"},
-    {"code": "T",  "code_name": "TEE"},
+    {"code": "E",   "code_name": "ELBOW 90 DEG"},
+    {"code": "E4",  "code_name": "ELBOW 45 DEG"},
+    {"code": "T",   "code_name": "TEE"},
+    {"code": "RCS", "code_name": "SWAGE CON"},
+    {"code": "RES", "code_name": "SWAGE ECC"},
     {"code": "CP",  "code_name": "CAP"},
     {"code": "JF",  "code_name": "FULL COUPLING"},
-    {"code": "TH", "code_name": "HALF COUPLING"},
+    {"code": "JFR", "code_name": "REDUCING FULL COUPLING"},
+    {"code": "TH",  "code_name": "HALF COUPLING"},
     {"code": "JU",  "code_name": "UNION"},
-    {"code": "JP",   "code_name": "PLUG"}
+    {"code": "JP",  "code_name": "PLUG"},
+    {"code": "JB",  "code_name": "BUSHING"}
   ],
 
   "Wrought_Fitting_Group": [

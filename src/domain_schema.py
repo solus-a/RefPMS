@@ -786,3 +786,348 @@ WROUGHT_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
 ]
+
+
+# ── Forged_Fitting_Group ───────────────────────────────────────────────────────
+#
+# Forged fitting (단조 후 가공으로 만든 small-bore fitting) — ASME B16.11 /
+# JIS B 2316 / KS 의 socket weld & threaded fitting 영역. Small size 에서는
+# butt weld 가 잘 쓰이지 않으므로 SW / threaded 단부의 elbow / tee / coupling /
+# bushing / plug / union 등을 사용. Reducing 이 필요할 때는 swage 또는
+# reducing coupling 으로 처리.
+#
+# Wrought_Fitting_Group 과의 핵심 차이:
+#   - Manufacturing_Method 컬럼 없음 (forging 이 단일 공정 — 별도 필드 불요)
+#   - Rating 컬럼 신설 (std-aware: ASTM 은 Class designation 2000-9000#;
+#     JIS/KS 는 Sch80 schedule 표기)
+#   - End_Type = SW / PT / NPT 3개 (small-bore 의 socket weld / threaded)
+#   - Item_Code 12종: E/E4 (90°/45° elbow), T (tee), RCS/RES (concentric/
+#     eccentric swage — reducing 수단), CP (cap), JF (full coupling),
+#     JFR (reducing full coupling), TH (half coupling), JU (union), JP (plug),
+#     JB (bushing). Wrought 에 있던 RC/RE 같은 butt-weld reducer 는 forged
+#     영역에 없음 (small-bore 에서는 swage / reducing coupling 으로 대체).
+#   - Matl_Code 11개 (ASTM A105 / A350-LF2 / A182-F 계열 8 + JIS SF440A /
+#     SUS304-F / SUS316-F 3). 'F' 접미가 JIS forged grade marker.
+#   - Matl_Category 7개 / Matl_Std 4개 — Wrought 와 동일 정책 (Cu-Alloy/CI
+#     보류, GI 는 coating 별도 주제).
+#
+# BSP (R/Rc) 같은 영국 표준 thread 단부는 현재 미고려 (추후 합의 시 확장).
+
+FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
+    FieldDefinition(
+        name="Class_Name",
+        meaning=(
+            "이 행이 소속될 Class 의 이름. Pipe_Group.Class_Name 과 의미·검증"
+            " 모두 동일."
+        ),
+        data_type="string",
+        required=True,
+        format_constraint=(
+            "공백 trim. Class_Define.Class_Name 행 집합 기준 일치 검사."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Class_Name 으로 FK",
+        ],
+        validation_location=(
+            "Pipe_Group.Class_Name 과 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class_Define 행 목록)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Item_Code",
+        meaning=(
+            "Forged_Fitting_Group 의 component 종류 식별자."
+            " 12종: E (90° elbow), E4 (45° elbow), T (tee),"
+            " RCS / RES (concentric / eccentric swage — small-bore 의 reducing 수단),"
+            " CP (cap),"
+            " JF (full coupling), JFR (reducing full coupling), TH (half coupling),"
+            " JU (union), JP (plug), JB (bushing)."
+            " Wrought 의 RC/RE 같은 butt-weld reducer 는 forged 영역에 없음 —"
+            " small-bore 에서는 BW 자체를 잘 안 쓰므로 swage / reducing coupling"
+            " 으로 대체."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/item_code_db.json 의 Forged_Fitting_Group 행 (closed set, 12개)."
+        ),
+        unique=None,
+        relations=[
+            "item_code_db.json Forged_Fitting_Group 의 code 값 중 하나 (FK)",
+            "PMS description prefix 합성: code → code_name (예: JFR → REDUCING FULL COUPLING)",
+            "Reducing 계열 (RCS/RES/JFR/JB) 은 size pair 의미가 다름 — Size_From /"
+            " Size_To 의 의미가 main/branch 분리될 수 있음 (시트별 정책 별도 정의)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — item_code_db 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size_From",
+        meaning=(
+            "이 행이 다루는 NPS/DN size 범위의 하한. Pipe_Group.Size_From 과"
+            " 의미·형식 동일. Forged fitting 은 small-bore (대체로 NPS 2 이하)"
+            " 영역에 집중."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog 의 한 항목."
+            " Size_From <= Size_To 강제 (행 단위 검증)."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Size_From / Size_To 범위 안",
+            "(Size_From, Size_To) = component 행의 size 적용 범위 — Size_From <= Size_To",
+            "Reducing 항목 (RCS/RES/JFR/JB) 에서는 Size_From 이 main size, 분기/축소된"
+            " size 는 별도 필드 없이 swage/coupling 의 도메인 관행으로 처리",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_From 과 동일 패턴 (component_row_size_pair_errors)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size_To",
+        meaning=(
+            "이 행이 다루는 NPS/DN size 범위의 상한. Pipe_Group.Size_To 와"
+            " 의미·형식 동일."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size_From <= Size_To 강제."
+        ),
+        unique=None,
+        relations=[
+            "(Size_From, Size_To) 의 상한",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_To 와 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Category",
+        meaning=(
+            "재질의 대분류 카테고리. Wrought_Fitting_Group.Matl_Category 와"
+            " 정책 동일 — 7개 (CS/LTCS/AS/SS/DSS/SDSS/Ni-Alloy)."
+            " Cu-Alloy / CI 는 forged fitting 영역에서도 가능하나 현재 미구현."
+            " GI 는 coating 영역으로 wrought 와 마찬가지로 재질 카테고리에서 제외."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Forged_Fitting_Group.Matl_Category 옵션"
+            " (closed set, 7개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std / Matl_Code 와 종속 체인 (Pipe_Group 패턴 동일)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Std",
+        meaning=(
+            "재질 표준 발행 기관. Wrought_Fitting_Group.Matl_Std 와 옵션 풀 동일"
+            " (ASTM / JIS / KS / EN). Forged 영역의 핵심 표준은 ASTM A105 / A182"
+            " 와 JIS SF / SUS-F 계열."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Forged_Fitting_Group.Matl_Std 옵션"
+            " (closed set, 4개: ASTM, JIS, KS, EN)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Code 의 std 키와 일치 (Matl_Code DB 필터링)",
+            "Rating 의 std 키와도 일치 — std-aware Rating 필터링 (이 시트 특유)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Code",
+        meaning=(
+            "Forged fitting 의 구체 재질 규격 코드. ASTM A105 (CS), A350-LF2"
+            " (LTCS), A182-F304/316/304L/316L/F11/F22 (SS/AS forged grade);"
+            " JIS SF440A (CS), SUS304-F / SUS316-F (SS). 'F' 접미가 JIS forged"
+            " grade marker."
+        ),
+        data_type="string (short code, e.g. A105 / SF440A)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Forged_Fitting_Group.Matl_Code 옵션"
+            " (closed set, 11개: ASTM 8 + JIS 3). KS/EN 항목은 추후 도메인 합의에"
+            " 따라 추가."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 표시 — 콤보박스"
+            " 가 std/category 별 필터링",
+            "PMS description 에 그대로 합성 (예: 'ELBOW A105 SW 3000#')",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Rating",
+        meaning=(
+            "Forged fitting 의 압력 등급 (pressure class / schedule)."
+            " std-aware 필드 — 표준별로 표기 체계가 다름:"
+            "\n - ASTM (ASME B16.11): Class 2000# / 3000# / 6000# / 9000#."
+            "   2000# 는 threaded only, 9000# 는 socket weld only;"
+            "   3000# / 6000# 는 SW · threaded 공통."
+            "\n - JIS (JIS B 2316) / KS: Class designation 미사용 — Schedule"
+            "   표기 (Sch80) 만 사용. 라벨/표기는 'Sch80' 단일."
+            " 다른 시트의 Rating (Flange 의 150#/300#/..., wrought 에는 컬럼 자체"
+            " 없음) 과 의미·옵션 풀 모두 독립."
+        ),
+        data_type="string (short code; ASTM 은 NNNN# 형식, JIS/KS 는 SchNN 형식)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Forged_Fitting_Group.Rating 옵션"
+            " (closed set, std 키 포함). ASTM 4 + JIS 1 + KS 1 = 6 entries"
+            " — JIS/KS 가 short='Sch80' 으로 중복되므로 dialog 는 std 필터링"
+            " 후 매칭되는 long 라벨을 표시."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "End_Type 과 호환 관행:"
+            "   ASTM 2000# ↔ threaded (PT/NPT) only,"
+            "   ASTM 9000# ↔ SW only,"
+            "   ASTM 3000#/6000# ↔ SW · threaded 공통,"
+            "   JIS/KS Sch80 ↔ SW · threaded 공통 (B 2316 / B 2316S)"
+            " — 강제 검증은 별도 작업, 현재 wizard 는 자유 조합 허용",
+            "PMS description 에 합성 (예: 'ELBOW A105 SW 3000#')",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+            " End_Type 호환 강제 검증은 미구현 (별도 작업)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
+            " 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="End_Type",
+        meaning=(
+            "Forged fitting 의 단부 형식. small-bore 의 socket weld / threaded."
+            " SW (Socket Weld) / PT (Threaded, JIS B 0203 — 일본 테이퍼 thread)"
+            " / NPT (Threaded, ASME B1.20.1 — US 테이퍼 thread)."
+            " BSP (R/Rc, 영국 표준 thread) 는 현재 미고려."
+            " Butt weld 단부는 wrought fitting (Wrought_Fitting_Group) 영역."
+        ),
+        data_type="string (short code, SW / PT / NPT)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Forged_Fitting_Group.End_Type 옵션"
+            " (closed set, 3개)."
+        ),
+        unique=None,
+        relations=[
+            "Rating 과 호환 관행 (위 Rating.relations 참조 — 강제 검증 없음)",
+            "Item_Code 에 따른 End_Type 제약 관행: union (JU) / plug (JP) /"
+            " bushing (JB) 은 threaded 일색이 보통, 강제는 아님",
+            "PMS description 에 합성 (예: 'ELBOW A105 SW 3000#')",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Option_Code",
+        meaning=(
+            "Item_Code 변종/옵션 식별자. Pipe_Group.Option_Code 와 의미·형식"
+            " 동일 — 3자리 숫자 텍스트, '001' = 해당 Class · Forged_Fitting_Group"
+            " 의 표준형 (non-variant)."
+        ),
+        data_type="string (3자리 0-9 숫자 텍스트; e.g. '001')",
+        required=True,
+        format_constraint=(
+            "정규식 ^\\d{3}$. data/field_values.json 의 Forged_Fitting_Group."
+            "Option_Code 옵션 (closed set). 현재 '001' 한 개만 등록."
+        ),
+        unique=(
+            "(Class_Name, Option_Code) 가 Forged_Fitting_Group 시트 안에서 유일."
+            " 다른 시트의 Option_Code 와는 독립."
+        ),
+        relations=[
+            "(Class_Name, Option_Code) 가 Forged_Fitting_Group 행의 자연 키",
+            "Pipe_Group.Option_Code 와 동일 패턴 (자세한 검증·미구현 사항은"
+            " Pipe_Group.Option_Code 정의 참조)",
+        ],
+        validation_location=(
+            "Pipe_Group.Option_Code 와 동일 패턴 — 형식 / required / unique"
+            " 검증 모두 현재 미구현."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "행 단위 비고/설명 자유 텍스트. Pipe_Group.Remarks 와 의미·동작 동일"
+            " — PMS description 의 마지막 토큰으로 합성."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "형식 강제 없음 — data/field_values.json 의 _meta.free_input_fields"
+            " 에 'Remarks' 명시 (모든 시트 공통)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 합성의 마지막 토큰 — Pipe_Group.Remarks 와 동일 패턴",
+        ],
+        validation_location=(
+            "검증 없음 (자유 입력). required 아님."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)"
+        ),
+        unit=None,
+    ),
+]

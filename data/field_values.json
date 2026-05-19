@@ -109,15 +109,20 @@
       {"short": "SUS316-F",   "std": "JIS",  "long": "JIS SUS316 Forged"}
     ],
     "Rating": [
-      {"short": "2000#", "long": "Class 2000 (ASME B16.11)"},
-      {"short": "3000#", "long": "Class 3000 (ASME B16.11)"},
-      {"short": "6000#", "long": "Class 6000 (ASME B16.11)"},
-      {"short": "9000#", "long": "Class 9000 (ASME B16.11)"}
+      {"short": "2000#", "std": "ASTM", "long": "Class 2000 (ASME B16.11, threaded only)"},
+      {"short": "3000#", "std": "ASTM", "long": "Class 3000 (ASME B16.11)"},
+      {"short": "6000#", "std": "ASTM", "long": "Class 6000 (ASME B16.11)"},
+      {"short": "9000#", "std": "ASTM", "long": "Class 9000 (ASME B16.11, socket weld only)"},
+      {"short": "Sch80", "std": "JIS",  "long": "Schedule 80 (JIS B 2316 — Class designation 미사용)"},
+      {"short": "Sch80", "std": "KS",   "long": "Schedule 80 (KS — JIS B 2316 호환)"}
     ],
     "End_Type": [
       {"short": "SW",  "long": "Socket Weld"},
       {"short": "PT",  "long": "Threaded (PT)"},
       {"short": "NPT", "long": "Threaded (NPT)"}
+    ],
+    "Option_Code": [
+      {"short": "001", "long": "Default item (non-variant of this Class's Item Group)"}
     ]
   },
 
@@ -147,7 +152,15 @@
       {"short": "A403-WP304L","std": "ASTM", "long": "ASTM A403 WP304L"},
       {"short": "A403-WP316L","std": "ASTM", "long": "ASTM A403 WP316L"},
       {"short": "A234-WP11",  "std": "ASTM", "long": "ASTM A234 WP11 (1.25Cr-0.5Mo)"},
-      {"short": "A234-WP22",  "std": "ASTM", "long": "ASTM A234 WP22 (2.25Cr-1Mo)"}
+      {"short": "A234-WP22",  "std": "ASTM", "long": "ASTM A234 WP22 (2.25Cr-1Mo)"},
+      {"short": "PG370",      "std": "JIS",  "long": "JIS B 2311 PG370 (CS Wrought, 압력 배관용)"},
+      {"short": "PS410",      "std": "JIS",  "long": "JIS B 2311 PS410 (CS Wrought, 압력 배관용)"},
+      {"short": "PL380",      "std": "JIS",  "long": "JIS B 2311 PL380 (LTCS Wrought, 저온 배관용)"},
+      {"short": "PA22",       "std": "JIS",  "long": "JIS B 2311 PA22 (2.25Cr-1Mo Wrought, 고온 배관용)"},
+      {"short": "SUS304",     "std": "JIS",  "long": "JIS B 2311 SUS304 (SS304 Wrought)"},
+      {"short": "SUS304L",    "std": "JIS",  "long": "JIS B 2311 SUS304L (SS304L Wrought)"},
+      {"short": "SUS316",     "std": "JIS",  "long": "JIS B 2311 SUS316 (SS316 Wrought)"},
+      {"short": "SUS316L",    "std": "JIS",  "long": "JIS B 2311 SUS316L (SS316L Wrought)"}
     ],
     "Manufacturing_Method": [
       {"short": "SMLS", "long": "Seamless"},
