@@ -1131,3 +1131,430 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
 ]
+
+
+# ── Flange_Group ───────────────────────────────────────────────────────────────
+#
+# Flange (관과 관 또는 관과 장비를 연결하는 분리 가능한 이음재) — 단조 grade
+# 재질 사용 (Forged_Fitting_Group 과 Matl_Code 옵션 풀 완전 동일). 종류는
+# 두 축으로 분리:
+#   - Item_Code: 일반 flange 와 의미가 크게 다른 line-blank 류를 분리
+#     (F / FB / F8 / FBS)
+#   - Flange_Type: 일반 flange (F) 안에서의 형식 분류 (WN/SO/LJ/SW/THRD/RD)
+#
+# 다른 시트와 비교한 특성:
+#   - Size 시스템: Size1_From/To + Size2_From/To (Reducing flange 용 두 번째 size)
+#     · Size2 는 RD (Reducing flange) 행에서만 의미; 다른 Flange_Type 은 빈 값
+#   - Rating 옵션 풀 20개 (ASTM 6 + JIS 7 + KS 7), std-aware (Forged Rating 패턴 따름)
+#     · ASTM (ASME B16.5): 150 / 300 / 600 / 900 / 1500 / 2500#
+#     · JIS (JIS B 2220):  5K / 10K / 16K / 20K / 30K / 40K / 63K
+#     · KS  (KS B 1503):   5K / 10K / 16K / 20K / 30K / 40K / 63K
+#     · short 값에 "JIS5K", "KS5K" 식 prefix 포함 — std 키 없어도 식별 가능하지만
+#       콤보박스 필터링 일관성을 위해 std 키도 부여
+#   - End_Type / Manufacturing_Method 컬럼 없음 (Facing + Flange_Type 으로
+#     단부 + 형식 표현, manufacturing 은 forging 단일이라 별도 필드 불요)
+#   - Item_Code 'BL' 은 Flange_Type 에서 제거 (Item_Code=FB 와 의미 중복 방지)
+#
+# 미고려 항목 (추후 도메인 합의 시 확장):
+#   - Facing: LM/LF (Large Male/Female), SM/SF (Small Male/Female)
+#   - Flange_Type: LWN (Long Weld Neck), Orifice flange
+#   - Item_Code: Orifice flange (별도 분리 안 함)
+
+FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
+    FieldDefinition(
+        name="Class_Name",
+        meaning=(
+            "이 행이 소속될 Class 의 이름. Pipe_Group.Class_Name 과 의미·검증"
+            " 모두 동일."
+        ),
+        data_type="string",
+        required=True,
+        format_constraint=(
+            "공백 trim. Class_Define.Class_Name 행 집합 기준 일치 검사."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Class_Name 으로 FK",
+        ],
+        validation_location=(
+            "Pipe_Group.Class_Name 과 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class_Define 행 목록)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Item_Code",
+        meaning=(
+            "Flange_Group 의 component 종류 식별자. 4종:"
+            " F (일반 flange — 연결용; 세부 형식은 Flange_Type 컬럼으로 구분),"
+            " FB (Blind flange — line-blank, 한 면이 막힘),"
+            " F8 (Spectacle Blind — 8자 모양 line-blank, 회전으로 open/close),"
+            " FBS (Paddle Spacer & Blank — 막대형 spacer 또는 blank)."
+            " 일반 flange 와 line-blank 의 의미 차이가 커서 Item_Code 로 분리;"
+            " 일반 flange 안에서의 WN/SO/LJ/SW/THRD/RD 구분은 Flange_Type 으로 처리."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/item_code_db.json 의 Flange_Group 행 (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "item_code_db.json Flange_Group 의 code 값 중 하나 (FK)",
+            "Flange_Type 과의 의미 분리: Item_Code='F' 일 때만 Flange_Type 이"
+            " 의미를 가짐 (WN/SO/...). FB/F8/FBS 행에서는 Flange_Type 이 N/A —"
+            " 강제 검증은 별도 작업",
+            "PMS description prefix 합성: F → FLANGE, FB → BLIND FLANGE,"
+            " F8 → SPECTACLE BLIND, FBS → PADDLE SPACER & BLANK",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — item_code_db 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_From",
+        meaning=(
+            "주(main) NPS/DN size 범위의 하한. 다른 시트의 Size_From 과 같은"
+            " 의미지만 Flange 는 size 가 두 짝 (main / branch) 가능한 행을"
+            " 가지므로 'Size1' / 'Size2' 로 분리 표기."
+            " Reducing flange (Flange_Type=RD) 에서는 large end size."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제 (행 단위 검증, 별도 작업으로 구현 예정)."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Size_From / Size_To 범위 안",
+            "(Size1_From, Size1_To) 는 component 행의 주 size 적용 범위",
+            "Size2_From / Size2_To 와의 관계: Flange_Type=RD 일 때 Size1 = large,"
+            " Size2 = small (Reducing direction). 다른 Flange_Type 에서는 Size2"
+            " 빈 값.",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_From 패턴 — component_row_size_pair_errors 확장 필요"
+            " (현재 Pipe_Group 만; Flange 도 Size1/Size2 두 짝 모두 검증 예정)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_To",
+        meaning=(
+            "주(main) NPS/DN size 범위의 상한. Size1_From 의 상한 짝."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제."
+        ),
+        unique=None,
+        relations=[
+            "(Size1_From, Size1_To) 의 상한",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_To 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size2_From",
+        meaning=(
+            "부(branch) NPS/DN size 범위의 하한 — Reducing flange 전용 필드."
+            " Flange_Type=RD 행에서만 의미를 가지며, 그 외 Flange_Type / 그 외"
+            " Item_Code 행에서는 빈 값."
+            " Reducing direction 관행: Size1 = large end, Size2 = small end."
+        ),
+        data_type="string (NPS or DN token; 빈 값 허용 — 조건부)",
+        required=False,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size2_From <= Size2_To 강제 (행 단위)."
+            " Reducing 관행: Size2 < Size1 (smaller end) — 강제는 별도 작업."
+        ),
+        unique=None,
+        relations=[
+            "Flange_Type=RD 일 때 필수, 그 외에는 빈 값",
+            "Size1 / Size2 의 reducing direction (Size1 > Size2) 정합 검사 필요",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 에서 Flange_Type 선택에 따라 enable/disable"
+            " (별도 작업으로 구현 예정)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)."
+            " Flange_Type=RD 일 때만 활성화."
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size2_To",
+        meaning=(
+            "부(branch) NPS/DN size 범위의 상한 — Reducing flange 전용. Size2_From"
+            " 의 상한 짝."
+        ),
+        data_type="string (NPS or DN token; 빈 값 허용 — 조건부)",
+        required=False,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size2_From <= Size2_To 강제."
+        ),
+        unique=None,
+        relations=[
+            "(Size2_From, Size2_To) 의 상한",
+            "Flange_Type=RD 일 때 필수",
+        ],
+        validation_location=(
+            "Size2_From 과 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스. Flange_Type=RD 일 때만 활성화."
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Category",
+        meaning=(
+            "재질의 대분류 카테고리. Wrought/Forged_Fitting_Group 과 동일 정책"
+            " — 7개 (CS/LTCS/AS/SS/DSS/SDSS/Ni-Alloy)."
+            " Cu-Alloy / CI 보류, GI 는 coating 영역으로 제외."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Flange_Group.Matl_Category 옵션"
+            " (closed set, 7개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std / Matl_Code 와 종속 체인 (Pipe_Group 패턴 동일)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Std",
+        meaning=(
+            "재질 표준 발행 기관. Wrought/Forged 와 동일 옵션 (ASTM/JIS/KS/EN)."
+            " Forged flange 의 핵심 표준은 ASTM A105/A182 와 JIS SF/SUS-F 계열."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Flange_Group.Matl_Std 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Code 의 std 키와 일치",
+            "Rating 의 std 키와도 일치 — std-aware Rating 필터링",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Code",
+        meaning=(
+            "Flange 의 구체 재질 규격 코드. Forged_Fitting_Group.Matl_Code 와"
+            " 옵션 풀 완전 동일 (11개 — ASTM 8 + JIS 3) — 두 시트 모두 forged grade"
+            " 를 사용하기 때문. 'F' suffix 가 forged grade marker"
+            " (A182-F304, SUS304-F)."
+        ),
+        data_type="string (short code, e.g. A105 / SF440A)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Flange_Group.Matl_Code 옵션"
+            " (closed set, 11개). KS/EN 항목은 추후 추가."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 필터링",
+            "Forged_Fitting_Group.Matl_Code 와 옵션 풀 동일 — 동일 forged grade 사용",
+            "PMS description 에 그대로 합성 (예: 'FLANGE A105 RF 150# WN')",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Rating",
+        meaning=(
+            "Flange 의 압력 등급. std-aware 필드 — 표준별 표기 체계가 다름:"
+            "\n - ASTM (ASME B16.5): Class 150 / 300 / 600 / 900 / 1500 / 2500#."
+            "\n - JIS (JIS B 2220): 5K / 10K / 16K / 20K / 30K / 40K / 63K."
+            "\n - KS (KS B 1503): 5K / 10K / 16K / 20K / 30K / 40K / 63K (JIS 호환)."
+            " short 값에 'JIS5K' / 'KS5K' 식 prefix 가 이미 포함되어 있어 두 표준의"
+            " 5K 가 별개 short 로 식별됨. std 키는 콤보박스 필터링용 보조."
+            " Forged_Fitting_Group.Rating (Sch80) 과는 의미·옵션 풀 모두 독립."
+        ),
+        data_type="string (short code; ASTM 은 NNN# 형식, JIS/KS 는 prefix+NK 형식)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Flange_Group.Rating 옵션 (closed set, 20개)."
+            " ASTM 6 + JIS 7 + KS 7. std 키 부여 — Matl_Std 와 필터링 정합."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "Facing 과 호환 관행: 600#+ 는 RTJ 가 흔함, 150#-300# 는 RF/FF —"
+            " 강제 검증 없음, 사용자 판단",
+            "PMS description 에 합성 (예: 'FLANGE A105 RF 150# WN')",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
+            " 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Facing",
+        meaning=(
+            "Flange 접촉면(face)의 가공 형식. 6개:"
+            " RF (Raised Face — 가장 흔함),"
+            " FF (Flat Face — cast iron flange 와의 짝),"
+            " RTJ (Ring Type Joint — 고압용),"
+            " MF (Male Face), FM (Female Face),"
+            " TG (Tongue and Groove — male/female 짝 중 일부 명칭)."
+            " LM/LF / SM/SF (Large/Small Male-Female) 는 현재 미고려."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Flange_Group.Facing 옵션 (closed set, 6개)."
+        ),
+        unique=None,
+        relations=[
+            "Rating 과 호환 관행 (위 Rating.relations 참조)",
+            "Gasket_Group 의 Facing 과 짝 — flange face 와 gasket face 는 일치해야"
+            " 정합 (별도 검증 영역)",
+            "PMS description 에 합성 (예: 'FLANGE A105 RF 150# WN')",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Flange_Type",
+        meaning=(
+            "일반 flange (Item_Code=F) 내부의 형식 구분. 6개:"
+            " WN (Weld Neck — 용접 + neck 보강, 가장 흔함),"
+            " SO (Slip-On — 파이프 위에 끼우고 용접),"
+            " LJ (Lap Joint — stub end 와 함께 사용, 회전 가능),"
+            " SW (Socket Weld — small bore 의 socket 접합),"
+            " THRD (Threaded — 나사 접합),"
+            " RD (Reducing — 두 size 의 flange 일체화)."
+            " BL (Blind) 은 Item_Code=FB 로 분리되었기에 옵션 풀에서 제외 (중복 방지)."
+            " LWN (Long Weld Neck), Orifice flange 등은 현재 미고려."
+            " Item_Code=FB/F8/FBS 행에서는 Flange_Type 이 의미 없음 (빈 값)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Flange_Group.Flange_Type 옵션"
+            " (closed set, 6개)."
+            " Item_Code=F 일 때만 required; FB/F8/FBS 행에서는 N/A (조건부 검증은"
+            " 별도 작업)."
+        ),
+        unique=None,
+        relations=[
+            "Item_Code 와 조건부 호환 — Item_Code=F 일 때만 의미",
+            "RD (Reducing) 일 때 Size2_From / Size2_To 필수",
+            "PMS description 에 합성 (Flange_Type 토큰)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+            " Item_Code 와의 조건부 검증은 별도 작업."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)."
+            " Item_Code=F 일 때만 활성화."
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Option_Code",
+        meaning=(
+            "Item_Code 변종/옵션 식별자. Pipe_Group.Option_Code 와 의미·형식"
+            " 동일 — 3자리 숫자 텍스트, '001' = 해당 Class · Flange_Group 의 표준형."
+        ),
+        data_type="string (3자리 0-9 숫자 텍스트; e.g. '001')",
+        required=True,
+        format_constraint=(
+            "정규식 ^\\d{3}$. data/field_values.json 의 Flange_Group.Option_Code"
+            " 옵션 (closed set). 현재 '001' 한 개만 등록."
+        ),
+        unique=(
+            "(Class_Name, Option_Code) 가 Flange_Group 시트 안에서 유일."
+            " 다른 시트의 Option_Code 와는 독립."
+        ),
+        relations=[
+            "(Class_Name, Option_Code) 가 Flange_Group 행의 자연 키",
+            "Pipe_Group.Option_Code 와 동일 패턴",
+        ],
+        validation_location=(
+            "Pipe_Group.Option_Code 와 동일 패턴 — 검증 모두 현재 미구현."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "행 단위 비고/설명 자유 텍스트. Pipe_Group.Remarks 와 의미·동작 동일."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "형식 강제 없음 — data/field_values.json 의 _meta.free_input_fields"
+            " 에 'Remarks' 명시 (모든 시트 공통)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 합성의 마지막 토큰 — Pipe_Group.Remarks 와 동일 패턴",
+        ],
+        validation_location=(
+            "검증 없음 (자유 입력). required 아님."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)"
+        ),
+        unit=None,
+    ),
+]

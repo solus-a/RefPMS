@@ -40,7 +40,10 @@
   ],
 
   "Flange_Group": [
-    {"code": "F", "code_name": "FLANGE"}
+    {"code": "F",   "code_name": "FLANGE"},
+    {"code": "FB",  "code_name": "BLIND FLANGE"},
+    {"code": "F8",  "code_name": "SPECTACLE BLIND"},
+    {"code": "FBS", "code_name": "PADDLE SPACER & BLANK"}
   ],
 
   "Gasket_Group": [

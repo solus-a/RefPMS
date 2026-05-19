@@ -138,6 +138,8 @@ FLANGE_HEADERS = [
     "Item_Code",
     "Size1_From",
     "Size1_To",
+    "Size2_From",
+    "Size2_To",
     "Matl_Category",
     "Matl_Std",
     "Matl_Code",
