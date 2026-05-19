@@ -449,3 +449,340 @@ PIPE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
 ]
+
+
+# ── Wrought_Fitting_Group ──────────────────────────────────────────────────────
+#
+# Wrought fitting (압연/단조 이후 추가 가공으로 만든 fitting) — ASME B16.9 / JIS /
+# KS / EN 의 butt-welded fitting 영역. Item_Code 라인업: 90° / 45° elbow (LR/SR),
+# tee, reducing tee, concentric / eccentric reducer, swage, cap, stub end (12종).
+#
+# Pipe_Group 과 비교한 시트 특성:
+#   - Length 컬럼 없음 (wrought fitting 은 길이가 아닌 standard dim 기반)
+#   - End_Type 옵션 풀이 BW 단일 (현재 시점 — Grooved End / mechanical joint 는 미고려)
+#   - Manufacturing_Method 옵션 풀이 SMLS / WLD 2개 (Pipe 의 ERW/EFW/LSAW/SSAW 무관)
+#   - Matl_Category 7개 (CS/LTCS/AS/SS/DSS/SDSS/Ni-Alloy)
+#       · Cu-Alloy / CI 는 wrought 가능하나 현재 미구현 (추후 도메인 합의 시 추가)
+#       · GI 는 coating 영역 — wrought 의 재질 카테고리 주제와 다름 (분리 처리)
+#   - Matl_Std 4개 (ASME/DIN/API 제외 — fitting 표준의 핵심은 ASTM/JIS/KS/EN)
+#   - Matl_Code 10개 모두 ASTM (다른 std 항목은 추후 도메인 합의에 따라 등록)
+
+WROUGHT_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
+    FieldDefinition(
+        name="Class_Name",
+        meaning=(
+            "이 행이 소속될 Class 의 이름 — Class_Define 시트의 Class_Name 행에"
+            " 존재해야 함. Pipe_Group.Class_Name 과 의미·검증 모두 동일 (3계층"
+            " hierarchy 의 Class 키)."
+        ),
+        data_type="string",
+        required=True,
+        format_constraint=(
+            "공백 trim. 일치 검사는 Class_Define.Class_Name 행 집합 기준."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Class_Name 으로 FK — 미존재 Class 참조 불가",
+        ],
+        validation_location=(
+            "Pipe_Group.Class_Name 과 동일 패턴 — 현재 wizard 컴포넌트 dialog 의"
+            " 콤보박스가 Class_Define 행 목록을 closed set 으로 제공."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class_Define 행 목록)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Item_Code",
+        meaning=(
+            "Wrought_Fitting_Group 의 component 종류 식별자."
+            " 12종: E/ES (90° LR/SR elbow), E4/ES4 (45° LR/SR elbow), T (tee),"
+            " TR (reducing tee), RC (concentric reducer), RE (eccentric reducer),"
+            " RCS/RES (swage concentric/eccentric), CP (cap), SE (stub end)."
+            " PMS description 의 prefix 토큰으로 사용 (item_code_db 의 code_name)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/item_code_db.json 의 Wrought_Fitting_Group 행 (closed set, 12개)."
+            " 외부 DB 참조 — field_values.json 에는 없음."
+        ),
+        unique=None,
+        relations=[
+            "item_code_db.json Wrought_Fitting_Group 의 code 값 중 하나 (FK)",
+            "PMS description prefix 합성: code → code_name (예: E → ELBOW 90 DEG LR)",
+            "Reducer 계열 (RC/RE/RCS/RES) 과 reducing tee (TR) 는 size pair 의미가"
+            " 다름 — Reducing_Table / Branch_Table 의 size 쌍과 정합 (별도 검증 영역)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
+            " PMS 엔진에서는 item_code_db.code 일치 검사."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — item_code_db 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size_From",
+        meaning=(
+            "이 행이 다루는 NPS/DN size 범위의 하한. Pipe_Group.Size_From 과"
+            " 의미·형식 동일."
+        ),
+        data_type="string (NPS or DN token, e.g. '1/2', '2', '12')",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 에 맞춰 NPS / DN catalog 의 한"
+            " 항목. Pipe_Group.Size_From 과 동일 검증."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Size_From / Size_To 범위 안 (Class 가 허용한 size 범위)",
+            "(Size_From, Size_To) 는 component 행의 size 적용 범위 — Size_From <= Size_To",
+            "Reducer / reducing tee (RC/RE/RCS/RES/TR) 의 경우 Size_From 은 main size",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_From 과 동일 패턴 —"
+            " class_level_model.component_row_size_pair_errors 가 Size_From <= Size_To"
+            " 를 강제 (현재 Pipe_Group 만; Wrought 도 같은 규칙 적용 예정)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위"
+            " 안 NPS/DN catalog)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size_To",
+        meaning=(
+            "이 행이 다루는 NPS/DN size 범위의 상한. Pipe_Group.Size_To 와"
+            " 의미·형식 동일."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS / DN catalog."
+            " Size_From <= Size_To 강제 (행 단위 검증)."
+        ),
+        unique=None,
+        relations=[
+            "(Size_From, Size_To) 의 상한",
+            "Reducer 의 경우 Size_To 는 reducing 후 branch/outlet size 가 아닌"
+            " main size 의 상한 — branch size 는 다른 컬럼 (시트별 정책)",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_To 와 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Category",
+        meaning=(
+            "재질의 대분류 카테고리. Pipe_Group.Matl_Category 와 의미 동일."
+            " 옵션 풀은 7개 (CS, LTCS, AS, SS, DSS, SDSS, Ni-Alloy)."
+            " 미포함 항목 처리 정책:"
+            "\n - Cu-Alloy / CI (Cast Iron): 도메인적으로 wrought fitting 재질이"
+            "   될 수 있으나 현재 시스템에서는 미구현 — 도메인 합의 시 추가 가능."
+            "\n - GI (Galvanized Iron): 갈바나이즈드는 coating 의 일환이므로"
+            "   wrought fitting 의 재질 카테고리 주제와 다름 (추후에도 추가 안 함;"
+            "   필요 시 별도 coating 필드/시트로 분리 검토)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Wrought_Fitting_Group.Matl_Category 옵션"
+            " (closed set, 7개: CS, LTCS, AS, SS, DSS, SDSS, Ni-Alloy)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std / Matl_Code 와 종속 체인 — Matl_Code DB 의 std 키와 카테고리"
+            " 가 일치하는 항목만 허용 (Pipe_Group 패턴과 동일)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+            " Matl_Code 필터링의 1차 게이트."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Std",
+        meaning=(
+            "재질 표준 발행 기관. Pipe_Group.Matl_Std 와 의미 동일."
+            " Wrought fitting 영역의 표준 — ASTM (A234/A403/A420 등), JIS, KS, EN."
+            " ASME (보일러·압력용기 표준), DIN (EN 으로 통합), API (oil&gas"
+            " 특수 fitting; ASTM 베이스 인용) 는 일반 wrought fitting 시트에서 제외."
+        ),
+        data_type="string (short code, e.g. ASTM / JIS)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Wrought_Fitting_Group.Matl_Std 옵션"
+            " (closed set, 4개: ASTM, JIS, KS, EN)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Code 의 std 키와 일치 (Matl_Code DB 필터링의 2차 게이트)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Code",
+        meaning=(
+            "Wrought fitting 의 구체 재질 규격 코드. Pipe_Group.Matl_Code 와 의미"
+            " 동일 — 표준 + 등급 (예: ASTM A234 WPB, A403 WP304)."
+            " 'WP' 접두는 wrought fitting 규격 특유의 grade marker (A234-WPB 등)."
+        ),
+        data_type="string (short code, e.g. A234-WPB)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Wrought_Fitting_Group.Matl_Code 옵션"
+            " (closed set, 10개 — 모두 ASTM). JIS/KS/EN 항목은 도메인 합의에"
+            " 따라 추후 추가 (Pipe_Group 과 같은 보류 정책)."
+            " 명명 규칙은 자유형 + std 별 관례 (Pipe_Group.Matl_Code 와 동일)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 표시 — 콤보박스"
+            " 가 std/category 별 필터링",
+            "Matl_Code DB 의 'std' 키로 Matl_Std 와 강제 정합 (Pipe_Group 패턴 동일)",
+            "PMS description 에 그대로 합성 (예: 'ELBOW A234-WPB SMLS BW')",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Manufacturing_Method",
+        meaning=(
+            "Wrought fitting 의 제조 공정. Pipe_Group.Manufacturing_Method 와"
+            " 같은 컬럼명이지만 옵션 풀은 wrought fitting 특화: SMLS (Seamless —"
+            " 압연·인발로 이음새 없이 성형) / WLD (Welded — 판재를 굽혀 용접 조립)."
+            " Pipe 의 ERW/EFW/LSAW/SSAW 같은 long-pipe 전용 공정은 무관."
+        ),
+        data_type="string (short code, SMLS / WLD)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Wrought_Fitting_Group.Manufacturing_Method"
+            " 옵션 (closed set, 2개: SMLS, WLD)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Code 와의 호환 관행: A234-WPB 등 SMLS/WLD 둘 다 가능;"
+            " WP304/316 도 둘 다 — 강제 검증 없음, 사용자 판단",
+            "PMS description 에 합성 (예: 'ELBOW A234-WPB SMLS BW')",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="End_Type",
+        meaning=(
+            "Wrought fitting 의 단부 형식. 현재 옵션 풀은 BW 단일 (ASME B16.9"
+            " 등 표준 wrought fitting 의 기본 단부)."
+            " Socket weld / threaded 단부는 forged fitting (Forged_Fitting_Group)"
+            " 영역이므로 wrought 시트에 등장하지 않음."
+            " 넓게 보면 Grooved End (Mechanical Joint) 같은 비-welded 단부도"
+            " wrought fitting 에 적용 가능하지만 현재 시스템에서는 고려하지 않음"
+            " (추후 도메인 합의 시 옵션 풀 확장 검토)."
+        ),
+        data_type="string (short code, BW)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Wrought_Fitting_Group.End_Type 옵션"
+            " (closed set, 1개: BW). 현재 시점의 시트 정의는 사실상 wrought = BW."
+        ),
+        unique=None,
+        relations=[
+            "Pipe_Group.End_Type (PE/BE/TE 등) 과 의미적으로 독립 — wrought 는"
+            " butt-weld 단부 전제",
+            "PMS 엔진의 Reducer / Tee 처리에서 End_Type 으로 dimensional standard"
+            " (ASME B16.9 등) 결정",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만, 사실상 BW 고정)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Option_Code",
+        meaning=(
+            "Item_Code 변종/옵션 식별자. Pipe_Group.Option_Code 와 의미·형식 동일"
+            " — 3자리 숫자 텍스트, '001' = 해당 Class · Wrought_Fitting_Group 의"
+            " 표준형 (non-variant)."
+        ),
+        data_type="string (3자리 0-9 숫자 텍스트; e.g. '001')",
+        required=True,
+        format_constraint=(
+            "정규식 ^\\d{3}$. data/field_values.json 의 Wrought_Fitting_Group."
+            "Option_Code 옵션 (closed set). 현재 '001' 한 개만 등록."
+        ),
+        unique=(
+            "(Class_Name, Option_Code) 가 Wrought_Fitting_Group 시트 안에서 유일."
+            " Pipe_Group / 다른 시트의 Option_Code 와는 독립 (시트별 독립 default)."
+        ),
+        relations=[
+            "(Class_Name, Option_Code) 가 Wrought_Fitting_Group 행의 자연 키",
+            "'001' 의 도메인적 의미 = 해당 Class · Wrought_Fitting_Group 의 표준형."
+            " 예: 'small size SW' Class 라도 wrought fitting 시트의 default 는"
+            " 여전히 BW 표준형 — 시트별 default 가 독립적임을 보여주는 예시",
+            "Pipe_Group.Option_Code 와 동일 패턴 (자세한 검증·미구현 사항은"
+            " Pipe_Group.Option_Code 정의 참조)",
+        ],
+        validation_location=(
+            "Pipe_Group.Option_Code 와 동일 패턴 — 형식 / required / unique 검증"
+            " 모두 현재 미구현 (별도 작업)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "행 단위 비고/설명 자유 텍스트. Pipe_Group.Remarks 와 의미·동작 동일"
+            " — PMS description 의 마지막 토큰으로 합성."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "형식 강제 없음 — data/field_values.json 의 _meta.free_input_fields"
+            " 에 'Remarks' 명시 (모든 시트 공통)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 합성의 마지막 토큰 — Pipe_Group.Remarks 와 동일 패턴",
+        ],
+        validation_location=(
+            "검증 없음 (자유 입력). required 아님."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)"
+        ),
+        unit=None,
+    ),
+]
