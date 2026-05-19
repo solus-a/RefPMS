@@ -6,8 +6,7 @@
       "Item_Code": "data/item_code_db.json (per-group, planned)",
       "Class_Name": "Class_Define sheet rows",
       "Size_From / Size_To / Size1_From / Size1_To": "NPS catalog",
-      "Bolt_Length_Table": "TBD: separate length table file",
-      "Option_Code": "data/option_code_db.json (per-group)"
+      "Bolt_Length_Table": "TBD: separate length table file"
     },
     "free_input_fields": ["Remarks"]
   },
@@ -74,6 +73,9 @@
       {"short": "75mm",  "long": "75 mm Nipple"},
       {"short": "100mm", "long": "100 mm Nipple"},
       {"short": "150mm", "long": "150 mm Nipple"}
+    ],
+    "Option_Code": [
+      {"short": "001", "long": "Default item (non-variant of this Class's Item Group)"}
     ]
   },
 

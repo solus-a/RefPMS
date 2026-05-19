@@ -360,4 +360,92 @@ PIPE_GROUP_FIELDS: list[FieldDefinition] = [
             "mm (실제 길이 — Pipe Size 시스템 NPS/DN 과 무관하게 mm 일관)"
         ),
     ),
+    FieldDefinition(
+        name="Option_Code",
+        meaning=(
+            "Item_Code 변종/옵션 식별자 — 같은 Class · 같은 Pipe_Group 안에서"
+            " component 행을 유일하게 식별하는 보조 키. 형식은 3자리 숫자 텍스트"
+            " (예: '001', '051', '105')."
+            " '001' = 해당 Class 의 design concept 에 부합하는 표준형 (non-variant)."
+            " 예시: 'small size 는 socket welding' 인 Class 에서 small size range"
+            " 의 PE/BE pipe 는 default 가 아니므로 변종 (001 이 아닌 다른 코드)."
+            " 변종 코드의 의미 매핑은 Option_Code 옵션 풀이 채워지면서 확립."
+        ),
+        data_type="string (3자리 0-9 숫자 텍스트, 앞자리 0 보존; e.g. '001')",
+        required=True,
+        format_constraint=(
+            "정규식 ^\\d{3}$ — 정확히 3자리 숫자. 텍스트로 저장 (앞자리 0 보존)."
+            " data/field_values.json 의 Pipe_Group.Option_Code 옵션 (closed set)."
+            " 현재 '001' (default) 한 개만 등록 — 변종 코드는 도메인 합의에 따라"
+            " 점진적으로 추가."
+        ),
+        unique=(
+            "(Class_Name, Option_Code) 가 Pipe_Group 시트 안에서 유일."
+            " Group 경계 unique 가 아님 — 같은 Class 의 Forged_Fitting_Group.001"
+            " 과 Pipe_Group.001 은 공존 정상 (시트별로 독립적 default 가짐)."
+            " 강제 검증은 별도 작업 (현재 미구현)."
+        ),
+        relations=[
+            "(Class_Name, Option_Code) 가 Pipe_Group 행의 자연 키 (natural key)",
+            "'001' 의 도메인적 의미 = 해당 Class · Pipe_Group 의 표준형 ↔"
+            " Class_Define 의 design concept (예: 'small size 는 SW') 에 따라"
+            " 결정. 변종 (001 외) 은 그 concept 에서 벗어나는 행 — 예: 같은 size"
+            " range 인데 다른 end_type / matl_code / manufacturing 조합",
+            "Item_Code 와 직교적: 같은 Item_Code 안에서 여러 Option_Code 가 존재"
+            " 가능 (default + 변종들)",
+            "PMS 엔진 (pms_generator.py) 은 현재 Option_Code 미참조 — 향후 행"
+            " 식별/정렬/description 합성 통합 여지 (별도 작업)",
+        ],
+        validation_location=(
+            "형식 검증 (^\\d{3}$): wizard 컴포넌트 dialog 입력 시점 (현재 미구현)."
+            " Required 검증: class_level_model.PIPE_GROUP_REQUIRED_FIELDS 에"
+            " 'Option_Code' 포함 (등록 완료)."
+            " (Class_Name, Option_Code) unique 검증: bundle/class 레벨에서 별도"
+            " 작업 필요 (현재 미구현)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)."
+            " 옵션 풀이 작은 동안은 콤보 + 자유 입력 혼합 검토 가능 — 단,"
+            " 3자리 숫자 형식 강제."
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "행 단위 비고/설명 자유 텍스트 — 표준 필드로 표현하기 어려운 보조"
+            " 정보를 기록 (예: 특수 가공 요구, 프로젝트 특이사항, 임시 참고 메모)."
+            " Pipe_Group 에서는 PMS description 의 마지막 토큰으로 그대로 합성되어"
+            " 출력에 노출됨 (Item_Description 끝부분)."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "형식 강제 없음 — data/field_values.json 의 _meta.free_input_fields"
+            " 에 'Remarks' 명시. closed set 미적용."
+            " 단, 길이 정보는 Length 컬럼 전용 — Remarks 에 길이를 적어도 PMS"
+            " 엔진은 폴백 사용하지 않음 (옛 설계 잔재 정리됨, pms_generator"
+            " _try_nipple_pipe_output 주석 참조)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 합성의 마지막 토큰 —"
+            " class_template_wizard._build_pipe_description,"
+            " pms_generator._try_pipe_output / _try_nipple_pipe_output 등에서"
+            " Item_Description 끝에 공백 join 으로 추가",
+            "출력 Remarks 컬럼에 그대로 보존 (pms_generator 의 out_remarks)",
+            "Length 와 의미적으로 분리 — 길이는 Length 컬럼, 자유 메모는 Remarks."
+            " 같은 텍스트가 두 곳에 중복 노출되지 않도록 사용자 판단",
+        ],
+        validation_location=(
+            "검증 없음 (자유 입력)."
+            " required 아님 —"
+            " class_level_model.PIPE_GROUP_REQUIRED_FIELDS 미포함."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)."
+            " 단일 줄 권장 — Excel 셀 표시 가독성."
+        ),
+        unit=None,
+    ),
 ]
