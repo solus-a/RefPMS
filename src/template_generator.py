@@ -196,8 +196,8 @@ GATE_VALVE_HEADERS = [
     "Rating",
     "End_Type",
     "Bonnet_Type",
+    "Wedge_Type",
     "Operation",
-    "Bore",
     "Option_Code",
     "Remarks",
 ]

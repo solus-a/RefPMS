@@ -2406,3 +2406,485 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
 ]
+
+
+# ── Gate_Valve_Group ───────────────────────────────────────────────────────────
+#
+# Gate Valve (직선형 흐름의 차단·개방 전용 valve) — Valve 6종 중 첫 번째 시트.
+# 다른 Valve 시트 (Globe/Check/Ball/Butterfly/Plug) 의 기본 컬럼 패턴 (Class/Item/
+# Size1 짝/Body Matl/Trim/Seat/Rating/End/Bonnet/Operation/Option/Remarks) 을
+# 공유하되, Gate 고유 필드 Wedge_Type 가 추가됨.
+#
+# 다른 시트와 비교한 주요 특성:
+#   - Body Matl_Code 는 cast grade (A216-WCB 등) — Pipe/Flange 의 forged grade
+#     와 다른 옵션 풀. Cast valve body 가 일반.
+#   - Trim_Matl + Seat_Matl 두 컬럼: valve 의 내부 마모 부품 재질 별도 명시.
+#     Body 재질과 독립적으로 운영 조건 (corrosive / hardness) 따라 선택.
+#   - Wedge_Type 는 Item_Code 분리 대신 컬럼화 — 도메인 관행상 Procurement
+#     description 에 명시 안 하는 경우도 흔함 (forged=Solid, cast=Flexible 의
+#     관습이 통용). 따라서 required=False, 빈 값 허용 + 옵션 풀 4종 (Solid/
+#     Flexible/Split/TC).
+#   - Bore (FB/RB) 컬럼 제거 — Gate Valve 는 거의 Full Bore 가 표준. 특수한 RB
+#     Gate 는 별도 명시 필요 시 Remarks 로 우회.
+#   - Stem_Type (OS&Y/NRS/Rising Stem) 컬럼 없음 — Bonnet_Type / Operation 으로
+#     대부분의 구조 정보가 표현됨.
+#   - Size 시스템: Size1_From / Size1_To 한 짝 (Flange Size1 패턴; Valve 는
+#     Reducing 없음).
+#   - Rating: std-aware (ASTM 6 + JIS 7 + KS 7 = 20개) — Flange/Gasket 과 동일
+#     옵션 풀 + std 키 부여. 다만 ASTM 기준 표준은 ASME B16.5 (Flange) 가 아닌
+#     ASME B16.34 (Valve).
+#   - End_Type: BW/SW/TH/FLG 4종.
+#   - Bonnet_Type: Bolted / PSB (Pressure-Sealed) / Welded / Screwed 4종.
+#   - Operation: Manual (Handwheel) / Lever / Wrench / Gear / Chain 5종 — Motor
+#     / Pneumatic / Hydraulic 등 actuator 류는 현재 미고려 (별도 actuator 시트
+#     로 분리 검토).
+#
+# 미고려 항목 (추후 도메인 합의 시 확장):
+#   - Stem_Type 컬럼
+#   - Bore 컬럼 (FB/RB) — Gate 에서는 의미 작음, Ball/Plug 에서 의미 큼
+#   - Actuator 종류 (Motor/Pneumatic/Hydraulic) — 별도 actuator 시트
+#   - Trim_Matl / Seat_Matl 의 std-aware 필터링 (현재 단순 풀)
+#   - Wedge_Type 'Parallel Slide' (Gate 의 특수 형식)
+#   - Bypass valve 정보 (대구경 Gate 의 보조 valve)
+#   - Item_Code 분리: Cast vs Forged (VA / VAF) 등 — 현재 VA 하나로 유지
+#
+# 다른 Valve 시트와의 공통 구조:
+#   - 16 필드 (현재 Gate). 다른 Valve (Globe/Check 등) 는 valve 별 고유 컬럼
+#     (Disc_Type / Plug_Type 등) 으로 비슷한 길이.
+#   - Class_Name → Item_Code → Size1 → Body Matl → Trim/Seat → Rating →
+#     End_Type → Bonnet_Type → (valve 고유: Wedge_Type) → Operation →
+#     Option_Code → Remarks 순서.
+
+GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
+    FieldDefinition(
+        name="Class_Name",
+        meaning=(
+            "이 행이 소속될 Class 의 이름. Pipe_Group.Class_Name 과 의미·검증"
+            " 모두 동일."
+        ),
+        data_type="string",
+        required=True,
+        format_constraint=(
+            "공백 trim. Class_Define.Class_Name 행 집합 기준 일치 검사."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Class_Name 으로 FK",
+        ],
+        validation_location=(
+            "Pipe_Group.Class_Name 과 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class_Define 행 목록)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Item_Code",
+        meaning=(
+            "Gate_Valve_Group 의 component 종류 식별자. 현재 'VA' (GATE VALVE)"
+            " 하나만 정의 — Wedge type 의 차이 (Solid/Flexible 등) 는 Wedge_Type"
+            " 컬럼으로 구분. Cast vs Forged 의 Item_Code 분리는 현재 미고려."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/item_code_db.json 의 Gate_Valve_Group 행 (closed set, 현재 1개)."
+        ),
+        unique=None,
+        relations=[
+            "item_code_db.json Gate_Valve_Group 의 code 값 중 하나 (FK)",
+            "PMS description prefix 합성: VA → GATE VALVE",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — item_code_db 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_From",
+        meaning=(
+            "NPS/DN size 범위의 하한. Flange_Group.Size1_From 과 의미 동일."
+            " Valve 는 Reducing 없음 — 단일 size 짝 (Size1_From/Size1_To) 사용."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제 (행 단위 검증, 별도 작업)."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Size_From / Size_To 범위 안",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_From 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_To",
+        meaning=(
+            "NPS/DN size 범위의 상한. Size1_From 의 상한 짝."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제."
+        ),
+        unique=None,
+        relations=[
+            "(Size1_From, Size1_To) 의 상한",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_To 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Category",
+        meaning=(
+            "Valve body 재질의 대분류 카테고리. Pipe/Flange 와 동일 7개"
+            " (CS/LTCS/AS/SS/DSS/SDSS/Ni-Alloy)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gate_Valve_Group.Matl_Category 옵션"
+            " (closed set, 7개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std / Matl_Code 와 종속 체인 (Pipe_Group 패턴 동일)",
+            "Trim_Matl / Seat_Matl 과는 독립",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Std",
+        meaning=(
+            "Valve body 재질 표준 발행 기관. 4개 (ASTM/JIS/KS/EN)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gate_Valve_Group.Matl_Std 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Code 의 std 키와 일치",
+            "Rating 의 std 키와도 일치 — std-aware Rating 필터링",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Code",
+        meaning=(
+            "Valve body 의 구체 재질 규격 코드. **Cast grade** — Pipe/Flange/"
+            "Fitting 의 forged grade 와 다른 옵션 풀."
+            " ASTM (8): A216-WCB (CS Cast Body), A352-LCB/LCC (LTCS Cast),"
+            " A351-CF8/CF8M (SS304/SS316 Cast), A217-WC1/WC6/WC9 (Cr-Mo Cast)."
+            " JIS (2): SCS13A/SCS14A (SS304/SS316 Cast). KS/EN 항목은 추후."
+        ),
+        data_type="string (short code; e.g. A216-WCB / SCS13A)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gate_Valve_Group.Matl_Code 옵션"
+            " (closed set, 10개). KS/EN 항목은 추후 추가."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 필터링",
+            "Trim_Matl / Seat_Matl 과는 독립 (body 와 내부 부품 재질이 다름)",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중"
+            " Matl_Std 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Trim_Matl",
+        meaning=(
+            "Valve trim (stem / wedge contact / back-seat 등 내부 마모 부품)"
+            " 재질. Body 재질과 독립적으로 운영 조건 (마모, 부식, 온도) 따라 선택."
+            " 7종: 13Cr (F6/410 SS), F316, F304, Stellite-6 (Co-Cr Hardfacing),"
+            " Inconel-625, Monel-400, Hastelloy-C276."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gate_Valve_Group.Trim_Matl 옵션"
+            " (closed set, 7개)."
+        ),
+        unique=None,
+        relations=[
+            "Seat_Matl 와 호환 관행: 보통 Trim 과 Seat 재질이 일관 — 강제 검증 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Seat_Matl",
+        meaning=(
+            "Valve seat (밸브가 닫혔을 때 wedge 와 접촉하는 면) 재질. 5종:"
+            " 13Cr, F316, F304, Stellite-6, Inconel-625."
+            " Trim 보다 옵션 풀이 좁음 — seat 는 더 보수적 선택."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gate_Valve_Group.Seat_Matl 옵션"
+            " (closed set, 5개)."
+        ),
+        unique=None,
+        relations=[
+            "Trim_Matl 와 호환 관행 (위 Trim_Matl.relations 참조)",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Rating",
+        meaning=(
+            "Valve 의 압력 등급. std-aware 필드 — Flange/Gasket 과 옵션 풀 동일"
+            " (20개), 다만 ASTM 기준 표준은 ASME **B16.34** (Valve), Flange 의"
+            " ASME B16.5 와 구분."
+            "\n - ASTM: 150# / 300# / 600# / 900# / 1500# / 2500#."
+            "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
+            "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
+        ),
+        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gate_Valve_Group.Rating 옵션"
+            " (closed set, 20개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "Flange_Group.Rating 의 옵션 풀과 동일 — flange 와 valve 가 같은"
+            " rating 체계를 공유",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
+            " 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="End_Type",
+        meaning=(
+            "Valve 단부 (end connection) 형식. 4종:"
+            " BW (Butt Weld — 용접), SW (Socket Weld), TH (Threaded — 나사),"
+            " FLG (Flanged — 플랜지)."
+            " Mechanical joint / Grooved 등은 현재 미고려."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gate_Valve_Group.End_Type 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
+            " (별도 검증 영역)",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Bonnet_Type",
+        meaning=(
+            "Valve bonnet (body 상단의 덮개) 형식. 4종:"
+            " Bolted (Bolted Bonnet — 가장 흔함),"
+            " PSB (Pressure-Sealed Bonnet — 고압용),"
+            " Welded (Welded Bonnet — 영구), Screwed (Screwed Bonnet — 소구경)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gate_Valve_Group.Bonnet_Type 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Rating 과 호환 관행: PSB 는 600#+ 고압이 흔함 — 강제 검증 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Wedge_Type",
+        meaning=(
+            "Gate Valve 의 wedge (차단부) 형식. **Gate Valve 고유 컬럼** — 다른"
+            " Valve 시트엔 없음. 4종:"
+            " Solid (Solid Wedge — forged valve 의 통상), Flexible (Flexible"
+            " Wedge — cast valve 의 통상), Split (Split Wedge), TC (Through"
+            " Conduit / Slab — pipeline 용)."
+            " 빈 값 허용 — Procurement description 에 명시 안 하는 관행이 흔함"
+            " (forged=Solid, cast=Flexible 의 관습이 통용)."
+        ),
+        data_type="string (short code; 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "data/field_values.json 의 Gate_Valve_Group.Wedge_Type 옵션"
+            " (closed set, 4개 + 빈 값)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Code 와 호환 관행: forged grade 와 Solid, cast grade 와"
+            " Flexible 이 통상 — 강제 검증 없음",
+            "PMS description 에 합성 (빈 값이면 토큰 생략)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set, 빈 값 허용)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Operation",
+        meaning=(
+            "Valve 조작 방식. 5종:"
+            " Manual (Handwheel — 가장 흔함),"
+            " Lever (소구경 ball/butterfly 흔함; Gate 에선 드묾),"
+            " Wrench (Wrench Operated), Gear (Gear Operated — 대구경),"
+            " Chain (Chain Operated — 높은 위치)."
+            " Motor / Pneumatic / Hydraulic 등 actuator 는 현재 미고려 (별도"
+            " actuator 시트로 분리 검토)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gate_Valve_Group.Operation 옵션"
+            " (closed set, 5개)."
+        ),
+        unique=None,
+        relations=[
+            "Size1 과 호환 관행: 대구경 (8\"+) 은 Gear/Chain 이 흔함 — 강제 검증"
+            " 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Option_Code",
+        meaning=(
+            "Item_Code 변종/옵션 식별자. Pipe_Group.Option_Code 와 의미·형식"
+            " 동일 — 3자리 숫자 텍스트, '001' = 해당 Class · Gate_Valve_Group"
+            " 의 표준형."
+        ),
+        data_type="string (3자리 0-9 숫자 텍스트; e.g. '001')",
+        required=True,
+        format_constraint=(
+            "정규식 ^\\d{3}$. data/field_values.json 의 Gate_Valve_Group.Option_Code"
+            " 옵션 (closed set). 현재 '001' 한 개만 등록."
+        ),
+        unique=(
+            "(Class_Name, Option_Code) 가 Gate_Valve_Group 시트 안에서 유일."
+            " 다른 시트의 Option_Code 와는 독립."
+        ),
+        relations=[
+            "(Class_Name, Option_Code) 가 Gate_Valve_Group 행의 자연 키",
+            "Pipe_Group.Option_Code 와 동일 패턴",
+        ],
+        validation_location=(
+            "Pipe_Group.Option_Code 와 동일 패턴 — 검증 모두 현재 미구현."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "행 단위 비고/설명 자유 텍스트. Pipe_Group.Remarks 와 의미·동작 동일."
+            " Wedge type 의 도메인 관습 부연 (예: 'forged-Solid 통상'), Actuator"
+            " 정보 (Motor / Pneumatic 등 — 별도 시트 미구현 단계 동안 우회),"
+            " Bypass valve 정보 등을 자유 입력."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "형식 강제 없음 — data/field_values.json 의 _meta.free_input_fields"
+            " 에 'Remarks' 명시 (모든 시트 공통)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 합성의 마지막 토큰 — Pipe_Group.Remarks 와 동일 패턴",
+        ],
+        validation_location=(
+            "검증 없음 (자유 입력). required 아님."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)"
+        ),
+        unit=None,
+    ),
+]
