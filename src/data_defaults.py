@@ -65,36 +65,13 @@ DEFAULT_COMPONENT_MAPPING: dict = {
                 "Material_Primary",
                 "Rating",
                 "Facing",
+                "Thickness",
             ],
             "conditional_required": [
                 {
                     "when_field": "Gasket_Type",
-                    "when_values": ["SPIRAL WOUND"],
-                    "require_non_empty": [
-                        "Material_Secondary",
-                        "Material_Inner_Ring",
-                        "Material_Outer_Ring",
-                        "Thickness",
-                    ],
-                },
-                {
-                    "when_field": "Gasket_Type",
-                    "when_values": [
-                        "ENVELOPED",
-                        "JACKETED",
-                        "COMPRESSED NON-ASBESTOS",
-                    ],
-                    "require_non_empty": ["Material_Secondary", "Thickness"],
-                },
-                {
-                    "when_field": "Gasket_Type",
-                    "when_values": ["RUBBER", "SOLID"],
-                    "require_non_empty": ["Thickness"],
-                },
-                {
-                    "when_field": "Gasket_Type",
-                    "when_values": ["RING JOINT OVAL", "RING JOINT OCTAGONAL"],
-                    "require_non_empty": ["Remarks"],
+                    "when_values": ["SW"],
+                    "require_non_empty": ["Material_Secondary"],
                 },
             ],
         },

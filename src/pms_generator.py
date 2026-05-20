@@ -484,15 +484,16 @@ def _normalize_flange_type_token(raw_flange_type: str) -> str:
 
 
 def _gasket_material_token(gasket_type: str, mat_primary: str, mat_secondary: str) -> str:
-    gt = _to_text(gasket_type).strip().upper()
+    # gasket_type 인자는 signature 호환성 유지 — 새 도메인 (SHEET/SW/RTJ) 에서
+    # Material_Primary 가 이미 'SS316+Graphite' 같은 SW 조합 토큰을 직접 담으므로
+    # Type 별 분기 없이 단순 결합.
+    del gasket_type
     p = _to_text(mat_primary).strip()
     s = _to_text(mat_secondary).strip()
     if not p and not s:
         return ""
     if not s:
         return p
-    if gt in {"SPIRAL WOUND", "ENVELOPED", "JACKETED"}:
-        return f"{p}+{s}" if p else s
     return _join_tokens(p, s)
 
 
@@ -944,8 +945,6 @@ def _build_item_description_by_rule(
         gasket_type = _get_cell_text(ws, row_idx, header_to_col, "Gasket_Type")
         mat_primary = _get_cell_text(ws, row_idx, header_to_col, "Material_Primary")
         mat_secondary = _get_cell_text(ws, row_idx, header_to_col, "Material_Secondary")
-        mat_ir = _get_cell_text(ws, row_idx, header_to_col, "Material_Inner_Ring")
-        mat_or = _get_cell_text(ws, row_idx, header_to_col, "Material_Outer_Ring")
         rating = _pick_first_non_empty(ws, row_idx, header_to_col, ["Rating"])
         facing = _get_cell_text(ws, row_idx, header_to_col, "Facing")
         thickness_raw = _get_cell_text(ws, row_idx, header_to_col, "Thickness")
@@ -953,16 +952,11 @@ def _build_item_description_by_rule(
         remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
         title = description_lead if _to_text(description_lead) else "GASKET"
         mat_token = _gasket_material_token(gasket_type, mat_primary, mat_secondary)
-        ring_token = _join_tokens(
-            f"IR-{mat_ir}" if mat_ir else "",
-            f"OR-{mat_or}" if mat_or else "",
-        )
         rating_disp = _flange_rating_display(rating)
         return _join_tokens(
             title,
             gasket_type,
             mat_token,
-            ring_token,
             rating_disp,
             facing,
             thickness,
