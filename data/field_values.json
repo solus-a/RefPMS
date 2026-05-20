@@ -364,6 +364,9 @@
       {"short": "A194-8",   "std": "ASTM", "long": "ASTM A194 Gr.8 (SS304 Nut)"},
       {"short": "A194-8M",  "std": "ASTM", "long": "ASTM A194 Gr.8M (SS316 Nut)"},
       {"short": "S45C",     "std": "JIS",  "long": "JIS S45C (CS Nut)"}
+    ],
+    "Option_Code": [
+      {"short": "001", "long": "Default item (non-variant of this Class's Item Group)"}
     ]
   },
 

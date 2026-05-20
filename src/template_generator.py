@@ -179,6 +179,7 @@ BOLT_HEADERS = [
     "Nut_Matl_Std",
     "Nut_Matl_Code",
     "Bolt_Length_Table",
+    "Option_Code",
     "Remarks",
 ]
 

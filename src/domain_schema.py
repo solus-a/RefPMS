@@ -1945,3 +1945,464 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
 ]
+
+
+# ── Bolt_Group ─────────────────────────────────────────────────────────────────
+#
+# Bolt (flange 끼리, 또는 flange-equipment 결합용 체결재) — 한 행에 Bolt 와 Nut
+# 두 component 의 재질 정보를 동시에 담는 이중(dual) 재질 구조.
+# Item_Code 는 'B' (BOLT & NUT) 하나만 정의되어 있음; 변종은 Option_Code 로 처리.
+#
+# 다른 시트와 비교한 주요 특성:
+#   - 이중 재질 컬럼: Bolt_Matl_Category/Std/Code + Nut_Matl_Category/Std/Code
+#     · 자유 조합 — Bolt 와 Nut 의 std/category 가 일치할 필요 없음.
+#     · 일반적 표준 짝 (예: A193-B7 ↔ A194-2H) 은 사용자가 판단; 강제 검증 없음.
+#   - Bolt_Length_Table: size 별 bolt 길이를 별도 시트에 두고 키로 참조
+#     · 옵션 풀은 닫힌 집합이 아니라 사용자 자유 — _meta.external_dropdown_sources
+#       에 "TBD: separate length table file" 로 표기되어 있음.
+#     · LT-A / LT-B 같은 표기를 사용자가 정함; 본 도메인 검증은 별도 작업.
+#   - Bolt_Type / Nut_Type: 형식 구분
+#     · Bolt_Type: Stud / Machine (Hex Cap Screw 등은 현재 미고려)
+#     · Nut_Type: Hex / Heavy Hex (HHex)
+#   - Matl_Std: ASTM/JIS/KS 3종 (Pipe/Flange 와 달리 EN 없음)
+#     · 현재 옵션 풀에 EN 항목 없어 단순화. 추후 EN 추가 시 옵션 풀에만 추가.
+#
+# Bolt dia 단위 체계 (Metric vs Inch):
+#   도메인적으로는 flange 표준이 결정:
+#     - ASME B16.5 flange → bolt 직경 inch 고정 (ASME B18.31.2 / B18.2.1)
+#       · "diameter of bolts and flange bolt holes" 만은 inch 단위로 명시되며,
+#         metric bolt (B18.2.3.6M) 와의 혼용은 표준 부적합 (nonconformance).
+#     - JIS B 2220 flange → bolt M-thread (metric)
+#     - KS B 1503 flange → bolt M-thread (metric)
+#   다만 PMS 운영상은 이 매핑을 코드로 강제 검증하지 않음 (도메인 결정):
+#     · 사용자가 Bolt_Length_Table 에 자유롭게 inch 든 metric 이든 입력
+#     · Bolt sheet 자체에는 dia system 컬럼이 없음 — std 와 system 간 종속 강제 X
+#     · 이는 RefPMS 가 "데이터 입력 도구" 역할에 충실하고, bolt-flange 정합 검증은
+#       사용자 책임으로 두는 정책 (별도 작업으로 확장 가능).
+#
+# Size 시스템:
+#   - Size_From / Size_To 한 짝 (flange 의 NPS/DN 따라감 — 옵션 A)
+#   - Bolt sheet 의 Size 는 flange size 범위와 의미·옵션 풀 동일 — 한 행이 어느
+#     flange size 범위에 적용될지 명시.
+#   - 실제 bolt 구경(inch/M-thread)은 Bolt_Length_Table 에서 size 별로 매핑.
+#
+# 미고려 항목 (추후 도메인 합의 시 확장):
+#   - Bolt_Type: Hex Bolt (Hex Cap Screw), Square Head, Carriage 등
+#   - Nut_Type: Square Nut, Coupling Nut, Lock Nut, Self-Locking 등
+#   - Matl_Std: EN (예: EN ISO 898-1 Class 8.8, 10.9) — 현재 미등록
+#   - Bolt-Nut 표준 짝 강제 (A193-B7 ↔ A194-2H 등) — 자유 조합으로 시작
+#   - Bolt_Length_Table 의 시트 정의 자체 (별도 시트로 분리하는 작업)
+#   - Coating / Plating (Hot-dip galvanized, Zinc, Xylan 등) — Remarks 로 우회
+#   - Washer 사양 — 미고려
+
+BOLT_GROUP_FIELDS: list[FieldDefinition] = [
+    FieldDefinition(
+        name="Class_Name",
+        meaning=(
+            "이 행이 소속될 Class 의 이름. Pipe_Group.Class_Name 과 의미·검증"
+            " 모두 동일."
+        ),
+        data_type="string",
+        required=True,
+        format_constraint=(
+            "공백 trim. Class_Define.Class_Name 행 집합 기준 일치 검사."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Class_Name 으로 FK",
+        ],
+        validation_location=(
+            "Pipe_Group.Class_Name 과 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class_Define 행 목록)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Item_Code",
+        meaning=(
+            "Bolt_Group 의 component 종류 식별자. 현재 'B' (BOLT & NUT) 하나만"
+            " 정의 — bolt 와 nut 를 한 set 로 묶어 한 component 로 취급."
+            " Stud / Machine 의 형식 차이는 Item_Code 가 아니라 Bolt_Type 컬럼."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/item_code_db.json 의 Bolt_Group 행 (closed set, 현재 1개)."
+        ),
+        unique=None,
+        relations=[
+            "item_code_db.json Bolt_Group 의 code 값 중 하나 (FK)",
+            "PMS description prefix 합성: B → BOLT & NUT",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — item_code_db 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size_From",
+        meaning=(
+            "NPS/DN size 범위의 하한. 의미는 'flange 의 NPS/DN 기준 적용 범위'"
+            " — bolt 자체의 구경(inch/M-thread) 이 아니라 flange 와 연동되는 size."
+            " Pipe_Group.Size_From 과 같은 catalog 사용."
+            " 실제 bolt 구경은 Bolt_Length_Table 에서 size 별로 매핑 (그 매핑이"
+            " inch 든 metric 이든 PMS 는 강제하지 않음)."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size_From <= Size_To 강제 (행 단위 검증, 별도 작업으로 구현 예정)."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Size_From / Size_To 범위 안",
+            "Flange_Group.Size1_From / Size1_To 와 의미적 짝 (flange 가 결정)",
+            "Bolt_Length_Table 의 row 와 매핑 (size → 실제 bolt 구경 + 길이)",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_From 패턴 — component_row_size_pair_errors 확장 필요."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size_To",
+        meaning=(
+            "NPS/DN size 범위의 상한. Size_From 의 상한 짝."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size_From <= Size_To 강제."
+        ),
+        unique=None,
+        relations=[
+            "(Size_From, Size_To) 의 상한",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_To 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Bolt_Type",
+        meaning=(
+            "Bolt 의 형식 분류. 2종:"
+            " Stud (Stud Bolt — 양 끝 나사 가공, flange 결합에 가장 흔함),"
+            " Machine (Machine Bolt — Hex 머리 + 한 끝 나사)."
+            " Hex Cap Screw / Square Head 등은 현재 미고려."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Bolt_Group.Bolt_Type 옵션"
+            " (closed set, 2개)."
+        ),
+        unique=None,
+        relations=[
+            "Bolt_Matl_Code 와 호환 관행: Stud 는 A193-B7 등 stud-grade 흔함,"
+            " Machine 은 A307-B 등 — 강제 검증 없음, 사용자 판단",
+            "Nut_Type 과 짝: Stud 는 Heavy Hex Nut 짝이 일반적, Machine 은 Hex"
+            " Nut — 강제 검증 없음",
+            "PMS description 에 합성 (bolt type 토큰)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Bolt_Matl_Category",
+        meaning=(
+            "Bolt 재질의 대분류 카테고리. 4개 (CS/LTCS/AS/SS) — Pipe/Flange 의"
+            " 7개보다 좁음 (bolt 용 재질이 그만큼 좁기 때문)."
+            " DSS/SDSS/Ni-Alloy/Cu-Alloy 는 bolt 영역에서 거의 사용 안 함 — 미고려."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Bolt_Group.Bolt_Matl_Category 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Bolt_Matl_Std / Bolt_Matl_Code 와 종속 체인 (Pipe_Group 패턴 동일)",
+            "Nut_Matl_Category 와는 독립 — 자유 조합",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Bolt_Matl_Std",
+        meaning=(
+            "Bolt 재질 표준 발행 기관. 3개 (ASTM/JIS/KS) — Pipe/Flange 의 4개에서"
+            " EN 제외. 추후 EN ISO 898-1 등록 시 확장."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Bolt_Group.Bolt_Matl_Std 옵션"
+            " (closed set, 3개)."
+        ),
+        unique=None,
+        relations=[
+            "Bolt_Matl_Code 의 std 키와 일치",
+            "Nut_Matl_Std 와는 독립 — 자유 조합",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Bolt_Matl_Code",
+        meaning=(
+            "Bolt 의 구체 재질 규격 코드. std-aware 필드 — 표준별 옵션이 다름."
+            " ASTM (8개): A307-B (CS), A193-B7/B7M/B16 (Cr-Mo Stud, std/low-hardness/high-temp),"
+            " A320-L7/L7M (LTCS Stud), A193-B8/B8M (SS304/SS316 Stud)."
+            " JIS (1개): SCM435 (Cr-Mo Bolt). KS 항목은 추후 추가."
+            " 'B7M' / 'L7M' 등 'M' suffix 는 low-hardness 변종 (sour service 용)."
+        ),
+        data_type="string (short code; e.g. A193-B7 / SCM435)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Bolt_Group.Bolt_Matl_Code 옵션"
+            " (closed set, 9개). KS/EN 항목은 추후 추가."
+        ),
+        unique=None,
+        relations=[
+            "Bolt_Matl_Std (FK), Bolt_Matl_Category (의미적 정합) 와 함께 필터링",
+            "Bolt_Type 과 호환 관행: Stud-grade (B7 등) 와 Machine-grade (A307 등)"
+            " 구분 — 강제 검증 없음",
+            "Nut_Matl_Code 와의 표준 짝 (A193-B7 ↔ A194-2H 등) 은 사용자 판단",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중"
+            " Bolt_Matl_Std 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Nut_Type",
+        meaning=(
+            "Nut 의 형식 분류. 2종:"
+            " Hex (Hex Nut — 일반 6각 너트),"
+            " HHex (Heavy Hex Nut — 두꺼운 6각 너트, stud 짝)."
+            " Square / Coupling / Lock / Self-Locking 등은 현재 미고려."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Bolt_Group.Nut_Type 옵션 (closed set, 2개)."
+        ),
+        unique=None,
+        relations=[
+            "Bolt_Type 과 호환 관행: Stud 는 HHex 짝이 일반적, Machine 은 Hex —"
+            " 강제 검증 없음",
+            "PMS description 에 합성 (nut type 토큰)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Nut_Matl_Category",
+        meaning=(
+            "Nut 재질의 대분류 카테고리. Bolt_Matl_Category 와 옵션 풀 동일 (4개)."
+            " Bolt 의 category 와 독립 — 다를 수 있음 (예: Bolt=AS, Nut=AS 가 일반적"
+            " 이지만 강제 X)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Bolt_Group.Nut_Matl_Category 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Nut_Matl_Std / Nut_Matl_Code 와 종속 체인",
+            "Bolt_Matl_Category 와는 독립 — 자유 조합",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Nut_Matl_Std",
+        meaning=(
+            "Nut 재질 표준 발행 기관. Bolt_Matl_Std 와 옵션 풀 동일 (3개:"
+            " ASTM/JIS/KS). Bolt 의 std 와 독립 — 자유 조합."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Bolt_Group.Nut_Matl_Std 옵션"
+            " (closed set, 3개)."
+        ),
+        unique=None,
+        relations=[
+            "Nut_Matl_Code 의 std 키와 일치",
+            "Bolt_Matl_Std 와는 독립 — 자유 조합",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Nut_Matl_Code",
+        meaning=(
+            "Nut 의 구체 재질 규격 코드. std-aware 필드."
+            " ASTM (6개): A194-2H/2HM (CS Nut, B7 짝), A194-7/7M (Cr-Mo Nut),"
+            " A194-8/8M (SS304/SS316 Nut)."
+            " JIS (1개): S45C (CS Nut). KS 항목은 추후 추가."
+            " Bolt_Matl_Code 와의 표준 짝 (B7 ↔ 2H, B7M ↔ 2HM 등) 은 사용자 판단."
+        ),
+        data_type="string (short code; e.g. A194-2H / S45C)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Bolt_Group.Nut_Matl_Code 옵션"
+            " (closed set, 7개). KS/EN 항목은 추후 추가."
+        ),
+        unique=None,
+        relations=[
+            "Nut_Matl_Std (FK), Nut_Matl_Category 와 함께 필터링",
+            "Bolt_Matl_Code 와의 표준 짝 — 강제 검증 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중"
+            " Nut_Matl_Std 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Bolt_Length_Table",
+        meaning=(
+            "Bolt 길이 매핑 테이블의 식별자 (예: 'LT-A', 'LT-B'). 별도 시트에서"
+            " 정의되며, 한 row 가 (NPS/DN size, flange rating, facing, gasket 종류"
+            " 등) → 실제 bolt 구경 (inch 또는 M-thread) + bolt 길이 (mm/inch) 로"
+            " 매핑."
+            " 실제 bolt 구경 단위 (inch vs M-thread) 는 이 table 에서 결정 — Bolt"
+            " sheet 자체에는 단위 체계 강제 없음."
+            " 현재는 자유 텍스트 또는 추후 외부 시트 reference (별도 작업)."
+            " _meta.external_dropdown_sources 에 'TBD: separate length table file'"
+            " 로 표기됨."
+        ),
+        data_type="string (table identifier; e.g. 'LT-A')",
+        required=True,
+        format_constraint=(
+            "현재 형식 강제 없음 — 사용자 자유 텍스트. 추후 외부 시트 reference"
+            " 로 closed set 화 예정."
+        ),
+        unique=None,
+        relations=[
+            "(외부) Bolt_Length_Table 시트 — table_id → size/dia/length 매핑",
+            "Class_Define.std 와 Bolt_Length_Table 의 단위 체계 (inch/metric)"
+            " 정합은 사용자 책임 (RefPMS 는 강제 검증 안 함)",
+            "PMS description 합성 시 size 별 bolt 길이 lookup 의 키",
+        ],
+        validation_location=(
+            "현재 미구현 — 자유 텍스트 입력."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)."
+            " 추후 외부 시트 reference 콤보로 전환 예정."
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Option_Code",
+        meaning=(
+            "Item_Code 변종/옵션 식별자. Pipe_Group.Option_Code 와 의미·형식"
+            " 동일 — 3자리 숫자 텍스트, '001' = 해당 Class · Bolt_Group 의 표준형."
+        ),
+        data_type="string (3자리 0-9 숫자 텍스트; e.g. '001')",
+        required=True,
+        format_constraint=(
+            "정규식 ^\\d{3}$. data/field_values.json 의 Bolt_Group.Option_Code"
+            " 옵션 (closed set). 현재 '001' 한 개만 등록."
+        ),
+        unique=(
+            "(Class_Name, Option_Code) 가 Bolt_Group 시트 안에서 유일."
+            " 다른 시트의 Option_Code 와는 독립."
+        ),
+        relations=[
+            "(Class_Name, Option_Code) 가 Bolt_Group 행의 자연 키",
+            "Pipe_Group.Option_Code 와 동일 패턴",
+        ],
+        validation_location=(
+            "Pipe_Group.Option_Code 와 동일 패턴 — 검증 모두 현재 미구현."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "행 단위 비고/설명 자유 텍스트. Pipe_Group.Remarks 와 의미·동작 동일."
+            " Bolt-Nut 표준 짝 (예: 'A193-B7 ↔ A194-2H'), coating 사양 (예: 'HDG"
+            " Class C'), 적용 범위 부연 설명 등을 자유 입력."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "형식 강제 없음 — data/field_values.json 의 _meta.free_input_fields"
+            " 에 'Remarks' 명시 (모든 시트 공통)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 합성의 마지막 토큰 — Pipe_Group.Remarks 와 동일 패턴",
+        ],
+        validation_location=(
+            "검증 없음 (자유 입력). required 아님."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)"
+        ),
+        unit=None,
+    ),
+]
