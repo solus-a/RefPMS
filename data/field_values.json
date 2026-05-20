@@ -248,97 +248,69 @@
 
   "Gasket_Group": {
     "Gasket_Type": [
-      {"short": "SW",   "long": "Spiral Wound"},
-      {"short": "RTJ",  "long": "Ring Type Joint"},
-      {"short": "CNAF", "long": "Compressed Non-Asbestos Fiber"},
-      {"short": "MJ",   "long": "Metal Jacketed"},
-      {"short": "CMG",  "long": "Camprofile"}
+      {"short": "SHEET", "long": "Sheet Gasket (Non-metallic — single sheet material)"},
+      {"short": "SW",    "long": "Spiral Wound (Semi-metallic — metal winding + filler, with rings)"},
+      {"short": "RTJ",   "long": "Ring Type Joint (Metallic — solid metal ring for high pressure)"}
     ],
 
     "Material_Primary": [
-      {"short": "SS304",         "long": "Stainless Steel 304"},
-      {"short": "SS316",         "long": "Stainless Steel 316"},
-      {"short": "SS321",         "long": "Stainless Steel 321"},
-      {"short": "Inconel-600",   "long": "Inconel 600"},
-      {"short": "Inconel-625",   "long": "Inconel 625"},
-      {"short": "Monel-400",     "long": "Monel 400"},
-      {"short": "Hastelloy-C276","long": "Hastelloy C276"},
-      {"short": "Soft-Iron",     "long": "Soft Iron"},
-      {"short": "Aramid Fiber",  "long": "Aramid Fiber"},
-      {"short": "Cellulose",     "long": "Cellulose Fiber"},
-      {"short": "Glass Fiber",   "long": "Glass Fiber"}
+      {"short": "Non-Asbestos",   "long": "Non-Asbestos / CNAF (Sheet)"},
+      {"short": "PTFE",           "long": "PTFE (Sheet)"},
+      {"short": "Graphite",       "long": "Flexible Graphite (Sheet)"},
+      {"short": "SS304+Graphite", "long": "SS304 Winding + Graphite Filler (SW)"},
+      {"short": "SS304+PTFE",     "long": "SS304 Winding + PTFE Filler (SW)"},
+      {"short": "SS316+Graphite", "long": "SS316 Winding + Graphite Filler (SW)"},
+      {"short": "SS316+PTFE",     "long": "SS316 Winding + PTFE Filler (SW)"},
+      {"short": "Soft-Iron",      "long": "Soft Iron (RTJ ring material)"},
+      {"short": "SS304",          "long": "SS304 (RTJ ring material)"},
+      {"short": "SS316",          "long": "SS316 (RTJ ring material)"}
     ],
 
     "Material_Secondary": [
-      {"short": "Graphite",     "long": "Flexible Graphite"},
-      {"short": "PTFE",         "long": "PTFE"},
-      {"short": "Ceramic",      "long": "Ceramic Fiber"},
-      {"short": "Mica",         "long": "Mica"},
-      {"short": "Asbestos-Free","long": "Asbestos-Free"},
-      {"short": "NBR",          "long": "Nitrile Rubber Binder"},
-      {"short": "SBR",          "long": "Styrene Butadiene Rubber Binder"},
-      {"short": "EPDM",         "long": "EPDM Rubber Binder"},
-      {"short": "CR",           "long": "Chloroprene Rubber Binder"},
-      {"short": "OilResist",    "long": "Oil Resistant Compound"},
-      {"short": "SteamGrade",   "long": "Steam Service Grade"}
-    ],
-
-    "Material_Inner_Ring": [
-      {"short": "",      "long": "(none)"},
-      {"short": "SS304", "long": "Stainless Steel 304"},
-      {"short": "SS316", "long": "Stainless Steel 316"},
-      {"short": "CS",    "long": "Carbon Steel"}
-    ],
-
-    "Material_Outer_Ring": [
-      {"short": "",      "long": "(none)"},
-      {"short": "CS",    "long": "Carbon Steel"},
-      {"short": "SS304", "long": "Stainless Steel 304"},
-      {"short": "SS316", "long": "Stainless Steel 316"}
+      {"short": "",      "long": "(none — Sheet / RTJ)"},
+      {"short": "CS",    "long": "Carbon Steel Ring (SW outer / inner ring)"},
+      {"short": "SS304", "long": "SS304 Ring (SW outer / inner ring)"},
+      {"short": "SS316", "long": "SS316 Ring (SW outer / inner ring)"}
     ],
 
     "Rating": [
-      {"short": "150#",   "long": "Class 150"},
-      {"short": "300#",   "long": "Class 300"},
-      {"short": "600#",   "long": "Class 600"},
-      {"short": "900#",   "long": "Class 900"},
-      {"short": "1500#",  "long": "Class 1500"},
-      {"short": "2500#",  "long": "Class 2500"},
-      {"short": "JIS5K",  "long": "JIS 5K"},
-      {"short": "JIS10K", "long": "JIS 10K"},
-      {"short": "JIS16K", "long": "JIS 16K"},
-      {"short": "JIS20K", "long": "JIS 20K"},
-      {"short": "JIS30K", "long": "JIS 30K"},
-      {"short": "JIS40K", "long": "JIS 40K"},
-      {"short": "JIS63K", "long": "JIS 63K"},
-      {"short": "KS5K",   "long": "KS 5K"},
-      {"short": "KS10K",  "long": "KS 10K"},
-      {"short": "KS16K",  "long": "KS 16K"},
-      {"short": "KS20K",  "long": "KS 20K"},
-      {"short": "KS30K",  "long": "KS 30K"},
-      {"short": "KS40K",  "long": "KS 40K"},
-      {"short": "KS63K",  "long": "KS 63K"}
+      {"short": "150#",   "std": "ASTM", "long": "Class 150 (ASME B16.5)"},
+      {"short": "300#",   "std": "ASTM", "long": "Class 300 (ASME B16.5)"},
+      {"short": "600#",   "std": "ASTM", "long": "Class 600 (ASME B16.5)"},
+      {"short": "900#",   "std": "ASTM", "long": "Class 900 (ASME B16.5)"},
+      {"short": "1500#",  "std": "ASTM", "long": "Class 1500 (ASME B16.5)"},
+      {"short": "2500#",  "std": "ASTM", "long": "Class 2500 (ASME B16.5)"},
+      {"short": "JIS5K",  "std": "JIS",  "long": "JIS 5K (JIS B 2220)"},
+      {"short": "JIS10K", "std": "JIS",  "long": "JIS 10K (JIS B 2220)"},
+      {"short": "JIS16K", "std": "JIS",  "long": "JIS 16K (JIS B 2220)"},
+      {"short": "JIS20K", "std": "JIS",  "long": "JIS 20K (JIS B 2220)"},
+      {"short": "JIS30K", "std": "JIS",  "long": "JIS 30K (JIS B 2220)"},
+      {"short": "JIS40K", "std": "JIS",  "long": "JIS 40K (JIS B 2220)"},
+      {"short": "JIS63K", "std": "JIS",  "long": "JIS 63K (JIS B 2220)"},
+      {"short": "KS5K",   "std": "KS",   "long": "KS 5K (KS B 1503)"},
+      {"short": "KS10K",  "std": "KS",   "long": "KS 10K (KS B 1503)"},
+      {"short": "KS16K",  "std": "KS",   "long": "KS 16K (KS B 1503)"},
+      {"short": "KS20K",  "std": "KS",   "long": "KS 20K (KS B 1503)"},
+      {"short": "KS30K",  "std": "KS",   "long": "KS 30K (KS B 1503)"},
+      {"short": "KS40K",  "std": "KS",   "long": "KS 40K (KS B 1503)"},
+      {"short": "KS63K",  "std": "KS",   "long": "KS 63K (KS B 1503)"}
     ],
 
     "Facing": [
       {"short": "RF",  "long": "Raised Face"},
       {"short": "FF",  "long": "Flat Face"},
-      {"short": "RTJ", "long": "Ring Type Joint"},
-      {"short": "MF",  "long": "Male Face"},
-      {"short": "FM",  "long": "Female Face"},
-      {"short": "TG",  "long": "Tongue and Groove"}
+      {"short": "RTJ", "long": "Ring Type Joint"}
     ],
 
     "Thickness": [
-      {"short": "0.5mm", "long": "0.5 mm"},
-      {"short": "0.8mm", "long": "0.8 mm"},
-      {"short": "1.0mm", "long": "1.0 mm"},
-      {"short": "1.5mm", "long": "1.5 mm"},
-      {"short": "2.0mm", "long": "2.0 mm"},
-      {"short": "3.0mm", "long": "3.0 mm"},
-      {"short": "4.5mm", "long": "4.5 mm"},
-      {"short": "5.0mm", "long": "5.0 mm"},
-      {"short": "6.0mm", "long": "6.0 mm"}
+      {"short": "1.5T", "long": "1.5 mm thick"},
+      {"short": "3.0T", "long": "3.0 mm thick"},
+      {"short": "4.5T", "long": "4.5 mm thick"},
+      {"short": "6.0T", "long": "6.0 mm thick"}
+    ],
+
+    "Option_Code": [
+      {"short": "001", "long": "Default item (non-variant of this Class's Item Group)"}
     ]
   },
 

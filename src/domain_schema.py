@@ -1558,3 +1558,390 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
 ]
+
+
+# ── Gasket_Group ───────────────────────────────────────────────────────────────
+#
+# Gasket (두 flange 사이의 밀봉용 부품) — Pipe/Fitting/Flange 와 재질 체계가
+# 완전히 다름 (forged grade 가 아니라 시트·필러·링 재질 조합). 따라서:
+#   - Matl_Category / Matl_Std / Matl_Code 일반 필드 사용하지 않음 — 대신
+#     Gasket 전용 Material_Primary / Material_Secondary 두 필드로 구조 재질 표현
+#   - Item_Code 는 'G' 하나만; 종류는 Gasket_Type 컬럼으로 구분 (SHEET/SW/RTJ)
+#   - Size 는 단일 짝 (Size_From/Size_To) — Reducing gasket 은 거의 없음
+#
+# Gasket_Type 별 의미·재질 사용 패턴 (Material_Primary / Material_Secondary):
+#   - SHEET (Sheet Gasket, Non-metallic):
+#       Primary  = sheet 본체 재질 (Non-Asbestos / PTFE / Graphite)
+#       Secondary = 빈 값 (단일 재질)
+#   - SW (Spiral Wound, Semi-metallic):
+#       Primary  = 'metal+filler' 합쳐진 표기 (SS304+Graphite, SS316+PTFE 등)
+#       Secondary = SW 의 outer/inner ring 재질 (CS / SS304 / SS316)
+#       · Winding 과 Filler 를 별도 필드로 분리하지 않고 Primary 한 토큰에 합침
+#         (도메인 결정 — '+' 로 구분 표기)
+#   - RTJ (Ring Type Joint, Metallic):
+#       Primary  = ring 재질 (Soft-Iron / SS304 / SS316)
+#       Secondary = 빈 값 (단일 재질)
+#
+# 미고려 항목 (추후 도메인 합의 시 확장):
+#   - Gasket_Type: Metal Jacketed (MJ), Kammprofile / Camprofile (CMG)
+#   - Sheet 재질: Aramid Fiber, Glass Fiber, Mica, Ceramic
+#   - SW Winding 재질: SS321, Inconel-600/625, Monel-400, Hastelloy-C276
+#   - Reducing gasket (Size2 컬럼) — 거의 사용 안 함
+#   - Facing 옵션: MF/FM/TG/LM/LF/SM/SF — Gasket 은 flange face 짝이므로
+#     RF/FF/RTJ 3개로 시작 (Flange Facing 의 부분집합)
+#   - Item_Code 분리: GR (RTJ 전용) 등 — 현재 G 하나로 유지, Type 컬럼으로 구분
+#   - Thickness: 0.5/0.8/1.0/2.0/5.0mm 등 — 현재 1.5/3.0/4.5/6.0 4개로 시작
+#
+# 다른 시트와의 차이:
+#   - Pipe/Fitting/Flange: forged grade Matl_Code 11종 std-aware
+#     vs Gasket: 시트·필러·링 재질 (Matl_Code 미사용, Material_Primary/Secondary)
+#   - Flange: Size1/Size2 두 짝 (Reducing 지원)
+#     vs Gasket: Size_From/Size_To 한 짝
+#   - Flange: Facing 6개
+#     vs Gasket: Facing 3개 (Flange face 의 일반 짝만)
+
+GASKET_GROUP_FIELDS: list[FieldDefinition] = [
+    FieldDefinition(
+        name="Class_Name",
+        meaning=(
+            "이 행이 소속될 Class 의 이름. Pipe_Group.Class_Name 과 의미·검증"
+            " 모두 동일."
+        ),
+        data_type="string",
+        required=True,
+        format_constraint=(
+            "공백 trim. Class_Define.Class_Name 행 집합 기준 일치 검사."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Class_Name 으로 FK",
+        ],
+        validation_location=(
+            "Pipe_Group.Class_Name 과 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class_Define 행 목록)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Item_Code",
+        meaning=(
+            "Gasket_Group 의 component 종류 식별자. 현재 'G' (GASKET) 하나만 정의."
+            " Gasket 종류 (SHEET/SW/RTJ) 는 Item_Code 가 아니라 Gasket_Type 컬럼으로"
+            " 구분 — Flange_Group 의 line-blank 류 (FB/F8/FBS) 같은 의미 차이가"
+            " gasket 류에서는 크지 않기 때문."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/item_code_db.json 의 Gasket_Group 행 (closed set, 현재 1개)."
+        ),
+        unique=None,
+        relations=[
+            "item_code_db.json Gasket_Group 의 code 값 중 하나 (FK)",
+            "PMS description prefix 합성: G → GASKET",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — item_code_db 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size_From",
+        meaning=(
+            "NPS/DN size 범위의 하한. Pipe_Group.Size_From 과 의미 동일."
+            " Gasket 은 Reducing 거의 없음 — 단일 size 짝 (Size_From/Size_To) 사용."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size_From <= Size_To 강제 (행 단위 검증, 별도 작업으로 구현 예정)."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Size_From / Size_To 범위 안",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_From 패턴 — component_row_size_pair_errors 확장 필요."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size_To",
+        meaning=(
+            "NPS/DN size 범위의 상한. Size_From 의 상한 짝."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size_From <= Size_To 강제."
+        ),
+        unique=None,
+        relations=[
+            "(Size_From, Size_To) 의 상한",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_To 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Gasket_Type",
+        meaning=(
+            "Gasket 의 구조적 분류. 3종:"
+            " SHEET (Sheet Gasket — non-metallic 단일 시트),"
+            " SW (Spiral Wound — semi-metallic, metal winding + filler + outer/inner ring),"
+            " RTJ (Ring Type Joint — metallic, 고압용 solid metal ring)."
+            " 이 필드가 Material_Primary / Material_Secondary 의 의미를 결정."
+            " Item_Code 가 아니라 별도 컬럼으로 분리한 이유: gasket 의 의미 자체는"
+            " 동일 (밀봉)하고 구조만 다르기 때문 — line-blank 류처럼 의미가 완전히"
+            " 다른 변종이 아님."
+            " Metal Jacketed (MJ), Camprofile (CMG) 등은 현재 미고려."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gasket_Group.Gasket_Type 옵션"
+            " (closed set, 3개)."
+        ),
+        unique=None,
+        relations=[
+            "Material_Primary / Material_Secondary 의 의미·옵션 풀 결정",
+            "Rating 과 호환 관행: RTJ 는 600#+ 고압용이 흔함",
+            "Facing 과 호환 관행: RTJ gasket 은 Facing=RTJ 와 짝",
+            "PMS description 에 합성 (gasket type 토큰)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+            " Material_Primary 와의 조건부 검증은 별도 작업."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Material_Primary",
+        meaning=(
+            "Gasket 의 주(primary) 재질. Gasket_Type 별로 의미가 다름:"
+            "\n - SHEET: 시트 본체 재질 (Non-Asbestos / PTFE / Graphite)."
+            "\n - SW: Winding 금속 + Filler 비금속의 조합 한 토큰"
+            " (SS304+Graphite, SS304+PTFE, SS316+Graphite, SS316+PTFE 4종)."
+            "\n - RTJ: solid metal ring 재질 (Soft-Iron / SS304 / SS316)."
+            " 통합 풀 (10개) 에서 Gasket_Type 별로 일부만 의미 — 콤보박스 필터링은"
+            " 별도 작업 (Gasket_Type 종속). Pipe/Fitting/Flange 의 Matl_Code 와"
+            " 완전히 별개의 옵션 풀."
+        ),
+        data_type="string (short code; SW 일 때 'A+B' 형식)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gasket_Group.Material_Primary 옵션"
+            " (closed set, 10개)."
+        ),
+        unique=None,
+        relations=[
+            "Gasket_Type 과 조건부 호환 — Gasket_Type 별로 의미 있는 옵션이 다름"
+            " (Sheet 시 'Non-Asbestos'/'PTFE'/'Graphite', SW 시 'SS304+Graphite' 등,"
+            " RTJ 시 'Soft-Iron'/'SS304'/'SS316'). 강제 검증은 별도 작업.",
+            "Material_Secondary 와 종속: Gasket_Type=SW 일 때만 Secondary 가 의미"
+            " (outer/inner ring 재질). Sheet/RTJ 시 Secondary 는 빈 값.",
+            "PMS description 에 합성 (gasket material 토큰)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + Gasket_Type 종속)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중"
+            " Gasket_Type 과 호환되는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Material_Secondary",
+        meaning=(
+            "Gasket 의 부(secondary) 재질 — Spiral Wound 의 outer/inner ring 재질"
+            " 전용 필드 (4종: 빈 값 / CS / SS304 / SS316)."
+            " Gasket_Type 별 사용 패턴:"
+            "\n - SW: outer/inner ring 재질 (CS / SS304 / SS316). 두 ring 재질을"
+            " 같다고 가정 — 다를 경우는 추후 분리 (현재 미고려)."
+            "\n - SHEET / RTJ: 빈 값 (단일 재질이므로 secondary 없음)."
+        ),
+        data_type="string (short code; 빈 값 허용 — 조건부)",
+        required=False,
+        format_constraint=(
+            "data/field_values.json 의 Gasket_Group.Material_Secondary 옵션"
+            " (closed set, 4개 — 빈 값 포함)."
+            " Gasket_Type=SW 일 때만 required; Sheet/RTJ 시 빈 값 (조건부 검증은"
+            " 별도 작업)."
+        ),
+        unique=None,
+        relations=[
+            "Gasket_Type 과 조건부 호환 — SW 일 때만 의미",
+            "Material_Primary 와 함께 SW 의 재질 조합 표현",
+            "PMS description 에 합성 (SW 일 때 ring 재질 토큰)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+            " Gasket_Type=SW 일 때만 활성화 (별도 작업)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)."
+            " Gasket_Type=SW 일 때만 활성화."
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Rating",
+        meaning=(
+            "Gasket 의 압력 등급. Flange_Group.Rating 과 옵션 풀 완전 동일 (20개)"
+            " — gasket 은 flange 와 짝이므로 같은 rating 체계 사용."
+            " std-aware: ASTM 6 (150-2500#) + JIS 7 (5K-63K) + KS 7 (5K-63K)."
+            " short 값에 'JIS5K'/'KS5K' 식 prefix 포함 — 두 표준의 5K 가 별개 short"
+            " 로 식별. Gasket 은 별도 Matl_Std 필드 없음 — std 필터링은 Class_Define"
+            " 의 std 로 처리 (별도 작업)."
+        ),
+        data_type="string (short code; ASTM 은 NNN# 형식, JIS/KS 는 prefix+NK 형식)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gasket_Group.Rating 옵션 (closed set, 20개)."
+        ),
+        unique=None,
+        relations=[
+            "Flange_Group.Rating 과 옵션 풀 동일 — gasket 은 flange 와 짝",
+            "Gasket_Type 과 호환 관행: RTJ gasket 은 600#+ 고압이 흔함 — 강제 검증"
+            " 없음, 사용자 판단",
+            "Class_Define.std 와 std-aware 필터링 (별도 작업)",
+            "PMS description 에 합성 (예: 'GASKET SW SS316+Graphite RF 150#')",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + Class std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Facing",
+        meaning=(
+            "Gasket 의 접촉면(face) 형식. Flange_Group.Facing 의 일반 짝 3개만:"
+            " RF (Raised Face — 가장 흔함),"
+            " FF (Flat Face — cast iron flange 짝),"
+            " RTJ (Ring Type Joint — 고압용; Gasket_Type=RTJ 와 짝)."
+            " MF/FM/TG/LM/LF/SM/SF 등 male/female 짝은 gasket 측에서 별도 facing"
+            " 표기가 의미 없어 제외 (현재 미고려)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gasket_Group.Facing 옵션 (closed set, 3개)."
+        ),
+        unique=None,
+        relations=[
+            "Flange_Group.Facing 과 짝 — flange face 와 gasket face 는 일치해야"
+            " 정합 (별도 검증 영역)",
+            "Gasket_Type 과 호환 관행: Gasket_Type=RTJ 일 때 Facing=RTJ — 강제"
+            " 검증은 별도 작업",
+            "PMS description 에 합성 (facing 토큰)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Thickness",
+        meaning=(
+            "Gasket 두께. 콤보박스 (closed set, 4개): 1.5T / 3.0T / 4.5T / 6.0T"
+            " (mm). 'T' 접미사는 thickness 의 산업 관행 표기."
+            " Gasket_Type 별 일반 두께 관행:"
+            " SHEET 는 3.0T/4.5T 흔함, SW 는 4.5T 표준, RTJ 는 ring 직경으로 결정"
+            " 되므로 thickness 의미 작음 — 그래도 일관성 위해 채움."
+            " 0.5/0.8/1.0/2.0/5.0mm 등은 현재 미고려."
+        ),
+        data_type="string (short code; '1.5T' / '3.0T' / '4.5T' / '6.0T')",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Gasket_Group.Thickness 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Gasket_Type 과 호환 관행 (위 의미 참조) — 강제 검증 없음",
+            "PMS description 에 합성 (thickness 토큰)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit="mm (T 접미사로 표기)",
+    ),
+    FieldDefinition(
+        name="Option_Code",
+        meaning=(
+            "Item_Code 변종/옵션 식별자. Pipe_Group.Option_Code 와 의미·형식"
+            " 동일 — 3자리 숫자 텍스트, '001' = 해당 Class · Gasket_Group 의 표준형."
+        ),
+        data_type="string (3자리 0-9 숫자 텍스트; e.g. '001')",
+        required=True,
+        format_constraint=(
+            "정규식 ^\\d{3}$. data/field_values.json 의 Gasket_Group.Option_Code"
+            " 옵션 (closed set). 현재 '001' 한 개만 등록."
+        ),
+        unique=(
+            "(Class_Name, Option_Code) 가 Gasket_Group 시트 안에서 유일."
+            " 다른 시트의 Option_Code 와는 독립."
+        ),
+        relations=[
+            "(Class_Name, Option_Code) 가 Gasket_Group 행의 자연 키",
+            "Pipe_Group.Option_Code 와 동일 패턴",
+        ],
+        validation_location=(
+            "Pipe_Group.Option_Code 와 동일 패턴 — 검증 모두 현재 미구현."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "행 단위 비고/설명 자유 텍스트. Pipe_Group.Remarks 와 의미·동작 동일."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "형식 강제 없음 — data/field_values.json 의 _meta.free_input_fields"
+            " 에 'Remarks' 명시 (모든 시트 공통)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 합성의 마지막 토큰 — Pipe_Group.Remarks 와 동일 패턴",
+        ],
+        validation_location=(
+            "검증 없음 (자유 입력). required 아님."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)"
+        ),
+        unit=None,
+    ),
+]

@@ -158,8 +158,6 @@ GASKET_HEADERS = [
     "Gasket_Type",
     "Material_Primary",
     "Material_Secondary",
-    "Material_Inner_Ring",
-    "Material_Outer_Ring",
     "Rating",
     "Facing",
     "Thickness",
