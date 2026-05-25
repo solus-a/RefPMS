@@ -34,3 +34,19 @@ No hard line. tkinter has no component model, so a multi-tab wizard accumulates 
 - Magic numbers — name meaningful thresholds.
 - Long functions — split by responsibility.
 - Comments that restate the code — a good name replaces a comment. Comments are reserved for non-obvious *why*.
+
+## 8. Data File Conventions
+The `long` field in `data/field_values.json` carries only the natural-language expansion of `short` — one line, no parenthetical asides. Put standard names, applicable conditions, domain conventions, and design rationale in `src/domain_schema.py` (the `FieldDefinition.meaning` field or the sheet header comment), never in the option pool.
+
+| short | long (correct) | long (anti-pattern) |
+|---|---|---|
+| `Swing` | `Swing Disc` | `Swing Disc (hinge 회전, 2"+ 대구경 표준; API 6D)` |
+| `150#` | `Class 150` | `Class 150 (ASME B16.34)` |
+| `""` | `(unspecified)` | `(unspecified — Procurement Description 미기재 케이스 허용)` |
+
+The `data/field_values.json` pool is consumed by the wizard combo box at runtime; users see `long` as the readable label. Anything beyond the natural-language expansion belongs in the schema module, where engineers read it.
+
+Two narrow exceptions to "natural-language only":
+
+1. **Domain abbreviations that are already the natural-language form.** Industry-standard tokens like `ASTM`, `13Cr`, `PTFE`, `SS304` have no readable expansion that adds clarity — engineers read the abbreviation as the term. `long` may equal `short` in that case.
+2. **Parenthetical disambiguators for thread/standard variants.** When two rows share the same natural-language meaning but differ by an established formal qualifier (e.g. `PT` vs `NPT`, both threaded ends; JIS vs ANSI variants), the long may carry the qualifier in parentheses: `"Threaded (PT)"` / `"Threaded (NPT)"`. This is the qualifier itself, not a domain note about it.
