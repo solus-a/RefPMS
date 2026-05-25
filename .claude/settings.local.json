@@ -23,7 +23,8 @@
       "WebSearch",
       "Bash(mkdir -p \"D:\\\\Programing\\\\Cursor\\\\pms_test\\\\.claude\\\\skills\\\\ui-checklist\")",
       "Bash(mkdir -p \"D:\\\\Programing\\\\Cursor\\\\pms_test\\\\.claude\\\\skills\\\\pre-code\")",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(powershell *)"
     ]
   }
 }

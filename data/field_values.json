@@ -512,26 +512,26 @@
       {"short": "Inconel-625","long": "Inconel 625"}
     ],
     "Rating": [
-      {"short": "150#",   "long": "Class 150"},
-      {"short": "300#",   "long": "Class 300"},
-      {"short": "600#",   "long": "Class 600"},
-      {"short": "900#",   "long": "Class 900"},
-      {"short": "1500#",  "long": "Class 1500"},
-      {"short": "2500#",  "long": "Class 2500"},
-      {"short": "JIS5K",  "long": "JIS 5K"},
-      {"short": "JIS10K", "long": "JIS 10K"},
-      {"short": "JIS16K", "long": "JIS 16K"},
-      {"short": "JIS20K", "long": "JIS 20K"},
-      {"short": "JIS30K", "long": "JIS 30K"},
-      {"short": "JIS40K", "long": "JIS 40K"},
-      {"short": "JIS63K", "long": "JIS 63K"},
-      {"short": "KS5K",   "long": "KS 5K"},
-      {"short": "KS10K",  "long": "KS 10K"},
-      {"short": "KS16K",  "long": "KS 16K"},
-      {"short": "KS20K",  "long": "KS 20K"},
-      {"short": "KS30K",  "long": "KS 30K"},
-      {"short": "KS40K",  "long": "KS 40K"},
-      {"short": "KS63K",  "long": "KS 63K"}
+      {"short": "150#",   "std": "ASTM", "long": "Class 150 (ASME B16.34)"},
+      {"short": "300#",   "std": "ASTM", "long": "Class 300 (ASME B16.34)"},
+      {"short": "600#",   "std": "ASTM", "long": "Class 600 (ASME B16.34)"},
+      {"short": "900#",   "std": "ASTM", "long": "Class 900 (ASME B16.34)"},
+      {"short": "1500#",  "std": "ASTM", "long": "Class 1500 (ASME B16.34)"},
+      {"short": "2500#",  "std": "ASTM", "long": "Class 2500 (ASME B16.34)"},
+      {"short": "JIS5K",  "std": "JIS",  "long": "JIS 5K"},
+      {"short": "JIS10K", "std": "JIS",  "long": "JIS 10K"},
+      {"short": "JIS16K", "std": "JIS",  "long": "JIS 16K"},
+      {"short": "JIS20K", "std": "JIS",  "long": "JIS 20K"},
+      {"short": "JIS30K", "std": "JIS",  "long": "JIS 30K"},
+      {"short": "JIS40K", "std": "JIS",  "long": "JIS 40K"},
+      {"short": "JIS63K", "std": "JIS",  "long": "JIS 63K"},
+      {"short": "KS5K",   "std": "KS",   "long": "KS 5K"},
+      {"short": "KS10K",  "std": "KS",   "long": "KS 10K"},
+      {"short": "KS16K",  "std": "KS",   "long": "KS 16K"},
+      {"short": "KS20K",  "std": "KS",   "long": "KS 20K"},
+      {"short": "KS30K",  "std": "KS",   "long": "KS 30K"},
+      {"short": "KS40K",  "std": "KS",   "long": "KS 40K"},
+      {"short": "KS63K",  "std": "KS",   "long": "KS 63K"}
     ],
     "End_Type": [
       {"short": "BW",  "long": "Butt Weld"},
@@ -553,10 +553,13 @@
       {"short": "Chain",  "long": "Chain Operated"}
     ],
     "Disc_Type": [
-      {"short": "Plug",        "long": "Plug Disc"},
-      {"short": "Ball",        "long": "Ball Disc"},
-      {"short": "Needle",      "long": "Needle Disc"},
-      {"short": "Composition", "long": "Composition Disc"}
+      {"short": "",            "long": "(unspecified — Procurement Description 미기재 케이스 허용)"},
+      {"short": "Plug",        "long": "Plug Disc (Forged Globe / API 602 표준)"},
+      {"short": "Conventional","long": "Conventional Disc (Ball-shaped, 저압 일반)"},
+      {"short": "Composition", "long": "Composition Disc (비금속 insert ring, tight closure)"}
+    ],
+    "Option_Code": [
+      {"short": "001", "long": "Default item (non-variant of this Class's Item Group)"}
     ]
   },
 
