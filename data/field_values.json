@@ -634,7 +634,7 @@
     ],
     "Disc_Type": [
       {"short": "",        "long": "(unspecified)"},
-      {"short": "Swing",   "long": "Swing Disc (hinge 회전, 2\"+ 대구경 표준; API 6D)"},
+      {"short": "Swing",   "long": "Swing Disc"},
       {"short": "Lift",    "long": "Lift Disc"},
       {"short": "Tilting", "long": "Tilting Disc"},
       {"short": "Dual",    "long": "Dual Plate"},
@@ -689,26 +689,26 @@
       {"short": "Stellite-6", "long": "Stellite Gr.6"}
     ],
     "Rating": [
-      {"short": "150#",   "long": "Class 150"},
-      {"short": "300#",   "long": "Class 300"},
-      {"short": "600#",   "long": "Class 600"},
-      {"short": "900#",   "long": "Class 900"},
-      {"short": "1500#",  "long": "Class 1500"},
-      {"short": "2500#",  "long": "Class 2500"},
-      {"short": "JIS5K",  "long": "JIS 5K"},
-      {"short": "JIS10K", "long": "JIS 10K"},
-      {"short": "JIS16K", "long": "JIS 16K"},
-      {"short": "JIS20K", "long": "JIS 20K"},
-      {"short": "JIS30K", "long": "JIS 30K"},
-      {"short": "JIS40K", "long": "JIS 40K"},
-      {"short": "JIS63K", "long": "JIS 63K"},
-      {"short": "KS5K",   "long": "KS 5K"},
-      {"short": "KS10K",  "long": "KS 10K"},
-      {"short": "KS16K",  "long": "KS 16K"},
-      {"short": "KS20K",  "long": "KS 20K"},
-      {"short": "KS30K",  "long": "KS 30K"},
-      {"short": "KS40K",  "long": "KS 40K"},
-      {"short": "KS63K",  "long": "KS 63K"}
+      {"short": "150#",   "std": "ASTM", "long": "Class 150"},
+      {"short": "300#",   "std": "ASTM", "long": "Class 300"},
+      {"short": "600#",   "std": "ASTM", "long": "Class 600"},
+      {"short": "900#",   "std": "ASTM", "long": "Class 900"},
+      {"short": "1500#",  "std": "ASTM", "long": "Class 1500"},
+      {"short": "2500#",  "std": "ASTM", "long": "Class 2500"},
+      {"short": "JIS5K",  "std": "JIS",  "long": "JIS 5K"},
+      {"short": "JIS10K", "std": "JIS",  "long": "JIS 10K"},
+      {"short": "JIS16K", "std": "JIS",  "long": "JIS 16K"},
+      {"short": "JIS20K", "std": "JIS",  "long": "JIS 20K"},
+      {"short": "JIS30K", "std": "JIS",  "long": "JIS 30K"},
+      {"short": "JIS40K", "std": "JIS",  "long": "JIS 40K"},
+      {"short": "JIS63K", "std": "JIS",  "long": "JIS 63K"},
+      {"short": "KS5K",   "std": "KS",   "long": "KS 5K"},
+      {"short": "KS10K",  "std": "KS",   "long": "KS 10K"},
+      {"short": "KS16K",  "std": "KS",   "long": "KS 16K"},
+      {"short": "KS20K",  "std": "KS",   "long": "KS 20K"},
+      {"short": "KS30K",  "std": "KS",   "long": "KS 30K"},
+      {"short": "KS40K",  "std": "KS",   "long": "KS 40K"},
+      {"short": "KS63K",  "std": "KS",   "long": "KS 63K"}
     ],
     "End_Type": [
       {"short": "BW",  "long": "Butt Weld"},
@@ -721,8 +721,9 @@
       {"short": "RB", "long": "Reduced Bore"}
     ],
     "Entry_Type": [
+      {"short": "",     "long": "(unspecified)"},
       {"short": "Top",  "long": "Top Entry"},
-      {"short": "Side", "long": "Side Entry / Split Body"},
+      {"short": "Side", "long": "Side Entry"},
       {"short": "End",  "long": "End Entry"}
     ],
     "Operation": [
@@ -731,6 +732,9 @@
       {"short": "Wrench", "long": "Wrench Operated"},
       {"short": "Gear",   "long": "Gear Operated"},
       {"short": "Chain",  "long": "Chain Operated"}
+    ],
+    "Option_Code": [
+      {"short": "001", "long": "Default item"}
     ]
   },
 

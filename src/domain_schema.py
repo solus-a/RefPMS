@@ -3803,3 +3803,492 @@ CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
 ]
+
+
+# ── Ball_Valve_Group ───────────────────────────────────────────────────────────
+#
+# Ball Valve (회전 ball 로 차단하는 valve) — Valve 6종 중 네 번째 시트.
+# Gate/Globe/Check 와 달리 Bonnet_Type 컬럼 없음 (Ball valve 의 cover 구조는
+# Entry_Type 으로 표현). 대신 Ball valve 고유의 두 컬럼이 추가:
+#   - Bore (FB / RB): full bore 와 reduced bore 의 구분이 핵심.
+#   - Entry_Type (Top / Side / End): body 분리 방식 (cover 형태).
+#
+# Gate/Globe/Check 와의 주요 차이:
+#   - Bonnet_Type 없음 — Ball valve 는 bonnet 대신 body cover (top / side / end
+#     entry) 로 분리되며 그 구분이 Entry_Type 컬럼.
+#   - Bore (FB / RB) 컬럼이 **required + 빈 값 불허** — Ball valve 는 FB/RB
+#     구분이 도메인 핵심. Procurement Description 에 관행상 항상 포함.
+#   - Entry_Type 은 required=False + 빈 값 허용 — 대구경 valve 는 명시, 소구경
+#     표준 valve 는 생략하는 관행.
+#   - Body Matl_Code 풀이 **cast + forged 혼합** — Gate/Globe 의 cast 전용 풀과
+#     달리 Ball valve 는 소구경 (≤ 4\") forged body 가 흔함 (A105, A350-LF2,
+#     A182-F316 포함).
+#   - Seat_Matl 풀이 **soft seat 위주** (PTFE / RPTFE / Devlon / Nylon) +
+#     metal seat (F316 / Stellite-6) 일부. Ball valve 표준은 "floating ball +
+#     soft seat" 가 많음.
+#   - Trim_Matl 5종 (F316/F304/13Cr/Inconel-625/Monel-400) — Gate/Globe 의 7종
+#     보다 좁은 풀 (Stellite-6 / Hastelloy 제외; Ball stem 은 hardfacing 덜
+#     필요).
+#
+# Gate/Globe/Check 와 동일한 부분:
+#   - Size 시스템: Size1_From / Size1_To 한 짝 (Reducing 없음).
+#   - Rating: std-aware (ASTM 6 + JIS 7 + KS 7 = 20개) — 동일 옵션 풀 + std 키.
+#     ASTM 기준 표준은 ASME B16.34.
+#   - End_Type 4종 (BW/SW/TH/FLG).
+#   - Operation 5종 (Manual/Lever/Wrench/Gear/Chain) — 소구경 Lever, 대구경
+#     Gear 가 흔함.
+#
+# 미고려 항목 (추후 도메인 합의 시 확장):
+#   - Ball 종류 (Floating Ball / Trunnion Mounted Ball) — 대구경/고압은 Trunnion
+#     이 표준, 현재 Remarks 우회
+#   - Sealing 종류 (DBB / DIB-1 / DIB-2 등 API 6D 분류)
+#   - Anti-static / Fire-safe / Anti-blowout stem 설계 옵션
+#   - Stem extension (long stem for buried service)
+#   - Actuator 종류 (Motor / Pneumatic / Hydraulic) — 별도 actuator 시트
+#   - Trim_Matl / Seat_Matl 의 std-aware 필터링
+#   - Item_Code 분리: Cast vs Forged (VL / VLF) 등 — 현재 VL 하나로 유지
+#
+# 다른 Valve 시트와의 공통 구조:
+#   - 16 필드 (Gate/Globe 와 동일 길이; Bonnet_Type 자리에 Bore + Entry_Type
+#     두 컬럼이 차지).
+#   - Class_Name → Item_Code → Size1 → Body Matl → Trim/Seat → Rating →
+#     End_Type → (Ball 고유: Bore → Entry_Type) → Operation → Option_Code →
+#     Remarks 순서.
+
+BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
+    FieldDefinition(
+        name="Class_Name",
+        meaning=(
+            "이 행이 소속될 Class 의 이름. Pipe_Group.Class_Name 과 의미·검증"
+            " 모두 동일."
+        ),
+        data_type="string",
+        required=True,
+        format_constraint=(
+            "공백 trim. Class_Define.Class_Name 행 집합 기준 일치 검사."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Class_Name 으로 FK",
+        ],
+        validation_location=(
+            "Pipe_Group.Class_Name 과 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class_Define 행 목록)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Item_Code",
+        meaning=(
+            "Ball_Valve_Group 의 component 종류 식별자. 현재 'VL' (BALL VALVE)"
+            " 하나만 정의 — Bore/Entry_Type/Trim/Seat 의 조합으로 ball valve"
+            " 변종 표현. Cast vs Forged 의 Item_Code 분리는 현재 미고려."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/item_code_db.json 의 Ball_Valve_Group 행 (closed set, 현재"
+            " 1개)."
+        ),
+        unique=None,
+        relations=[
+            "item_code_db.json Ball_Valve_Group 의 code 값 중 하나 (FK)",
+            "PMS description prefix 합성: VL → BALL VALVE",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — item_code_db 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_From",
+        meaning=(
+            "NPS/DN size 범위의 하한. Gate_Valve_Group.Size1_From 과 동일 의미."
+            " Valve 는 Reducing 없음 — 단일 size 짝 (Size1_From/Size1_To) 사용."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제 (행 단위 검증, 별도 작업)."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Size_From / Size_To 범위 안",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_From 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_To",
+        meaning=(
+            "NPS/DN size 범위의 상한. Size1_From 의 상한 짝."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제."
+        ),
+        unique=None,
+        relations=[
+            "(Size1_From, Size1_To) 의 상한",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_To 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Category",
+        meaning=(
+            "Valve body 재질의 대분류 카테고리. Gate/Globe_Valve_Group 과 동일"
+            " 7개 (CS/LTCS/AS/SS/DSS/SDSS/Ni-Alloy)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Ball_Valve_Group.Matl_Category 옵션"
+            " (closed set, 7개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std / Matl_Code 와 종속 체인 (Pipe_Group 패턴 동일)",
+            "Trim_Matl / Seat_Matl 과는 독립",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Std",
+        meaning=(
+            "Valve body 재질 표준 발행 기관. 4개 (ASTM/JIS/KS/EN)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Ball_Valve_Group.Matl_Std 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Code 의 std 키와 일치",
+            "Rating 의 std 키와도 일치 — std-aware Rating 필터링",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Code",
+        meaning=(
+            "Valve body 의 구체 재질 규격 코드. **Cast + Forged 혼합 풀** —"
+            " Ball valve 는 소구경 (≤ 4\") forged body 가 흔하므로 Gate/Globe 의"
+            " cast 전용 풀과 다름. ASTM (8): A216-WCB (CS Cast), A352-LCB/LCC"
+            " (LTCS Cast), A351-CF8/CF8M (SS Cast), A105 (CS Forged), A350-LF2"
+            " (LTCS Forged), A182-F316 (SS Forged). JIS (2): SCS13A/SCS14A"
+            " (SS Cast). KS/EN 항목은 추후."
+        ),
+        data_type="string (short code; e.g. A216-WCB / A105 / SCS13A)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Ball_Valve_Group.Matl_Code 옵션"
+            " (closed set, 10개). KS/EN 항목은 추후 추가."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 필터링",
+            "Trim_Matl / Seat_Matl 과는 독립",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중"
+            " Matl_Std 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Trim_Matl",
+        meaning=(
+            "Valve trim (stem / ball / 내부 부품) 재질. 5종: F316, F304, 13Cr,"
+            " Inconel-625, Monel-400 — Gate/Globe 의 7종 보다 좁은 풀"
+            " (Stellite-6 / Hastelloy-C276 미포함). Ball stem 은 ball 의 회전"
+            " 동작 특성상 sliding wear 가 적어 hardfacing 덜 필요."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Ball_Valve_Group.Trim_Matl 옵션"
+            " (closed set, 5개)."
+        ),
+        unique=None,
+        relations=[
+            "Seat_Matl 와 호환 관행: ball (trim) vs seat 재질 조합으로 가격/내구"
+            " 결정 — 강제 검증 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Seat_Matl",
+        meaning=(
+            "Valve seat (ball 과 접촉하는 면) 재질. **Soft seat 위주** 6종:"
+            " PTFE, RPTFE (Reinforced PTFE), Devlon, Nylon, F316, Stellite-6."
+            " Ball valve 표준은 'floating ball + soft seat' 가 많아 polymer"
+            " seat (PTFE 계열) 이 표준; metal seat (F316 / Stellite-6) 는 고온"
+            " 또는 hard service 용 — Gate/Globe 의 metal-only seat 와 차이."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Ball_Valve_Group.Seat_Matl 옵션"
+            " (closed set, 6개)."
+        ),
+        unique=None,
+        relations=[
+            "Trim_Matl 와 호환 관행 (위 Trim_Matl.relations 참조)",
+            "Rating 과 호환 관행: 고온/고압 → metal seat 권장 — 강제 검증 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Rating",
+        meaning=(
+            "Valve 의 압력 등급. std-aware 필드 — Flange/Gasket/Gate/Globe/Check"
+            " 와 옵션 풀 동일 (20개), ASTM 기준 표준은 ASME **B16.34** (Valve)."
+            "\n - ASTM: 150# / 300# / 600# / 900# / 1500# / 2500#."
+            "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
+            "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
+        ),
+        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Ball_Valve_Group.Rating 옵션"
+            " (closed set, 20개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "Flange/Gate/Globe/Check 의 Rating 과 옵션 풀 동일",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
+            " 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="End_Type",
+        meaning=(
+            "Valve 단부 (end connection) 형식. 4종:"
+            " BW (Butt Weld), SW (Socket Weld), TH (Threaded), FLG (Flanged)."
+            " Mechanical joint / Grooved 등은 현재 미고려."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Ball_Valve_Group.End_Type 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
+            " (별도 검증 영역)",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Bore",
+        meaning=(
+            "Ball valve 의 bore 형식. **Ball Valve 고유 컬럼** — 2종:"
+            " FB (Full Bore — ball 내경이 line 내경과 동일, pigging 가능),"
+            " RB (Reduced Bore — ball 내경이 line 보다 작음, 경제적 + Cv 감소)."
+            " 빈 값 불허 — Ball valve 는 FB/RB 구분이 도메인 핵심으로 항상 명시."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Ball_Valve_Group.Bore 옵션"
+            " (closed set, 2개)."
+        ),
+        unique=None,
+        relations=[
+            "Size1 과 호환 관행: 대구경 + pigging 요구 → FB, 일반 차단용 → RB"
+            " 가 흔함 — 강제 검증 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Entry_Type",
+        meaning=(
+            "Ball valve body 분리 방식 (cover 형식). **Ball Valve 고유 컬럼** —"
+            " 3종 + 빈 값:"
+            " Top (Top Entry — body 상단 cover, in-line maintenance 가능),"
+            " Side (Side Entry — body 가 두 조각, Split Body; 가장 흔함),"
+            " End (End Entry — body 가 두 조각, end 쪽 분리)."
+            " 빈 값 허용 — 대구경 valve 는 명시, 소구경 표준 valve 는 생략하는"
+            " 관행."
+        ),
+        data_type="string (short code; 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "data/field_values.json 의 Ball_Valve_Group.Entry_Type 옵션"
+            " (closed set, 3개 + 빈 값)."
+        ),
+        unique=None,
+        relations=[
+            "Size1 과 호환 관행: 대구경 + 고압 → Top Entry (in-line maintenance"
+            " 필요) 가 흔함 — 강제 검증 없음",
+            "PMS description 에 합성 (빈 값이면 토큰 생략)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set, 빈 값 허용)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Operation",
+        meaning=(
+            "Valve 조작 방식. 5종:"
+            " Manual (Handwheel — 대구경 ball 에 흔함),"
+            " Lever (소구경 ball valve 의 표준),"
+            " Wrench (Wrench Operated), Gear (Gear Operated — 대구경),"
+            " Chain (Chain Operated — 높은 위치)."
+            " Motor / Pneumatic / Hydraulic 등 actuator 는 현재 미고려 (별도"
+            " actuator 시트로 분리 검토)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Ball_Valve_Group.Operation 옵션"
+            " (closed set, 5개)."
+        ),
+        unique=None,
+        relations=[
+            "Size1 과 호환 관행: ≤ 2\" 는 Lever, 4\"~6\" 는 Gear, 대구경은 actuator"
+            " 가 흔함 — 강제 검증 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Option_Code",
+        meaning=(
+            "Item_Code 변종/옵션 식별자. Pipe_Group.Option_Code 와 의미·형식"
+            " 동일 — 3자리 숫자 텍스트, '001' = 해당 Class · Ball_Valve_Group"
+            " 의 표준형."
+        ),
+        data_type="string (3자리 0-9 숫자 텍스트; e.g. '001')",
+        required=True,
+        format_constraint=(
+            "정규식 ^\\d{3}$. data/field_values.json 의 Ball_Valve_Group.Option_Code"
+            " 옵션 (closed set). 현재 '001' 한 개만 등록."
+        ),
+        unique=(
+            "(Class_Name, Option_Code) 가 Ball_Valve_Group 시트 안에서 유일."
+            " 다른 시트의 Option_Code 와는 독립."
+        ),
+        relations=[
+            "(Class_Name, Option_Code) 가 Ball_Valve_Group 행의 자연 키",
+            "Pipe_Group.Option_Code 와 동일 패턴",
+        ],
+        validation_location=(
+            "Pipe_Group.Option_Code 와 동일 패턴 — 검증 모두 현재 미구현."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "행 단위 비고/설명 자유 텍스트. Pipe_Group.Remarks 와 의미·동작 동일."
+            " Ball 종류 (Floating / Trunnion Mounted), Sealing 분류 (DBB /"
+            " DIB-1 / DIB-2 등 API 6D), Anti-static / Fire-safe 옵션, Stem"
+            " extension 등을 자유 입력."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "형식 강제 없음 — data/field_values.json 의 _meta.free_input_fields"
+            " 에 'Remarks' 명시 (모든 시트 공통)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 합성의 마지막 토큰 — Pipe_Group.Remarks 와 동일 패턴",
+        ],
+        validation_location=(
+            "검증 없음 (자유 입력). required 아님."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)"
+        ),
+        unit=None,
+    ),
+]
