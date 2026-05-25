@@ -270,6 +270,7 @@ BUTTERFLY_VALVE_HEADERS = [
     "Rating",
     "End_Type",
     "Operation",
+    "Disc_Type",
     "Option_Code",
     "Remarks",
 ]

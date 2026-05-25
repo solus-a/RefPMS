@@ -779,17 +779,17 @@
       {"short": "Stellite-6", "long": "Stellite Gr.6"}
     ],
     "Rating": [
-      {"short": "150#",   "long": "Class 150"},
-      {"short": "300#",   "long": "Class 300"},
-      {"short": "600#",   "long": "Class 600"},
-      {"short": "JIS5K",  "long": "JIS 5K"},
-      {"short": "JIS10K", "long": "JIS 10K"},
-      {"short": "JIS16K", "long": "JIS 16K"},
-      {"short": "JIS20K", "long": "JIS 20K"},
-      {"short": "KS5K",   "long": "KS 5K"},
-      {"short": "KS10K",  "long": "KS 10K"},
-      {"short": "KS16K",  "long": "KS 16K"},
-      {"short": "KS20K",  "long": "KS 20K"}
+      {"short": "150#",   "std": "ASTM", "long": "Class 150"},
+      {"short": "300#",   "std": "ASTM", "long": "Class 300"},
+      {"short": "600#",   "std": "ASTM", "long": "Class 600"},
+      {"short": "JIS5K",  "std": "JIS",  "long": "JIS 5K"},
+      {"short": "JIS10K", "std": "JIS",  "long": "JIS 10K"},
+      {"short": "JIS16K", "std": "JIS",  "long": "JIS 16K"},
+      {"short": "JIS20K", "std": "JIS",  "long": "JIS 20K"},
+      {"short": "KS5K",   "std": "KS",   "long": "KS 5K"},
+      {"short": "KS10K",  "std": "KS",   "long": "KS 10K"},
+      {"short": "KS16K",  "std": "KS",   "long": "KS 16K"},
+      {"short": "KS20K",  "std": "KS",   "long": "KS 20K"}
     ],
     "End_Type": [
       {"short": "BW",  "long": "Butt Weld"},
@@ -801,6 +801,15 @@
       {"short": "Wrench", "long": "Wrench Operated"},
       {"short": "Gear",   "long": "Gear Operated"},
       {"short": "Chain",  "long": "Chain Operated"}
+    ],
+    "Disc_Type": [
+      {"short": "",             "long": "(unspecified)"},
+      {"short": "Concentric",   "long": "Concentric Disc"},
+      {"short": "DoubleOffset", "long": "Double Offset Disc"},
+      {"short": "TripleOffset", "long": "Triple Offset Disc"}
+    ],
+    "Option_Code": [
+      {"short": "001", "long": "Default item"}
     ]
   },
 

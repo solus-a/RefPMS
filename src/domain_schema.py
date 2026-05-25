@@ -4292,3 +4292,476 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
 ]
+
+
+# ── Butterfly_Valve_Group ──────────────────────────────────────────────────────
+#
+# Butterfly Valve (회전 disc 로 차단·조절하는 valve) — Valve 6종 중 다섯 번째.
+# 다른 valve 와 구조적으로 가장 다른 시트: 저압·경량·short face-to-face 특성이
+# 풀과 헤더 모두에 반영됨.
+#
+# 다른 Valve 시트와의 주요 차이:
+#   - **Trim_Matl 대신 Disc_Matl** — Butterfly 의 핵심 부품은 disc 이며 stem
+#     trim 보다 disc 재질이 중요 (Gate/Globe/Check/Ball 의 Trim_Matl 자리).
+#   - **Matl_Category 6종** — AS / SDSS 제외, **CI (Cast Iron) 추가**. Butterfly
+#     는 저압 일반 (≤ 600#) 이라 cast iron body 가 흔함.
+#   - **Matl_Code 풀에 A126-B / A395 포함** — 각각 gray iron / ductile iron"
+#     cast (저압 cast iron grade).
+#   - **Seat_Matl 풀이 soft seat 중심** (EPDM / NBR / PTFE / RPTFE) + metal
+#     일부 (F316 / Stellite-6). EPDM/NBR 은 Butterfly 만의 옵션 (다른 valve
+#     에 없음).
+#   - **Rating 11종만** (다른 valve 의 20종 보다 좁음) — ASTM: 150# / 300# /
+#     600# 만 (900# 이상 없음). JIS/KS: 5K ~ 20K 만 (30K 이상 없음).
+#   - **End_Type 2종만** (BW / FLG) — SW / TH 없음. Butterfly 는 face-to-face
+#     short body 가 표준 (flange 사이 wafer/lug 또는 double-flange).
+#   - **Bonnet_Type / Bore 없음** — Butterfly 는 bonnet 개념 약하고 (top cover
+#     로 stem 만), bore 는 항상 line size 와 거의 동일.
+#   - **Disc_Type 컬럼 신설 (Butterfly 고유)** — disc geometry 가 도메인 분류의
+#     핵심. 3종 + 빈 값:
+#       · Concentric (Zero Offset / Resilient Seated): stem 이 disc 중심,
+#         소프트 seat 와 짝. 저압 일반.
+#       · DoubleOffset (High Performance): stem 이 disc 면에서 오프셋, metal/
+#         PTFE seat 가능. 중압.
+#       · TripleOffset (TOV — Triple Offset Valve): 추가 conical seat offset,
+#         metal seat tight closure. 고압·고온, ASME B16.34 적용.
+#       · (빈 값): Procurement Description 에 명시 안 하는 케이스.
+#
+# 다른 Valve 시트와 동일한 부분:
+#   - Size 시스템: Size1_From / Size1_To 한 짝 (Reducing 없음).
+#   - Rating std-aware (std 키 부여) — 옵션 풀은 다른 valve 보다 좁지만 std
+#     필드 구조는 동일.
+#   - Operation 5종 (Manual/Lever/Wrench/Gear/Chain) — 소구경 Lever, 대구경
+#     Gear 가 흔함.
+#
+# 미고려 항목 (추후 도메인 합의 시 확장):
+#   - Body type (Wafer / Lug / Double-Flanged / U-Section) — 별도 컬럼 미신설
+#     (Remarks 우회).
+#   - Seat alignment (loose / locked) — Triple Offset 의 세부 옵션.
+#   - Actuator 종류 (Motor / Pneumatic / Hydraulic) — 별도 actuator 시트.
+#   - Stem extension / Bare stem 옵션.
+#   - Item_Code 분리: Resilient Seated vs High Performance (VU / VUH) 등 —
+#     현재 VU 하나로 유지, 구분은 Disc_Type 컬럼.
+#
+# 다른 Valve 시트와의 공통 구조:
+#   - 15 필드 (Gate/Globe/Ball 16개 - Bonnet_Type 1개 = 15; 또는 Check 14개 +
+#     Disc_Type 1개 = 15).
+#   - Class_Name → Item_Code → Size1 → Body Matl → Disc_Matl/Seat_Matl →
+#     Rating → End_Type → Operation → (Butterfly 고유: Disc_Type) →
+#     Option_Code → Remarks 순서.
+
+BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
+    FieldDefinition(
+        name="Class_Name",
+        meaning=(
+            "이 행이 소속될 Class 의 이름. Pipe_Group.Class_Name 과 의미·검증"
+            " 모두 동일."
+        ),
+        data_type="string",
+        required=True,
+        format_constraint=(
+            "공백 trim. Class_Define.Class_Name 행 집합 기준 일치 검사."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Class_Name 으로 FK",
+        ],
+        validation_location=(
+            "Pipe_Group.Class_Name 과 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class_Define 행 목록)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Item_Code",
+        meaning=(
+            "Butterfly_Valve_Group 의 component 종류 식별자. 현재 'VU'"
+            " (BUTTERFLY VALVE) 하나만 정의 — Disc geometry 차이 (Concentric/"
+            "DoubleOffset/TripleOffset) 는 Disc_Type 컬럼으로 구분."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/item_code_db.json 의 Butterfly_Valve_Group 행 (closed set,"
+            " 현재 1개)."
+        ),
+        unique=None,
+        relations=[
+            "item_code_db.json Butterfly_Valve_Group 의 code 값 중 하나 (FK)",
+            "PMS description prefix 합성: VU → BUTTERFLY VALVE",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — item_code_db 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_From",
+        meaning=(
+            "NPS/DN size 범위의 하한. Gate_Valve_Group.Size1_From 과 동일 의미."
+            " Valve 는 Reducing 없음 — 단일 size 짝 (Size1_From/Size1_To) 사용."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제 (행 단위 검증, 별도 작업)."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Size_From / Size_To 범위 안",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_From 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_To",
+        meaning=(
+            "NPS/DN size 범위의 상한. Size1_From 의 상한 짝."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제."
+        ),
+        unique=None,
+        relations=[
+            "(Size1_From, Size1_To) 의 상한",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_To 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Category",
+        meaning=(
+            "Valve body 재질의 대분류 카테고리. **6종** (Butterfly 고유 풀) —"
+            " CS / LTCS / SS / DSS / Ni-Alloy / **CI (Cast Iron)**. 다른 valve"
+            " 의 7종에서 AS / SDSS 제외 + CI 추가. Butterfly 는 저압 일반 (≤"
+            " 600#) 이라 cast iron body 가 흔함."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Butterfly_Valve_Group.Matl_Category 옵션"
+            " (closed set, 6개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std / Matl_Code 와 종속 체인 (Pipe_Group 패턴 동일)",
+            "Disc_Matl / Seat_Matl 과는 독립",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Std",
+        meaning=(
+            "Valve body 재질 표준 발행 기관. 4개 (ASTM/JIS/KS/EN)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Butterfly_Valve_Group.Matl_Std 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Code 의 std 키와 일치",
+            "Rating 의 std 키와도 일치 — std-aware Rating 필터링",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Code",
+        meaning=(
+            "Valve body 의 구체 재질 규격 코드. **Cast iron grade 포함** —"
+            " Butterfly 고유. ASTM (6): A216-WCB (CS Cast), A352-LCB (LTCS"
+            " Cast), A351-CF8/CF8M (SS Cast), **A126-B (Gray Iron Cl.B), A395"
+            " (Ductile Iron)**. JIS (2): SCS13A/SCS14A (SS Cast). KS/EN 항목은"
+            " 추후."
+        ),
+        data_type="string (short code; e.g. A216-WCB / A126-B / A395)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Butterfly_Valve_Group.Matl_Code 옵션"
+            " (closed set, 8개). KS/EN 항목은 추후 추가."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 필터링",
+            "Disc_Matl / Seat_Matl 과는 독립",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중"
+            " Matl_Std 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Disc_Matl",
+        meaning=(
+            "Butterfly Valve disc 재질. **Butterfly 고유 컬럼** — 다른 valve 의"
+            " Trim_Matl 자리에 대응 (Butterfly 의 핵심 부품은 disc). 5종:"
+            " F316, F304, 13Cr, Inconel-625, Bronze (Aluminum Bronze). Body 와"
+            " 다른 재질 선택 — 저압 cast iron body + SS316 disc 가 흔함."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Butterfly_Valve_Group.Disc_Matl 옵션"
+            " (closed set, 5개)."
+        ),
+        unique=None,
+        relations=[
+            "Seat_Matl 와 호환 관행: disc 와 seat 의 재질 짝이 sealing 성능 결정",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Seat_Matl",
+        meaning=(
+            "Valve seat (disc 와 접촉하는 면) 재질. **Soft seat 중심** 6종:"
+            " EPDM (Rubber), NBR, PTFE, RPTFE (Reinforced PTFE), F316,"
+            " Stellite-6. EPDM/NBR 은 Butterfly 만의 옵션 — Concentric"
+            " (Resilient Seated) 형식에 흔함. Metal seat (F316 / Stellite-6)"
+            " 는 Triple Offset 의 고온·고압 용."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Butterfly_Valve_Group.Seat_Matl 옵션"
+            " (closed set, 6개)."
+        ),
+        unique=None,
+        relations=[
+            "Disc_Matl 와 호환 관행 (위 Disc_Matl.relations 참조)",
+            "Disc_Type 과 호환 관행: Concentric → soft seat, TripleOffset →"
+            " metal seat 가 통상 — 강제 검증 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Rating",
+        meaning=(
+            "Valve 의 압력 등급. std-aware 필드 — 다른 valve 의 20종 보다 좁은"
+            " **11종** 풀 (Butterfly 는 저압 일반):"
+            "\n - ASTM: 150# / 300# / 600# (900# 이상 없음)."
+            "\n - JIS: 5K / 10K / 16K / 20K (30K 이상 없음)."
+            "\n - KS: 5K / 10K / 16K / 20K (30K 이상 없음)."
+            "\n ASTM 기준 표준은 ASME B16.34 (Triple Offset 이상의 metal seat"
+            " 형식)."
+        ),
+        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Butterfly_Valve_Group.Rating 옵션"
+            " (closed set, 11개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "다른 valve Rating 풀의 부분집합 (저압 영역만)",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
+            " 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="End_Type",
+        meaning=(
+            "Valve 단부 (end connection) 형식. **2종만** (Butterfly 고유의"
+            " 좁은 풀):"
+            " BW (Butt Weld — 드묾), FLG (Flanged — 표준)."
+            " Butterfly 는 face-to-face short body 가 표준이라 SW / TH 없음."
+            " FLG 일 때 body type 은 Wafer / Lug / Double-Flanged 중 하나 —"
+            " 별도 컬럼 미신설로 Remarks 우회."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Butterfly_Valve_Group.End_Type 옵션"
+            " (closed set, 2개)."
+        ),
+        unique=None,
+        relations=[
+            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
+            " (별도 검증 영역)",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Operation",
+        meaning=(
+            "Valve 조작 방식. 5종:"
+            " Manual (Handwheel), Lever (소구경 표준),"
+            " Wrench (Wrench Operated), Gear (Gear Operated — 대구경),"
+            " Chain (Chain Operated — 높은 위치)."
+            " Motor / Pneumatic / Hydraulic 등 actuator 는 현재 미고려 (별도"
+            " actuator 시트로 분리 검토). Butterfly 는 자동 actuator 적용이"
+            " 흔하지만 현재 PMS 단계에선 manual 조작만 등록."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Butterfly_Valve_Group.Operation 옵션"
+            " (closed set, 5개)."
+        ),
+        unique=None,
+        relations=[
+            "Size1 과 호환 관행: ≤ 4\" 는 Lever, 6\"~ 는 Gear 가 흔함 — 강제 검증"
+            " 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Disc_Type",
+        meaning=(
+            "Butterfly Valve disc geometry. **Butterfly 고유 컬럼** — Gate 의"
+            " Wedge_Type, Globe 의 Disc_Type, Ball 의 Bore 자리에 대응. 3종:"
+            " Concentric (Zero Offset, Resilient Seated — 저압 표준),"
+            " DoubleOffset (High Performance — 중압, PTFE/metal seat),"
+            " TripleOffset (TOV, conical seat — 고압·고온, metal seat,"
+            " ASME B16.34)."
+            " 빈 값 허용 — Procurement description 에 명시 안 하는 케이스."
+        ),
+        data_type="string (short code; 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "data/field_values.json 의 Butterfly_Valve_Group.Disc_Type 옵션"
+            " (closed set, 3개 + 빈 값)."
+        ),
+        unique=None,
+        relations=[
+            "Seat_Matl 과 호환 관행: Concentric → EPDM/NBR/PTFE, TripleOffset"
+            " → metal seat (F316 / Stellite-6) 가 통상 — 강제 검증 없음",
+            "Rating 과 호환 관행: TripleOffset 은 600#+ 고압 영역이 흔함",
+            "PMS description 에 합성 (빈 값이면 토큰 생략)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set, 빈 값 허용)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Option_Code",
+        meaning=(
+            "Item_Code 변종/옵션 식별자. Pipe_Group.Option_Code 와 의미·형식"
+            " 동일 — 3자리 숫자 텍스트, '001' = 해당 Class · Butterfly_Valve_"
+            "Group 의 표준형."
+        ),
+        data_type="string (3자리 0-9 숫자 텍스트; e.g. '001')",
+        required=True,
+        format_constraint=(
+            "정규식 ^\\d{3}$. data/field_values.json 의 Butterfly_Valve_Group."
+            "Option_Code 옵션 (closed set). 현재 '001' 한 개만 등록."
+        ),
+        unique=(
+            "(Class_Name, Option_Code) 가 Butterfly_Valve_Group 시트 안에서"
+            " 유일. 다른 시트의 Option_Code 와는 독립."
+        ),
+        relations=[
+            "(Class_Name, Option_Code) 가 Butterfly_Valve_Group 행의 자연 키",
+            "Pipe_Group.Option_Code 와 동일 패턴",
+        ],
+        validation_location=(
+            "Pipe_Group.Option_Code 와 동일 패턴 — 검증 모두 현재 미구현."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "행 단위 비고/설명 자유 텍스트. Pipe_Group.Remarks 와 의미·동작 동일."
+            " Body type (Wafer / Lug / Double-Flanged 등 — 별도 컬럼 미구현"
+            " 단계 동안 우회), Actuator 정보 (Motor / Pneumatic 등), Seat"
+            " alignment (loose / locked), Stem extension 등을 자유 입력."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "형식 강제 없음 — data/field_values.json 의 _meta.free_input_fields"
+            " 에 'Remarks' 명시 (모든 시트 공통)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 합성의 마지막 토큰 — Pipe_Group.Remarks 와 동일 패턴",
+        ],
+        validation_location=(
+            "검증 없음 (자유 입력). required 아님."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)"
+        ),
+        unit=None,
+    ),
+]
