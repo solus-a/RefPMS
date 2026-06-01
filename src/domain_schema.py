@@ -4765,3 +4765,463 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
 ]
+
+
+# ── Plug_Valve_Group ───────────────────────────────────────────────────────────
+#
+# Plug Valve (회전 plug 로 차단하는 valve) — Valve 6종 중 여섯 번째, **Component
+# 계층 12 시트의 마지막**.
+# API 599 표준의 plug valve 기준 — 윤활 여부로 두 종류로 나뉨.
+#
+# 다른 Valve 시트와의 주요 차이:
+#   - **Trim_Matl 대신 Plug_Matl** — Plug 자체 (회전부) 의 재질. Butterfly 의"
+#     Disc_Matl 과 유사 패턴.
+#   - **Plug_Type 컬럼 (Plug valve 고유) — required + 빈 값 불허**:
+#       · Lubricated: 윤활제 주입형 — sealing 은 윤활제 film 이 담당. 고압·고온"
+#         용 (고온 윤활제 사용).
+#       · Non-Lubricated: PTFE sleeve 등 비금속 sleeve 가 plug 를 감싸 soft"
+#         seat 역할 — 가장 흔함, API 599 표준 형식. (Sleeved 라는 별칭은 본"
+#         시트에서 Non-Lubricated 와 동의어로 통합.)
+#     Eccentric / Expanding plug valve 는 현재 미고려 (특수 변종 — slurry / DBB"
+#     용; 추후 도메인 합의 시 옵션 확장).
+#   - **Seat_Matl 풀이 sleeve material 위주** — PTFE / Viton / F316 / Stellite-6"
+#     4종. Non-Lubricated 의 경우 PTFE sleeve 가 표준 (도메인 정의: sleeve =\
+#     soft seat). Lubricated 의 경우 metal seat 가 흔함.
+#   - **Matl_Category 6종** — SDSS 제외 (다른 valve 의 7종 중). Plug valve 는"
+#     SDSS 용도가 드묾.
+#
+# 다른 Valve 시트와 동일한 부분:
+#   - Size 시스템: Size1_From / Size1_To 한 짝 (Reducing 없음).
+#   - Rating: std-aware (ASTM 6 + JIS 7 + KS 7 = 20개) — Gate/Globe/Check/Ball"
+#     과 동일 옵션 풀 + std 키 부여. ASTM 기준 표준은 ASME B16.34.
+#   - End_Type 4종 (BW/SW/TH/FLG).
+#   - Operation 5종 (Manual/Lever/Wrench/Gear/Chain).
+#   - Bonnet_Type 없음 — Plug valve 는 bonnet 대신 top cover (stem 만 외부로"
+#     노출).
+#
+# 미고려 항목 (추후 도메인 합의 시 확장):
+#   - Eccentric Plug Valve (slurry / wear 용 오프셋 plug)
+#   - Expanding Plug Valve (DBB 용 plug 확장 메커니즘)
+#   - Multi-port plug valve (3-way, 4-way)
+#   - Sleeve 재질 std-aware 필터링
+#   - Actuator 종류 (Motor / Pneumatic / Hydraulic) — 별도 actuator 시트
+#   - Item_Code 분리: Lubricated vs Non-Lubricated (VP / VPN) — 현재 VP 하나로"
+#     유지, 구분은 Plug_Type 컬럼.
+#
+# 다른 Valve 시트와의 공통 구조:
+#   - 15 필드 (Gate/Globe/Ball 16개 - Bonnet_Type 1개 = 15; Butterfly 와 동일"
+#     길이).
+#   - Class_Name → Item_Code → Size1 → Body Matl → Plug_Matl/Seat_Matl →"
+#     Rating → End_Type → Operation → (Plug 고유: Plug_Type) → Option_Code →"
+#     Remarks 순서.
+
+PLUG_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
+    FieldDefinition(
+        name="Class_Name",
+        meaning=(
+            "이 행이 소속될 Class 의 이름. Pipe_Group.Class_Name 과 의미·검증"
+            " 모두 동일."
+        ),
+        data_type="string",
+        required=True,
+        format_constraint=(
+            "공백 trim. Class_Define.Class_Name 행 집합 기준 일치 검사."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Class_Name 으로 FK",
+        ],
+        validation_location=(
+            "Pipe_Group.Class_Name 과 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class_Define 행 목록)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Item_Code",
+        meaning=(
+            "Plug_Valve_Group 의 component 종류 식별자. 현재 'VP' (PLUG VALVE)"
+            " 하나만 정의 — Lubricated/Non-Lubricated 구분은 Plug_Type 컬럼."
+            " Eccentric/Expanding 같은 특수 변종은 현재 미고려."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/item_code_db.json 의 Plug_Valve_Group 행 (closed set, 현재"
+            " 1개)."
+        ),
+        unique=None,
+        relations=[
+            "item_code_db.json Plug_Valve_Group 의 code 값 중 하나 (FK)",
+            "PMS description prefix 합성: VP → PLUG VALVE",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — item_code_db 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_From",
+        meaning=(
+            "NPS/DN size 범위의 하한. Gate_Valve_Group.Size1_From 과 동일 의미."
+            " Valve 는 Reducing 없음 — 단일 size 짝 (Size1_From/Size1_To) 사용."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제 (행 단위 검증, 별도 작업)."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Size_From / Size_To 범위 안",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_From 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_To",
+        meaning=(
+            "NPS/DN size 범위의 상한. Size1_From 의 상한 짝."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제."
+        ),
+        unique=None,
+        relations=[
+            "(Size1_From, Size1_To) 의 상한",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_To 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Category",
+        meaning=(
+            "Valve body 재질의 대분류 카테고리. **6종** (SDSS 제외) —"
+            " CS / LTCS / AS / SS / DSS / Ni-Alloy. Plug valve 는 SDSS 용도가"
+            " 드묾."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Plug_Valve_Group.Matl_Category 옵션"
+            " (closed set, 6개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std / Matl_Code 와 종속 체인 (Pipe_Group 패턴 동일)",
+            "Plug_Matl / Seat_Matl 과는 독립",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Std",
+        meaning=(
+            "Valve body 재질 표준 발행 기관. 4개 (ASTM/JIS/KS/EN)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Plug_Valve_Group.Matl_Std 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Code 의 std 키와 일치",
+            "Rating 의 std 키와도 일치 — std-aware Rating 필터링",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Code",
+        meaning=(
+            "Valve body 의 구체 재질 규격 코드. **Cast grade** — Gate/Globe/"
+            "Check 와 동일 옵션 패턴. ASTM (5): A216-WCB, A352-LCB/LCC,"
+            " A351-CF8/CF8M. JIS (2): SCS13A/SCS14A. Cr-Mo cast (A217) 는"
+            " 현재 미포함 (Plug valve 의 Cr-Mo 사용 드묾). KS/EN 항목은 추후."
+        ),
+        data_type="string (short code; e.g. A216-WCB / SCS13A)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Plug_Valve_Group.Matl_Code 옵션"
+            " (closed set, 7개). KS/EN 항목은 추후 추가."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 필터링",
+            "Plug_Matl / Seat_Matl 과는 독립",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중"
+            " Matl_Std 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Plug_Matl",
+        meaning=(
+            "Plug Valve plug (회전부) 재질. **Plug valve 고유 컬럼** — 다른"
+            " valve 의 Trim_Matl 자리에 대응 (Plug valve 의 핵심 부품은 plug)."
+            " 5종: F316, F304, 13Cr, Inconel-625, Monel-400. Body 와 다른 재질"
+            " 선택 가능 — body 는 cast carbon steel, plug 는 F316 흔함."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Plug_Valve_Group.Plug_Matl 옵션"
+            " (closed set, 5개)."
+        ),
+        unique=None,
+        relations=[
+            "Seat_Matl 와 호환 관행: plug + sleeve 의 재질 짝이 sealing 성능 결정",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Seat_Matl",
+        meaning=(
+            "Valve seat (plug 와 body 사이 sealing 면) 재질. 4종:"
+            " PTFE (Non-Lubricated 의 sleeve 표준), Viton (rubber sleeve),"
+            " F316 (metal seat, Lubricated 에 흔함), Stellite-6 (hardfacing"
+            " metal seat). Non-Lubricated 의 경우 sleeve material 이 seat 역할"
+            " (도메인 정의: sleeve = soft seat); Lubricated 의 경우 윤활제 film"
+            " 이 일부 seat 역할 + metal seat 결합."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Plug_Valve_Group.Seat_Matl 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Plug_Matl 와 호환 관행 (위 Plug_Matl.relations 참조)",
+            "Plug_Type 과 호환 관행: Lubricated → metal seat, Non-Lubricated →"
+            " PTFE/Viton sleeve 가 통상 — 강제 검증 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Rating",
+        meaning=(
+            "Valve 의 압력 등급. std-aware 필드 — Flange/Gasket/Gate/Globe/"
+            "Check/Ball 과 옵션 풀 동일 (20개), ASTM 기준 표준은 ASME"
+            " **B16.34** (Valve)."
+            "\n - ASTM: 150# / 300# / 600# / 900# / 1500# / 2500#."
+            "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
+            "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
+        ),
+        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Plug_Valve_Group.Rating 옵션"
+            " (closed set, 20개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "Flange/Gate/Globe/Check/Ball 의 Rating 과 옵션 풀 동일",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
+            " 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="End_Type",
+        meaning=(
+            "Valve 단부 (end connection) 형식. 4종:"
+            " BW (Butt Weld), SW (Socket Weld), TH (Threaded), FLG (Flanged)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Plug_Valve_Group.End_Type 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
+            " (별도 검증 영역)",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Operation",
+        meaning=(
+            "Valve 조작 방식. 5종:"
+            " Manual (Handwheel), Lever (소구경 plug 의 표준),"
+            " Wrench (Wrench Operated), Gear (Gear Operated — 대구경),"
+            " Chain (Chain Operated — 높은 위치)."
+            " Plug valve 는 90° 회전 조작이라 lever 가 흔하며, 대구경은 gear."
+            " Motor / Pneumatic / Hydraulic 등 actuator 는 현재 미고려 (별도"
+            " actuator 시트로 분리 검토)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Plug_Valve_Group.Operation 옵션"
+            " (closed set, 5개)."
+        ),
+        unique=None,
+        relations=[
+            "Size1 과 호환 관행: ≤ 4\" 는 Lever, 6\"~ 는 Gear 가 흔함 — 강제 검증"
+            " 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Plug_Type",
+        meaning=(
+            "Plug Valve 의 윤활 방식. **Plug valve 고유 컬럼** — Ball valve 의"
+            " Bore 와 유사한 도메인 핵심 분류. 2종:"
+            " Lubricated (윤활제 주입형 — sealing 은 윤활제 film, 고압·고온),"
+            " Non-Lubricated (PTFE 등 비금속 sleeve 가 plug 를 감싸 soft seat"
+            " 역할; 'Sleeved' 라는 별칭은 본 시트에서 Non-Lubricated 와 동의어"
+            " 로 통합). 빈 값 불허 — Plug valve 도메인 핵심 분류로 항상 명시."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Plug_Valve_Group.Plug_Type 옵션"
+            " (closed set, 2개)."
+        ),
+        unique=None,
+        relations=[
+            "Seat_Matl 과 호환 관행: Lubricated → metal seat, Non-Lubricated →"
+            " PTFE/Viton sleeve — 강제 검증 없음",
+            "Rating 과 호환 관행: Lubricated 는 고온·고압, Non-Lubricated 는"
+            " 일반 영역 — 강제 검증 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Option_Code",
+        meaning=(
+            "Item_Code 변종/옵션 식별자. Pipe_Group.Option_Code 와 의미·형식"
+            " 동일 — 3자리 숫자 텍스트, '001' = 해당 Class · Plug_Valve_Group"
+            " 의 표준형."
+        ),
+        data_type="string (3자리 0-9 숫자 텍스트; e.g. '001')",
+        required=True,
+        format_constraint=(
+            "정규식 ^\\d{3}$. data/field_values.json 의 Plug_Valve_Group.Option_Code"
+            " 옵션 (closed set). 현재 '001' 한 개만 등록."
+        ),
+        unique=(
+            "(Class_Name, Option_Code) 가 Plug_Valve_Group 시트 안에서 유일."
+            " 다른 시트의 Option_Code 와는 독립."
+        ),
+        relations=[
+            "(Class_Name, Option_Code) 가 Plug_Valve_Group 행의 자연 키",
+            "Pipe_Group.Option_Code 와 동일 패턴",
+        ],
+        validation_location=(
+            "Pipe_Group.Option_Code 와 동일 패턴 — 검증 모두 현재 미구현."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "행 단위 비고/설명 자유 텍스트. Pipe_Group.Remarks 와 의미·동작 동일."
+            " Eccentric/Expanding 같은 특수 변종 명시, Multi-port 정보 (3-way/"
+            "4-way), Actuator 정보 (Motor / Pneumatic 등 — 별도 시트 미구현"
+            " 단계 동안 우회), 윤활제 종류 (Lubricated 의 경우) 등을 자유 입력."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "형식 강제 없음 — data/field_values.json 의 _meta.free_input_fields"
+            " 에 'Remarks' 명시 (모든 시트 공통)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 합성의 마지막 토큰 — Pipe_Group.Remarks 와 동일 패턴",
+        ],
+        validation_location=(
+            "검증 없음 (자유 입력). required 아님."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)"
+        ),
+        unit=None,
+    ),
+]
