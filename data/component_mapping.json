@@ -79,9 +79,15 @@
         "Size_From",
         "Size_To",
         "Bolt_Type",
-        "Bolt_Mat_Code",
+        "Bolt_Matl_Category",
+        "Bolt_Matl_Std",
+        "Bolt_Matl_Code",
         "Nut_Type",
-        "Nut_Mat_Code"
+        "Nut_Matl_Category",
+        "Nut_Matl_Std",
+        "Nut_Matl_Code",
+        "Bolt_Length_Table",
+        "Option_Code"
       ]
     }
   }

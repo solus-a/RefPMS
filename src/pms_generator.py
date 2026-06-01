@@ -172,9 +172,15 @@ MATERIAL_SHEET_CONFIGS = [
             "Size_From",
             "Size_To",
             "Bolt_Type",
-            "Bolt_Mat_Code",
+            "Bolt_Matl_Category",
+            "Bolt_Matl_Std",
+            "Bolt_Matl_Code",
             "Nut_Type",
-            "Nut_Mat_Code",
+            "Nut_Matl_Category",
+            "Nut_Matl_Std",
+            "Nut_Matl_Code",
+            "Bolt_Length_Table",
+            "Option_Code",
         ],
         "size_from_1": "Size_From",
         "size_to_1": "Size_To",
@@ -1027,21 +1033,9 @@ def _build_item_description_by_rule(
         bolt_type_raw = _get_cell_text(ws, row_idx, header_to_col, "Bolt_Type").strip().upper()
         # 출력 기준 산출물과 호환을 위해 STUD는 STUB로 표기 유지.
         bolt_type_token = "STUB" if bolt_type_raw == "STUD" else bolt_type_raw
-        bolt_code = _get_cell_text(ws, row_idx, header_to_col, "Bolt_Mat_Code")
-        bolt_class = _get_cell_text(ws, row_idx, header_to_col, "Bolt_Mat_Class")
-        bolt_mat = (
-            f"{bolt_code}-{bolt_class}".strip("-")
-            if bolt_code and bolt_class
-            else (bolt_code or bolt_class)
-        )
+        bolt_mat = _get_cell_text(ws, row_idx, header_to_col, "Bolt_Matl_Code")
         nut_type = _get_cell_text(ws, row_idx, header_to_col, "Nut_Type")
-        nut_code = _get_cell_text(ws, row_idx, header_to_col, "Nut_Mat_Code")
-        nut_class = _get_cell_text(ws, row_idx, header_to_col, "Nut_Mat_Class")
-        nut_mat = (
-            f"{nut_code}-{nut_class}".strip("-")
-            if nut_code and nut_class
-            else (nut_code or nut_class)
-        )
+        nut_mat = _get_cell_text(ws, row_idx, header_to_col, "Nut_Matl_Code")
         dim_token = _bolt_dim_standard_token(
             _get_cell_text(ws, row_idx, header_to_col, "Bolt_Dim_Standard"),
             _get_cell_text(ws, row_idx, header_to_col, "Nut_Dim_Standard"),
