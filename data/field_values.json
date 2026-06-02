@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": 2,
-    "purpose": "Per-group dropdown values for component fields. Each group is self-contained — same field value lists may appear in multiple groups. Each entry has 'short' (stored value) and 'long' (display description). Code fields (Matl_Code / Bolt_Matl_Code / Nut_Matl_Code) carry an additional 'std' key so the dialog filters them by the matching std selection.",
+    "purpose": "Per-group dropdown values for component fields. Each group is self-contained — same field value lists may appear in multiple groups. Each entry has 'short' (stored value) and 'long' (display description). Code fields (Matl_Code / Bolt_Matl_Code / Nut_Matl_Code) carry an additional 'std' key so the dialog filters them by the matching std selection. Matl_Code entries additionally carry a 'category' key (CS / LTCS / AS / SS / DSS / SDSS / Ni-Alloy / Cu-Alloy / GI / CI) so the dialog and validator enforce Matl_Category ↔ Matl_Code consistency.",
     "external_dropdown_sources": {
       "Item_Code": "data/item_code_db.json (per-group, planned)",
       "Class_Name": "Class_Define sheet rows",
@@ -34,20 +34,20 @@
       {"short": "API",  "long": "API"}
     ],
     "Matl_Code": [
-      {"short": "A106-B",          "std": "ASTM", "long": "ASTM A106 Gr.B"},
-      {"short": "A53-B",           "std": "ASTM", "long": "ASTM A53 Gr.B"},
-      {"short": "A672-C60-CL13",   "std": "ASTM", "long": "ASTM A672 C60 CL13"},
-      {"short": "A333-6",          "std": "ASTM", "long": "ASTM A333 Gr.6"},
-      {"short": "A312-TP304",      "std": "ASTM", "long": "ASTM A312 TP304"},
-      {"short": "A312-TP316",      "std": "ASTM", "long": "ASTM A312 TP316"},
-      {"short": "A312-TP304L",     "std": "ASTM", "long": "ASTM A312 TP304L"},
-      {"short": "A312-TP316L",     "std": "ASTM", "long": "ASTM A312 TP316L"},
-      {"short": "A335-P11",        "std": "ASTM", "long": "ASTM A335 P11"},
-      {"short": "A335-P22",        "std": "ASTM", "long": "ASTM A335 P22"},
-      {"short": "STPG370",         "std": "JIS",  "long": "JIS STPG370"},
-      {"short": "STPG410",         "std": "JIS",  "long": "JIS STPG410"},
-      {"short": "SUS304TP",        "std": "JIS",  "long": "JIS SUS304TP"},
-      {"short": "SUS316TP",        "std": "JIS",  "long": "JIS SUS316TP"}
+      {"short": "A106-B",          "std": "ASTM", "category": "CS", "long": "ASTM A106 Gr.B"},
+      {"short": "A53-B",           "std": "ASTM", "category": "CS", "long": "ASTM A53 Gr.B"},
+      {"short": "A672-C60-CL13",   "std": "ASTM", "category": "CS", "long": "ASTM A672 C60 CL13"},
+      {"short": "A333-6",          "std": "ASTM", "category": "LTCS", "long": "ASTM A333 Gr.6"},
+      {"short": "A312-TP304",      "std": "ASTM", "category": "SS", "long": "ASTM A312 TP304"},
+      {"short": "A312-TP316",      "std": "ASTM", "category": "SS", "long": "ASTM A312 TP316"},
+      {"short": "A312-TP304L",     "std": "ASTM", "category": "SS", "long": "ASTM A312 TP304L"},
+      {"short": "A312-TP316L",     "std": "ASTM", "category": "SS", "long": "ASTM A312 TP316L"},
+      {"short": "A335-P11",        "std": "ASTM", "category": "AS", "long": "ASTM A335 P11"},
+      {"short": "A335-P22",        "std": "ASTM", "category": "AS", "long": "ASTM A335 P22"},
+      {"short": "STPG370",         "std": "JIS", "category": "CS",  "long": "JIS STPG370"},
+      {"short": "STPG410",         "std": "JIS", "category": "CS",  "long": "JIS STPG410"},
+      {"short": "SUS304TP",        "std": "JIS", "category": "SS",  "long": "JIS SUS304TP"},
+      {"short": "SUS316TP",        "std": "JIS", "category": "SS",  "long": "JIS SUS316TP"}
     ],
     "Manufacturing_Method": [
       {"short": "SMLS", "long": "Seamless"},
@@ -96,17 +96,17 @@
       {"short": "EN",   "long": "EN"}
     ],
     "Matl_Code": [
-      {"short": "A105",       "std": "ASTM", "long": "ASTM A105"},
-      {"short": "A350-LF2",   "std": "ASTM", "long": "ASTM A350 LF2"},
-      {"short": "A182-F304",  "std": "ASTM", "long": "ASTM A182 F304"},
-      {"short": "A182-F316",  "std": "ASTM", "long": "ASTM A182 F316"},
-      {"short": "A182-F304L", "std": "ASTM", "long": "ASTM A182 F304L"},
-      {"short": "A182-F316L", "std": "ASTM", "long": "ASTM A182 F316L"},
-      {"short": "A182-F11",   "std": "ASTM", "long": "ASTM A182 F11"},
-      {"short": "A182-F22",   "std": "ASTM", "long": "ASTM A182 F22"},
-      {"short": "SF440A",     "std": "JIS",  "long": "JIS SF440A"},
-      {"short": "SUS304-F",   "std": "JIS",  "long": "JIS SUS304 Forged"},
-      {"short": "SUS316-F",   "std": "JIS",  "long": "JIS SUS316 Forged"}
+      {"short": "A105",       "std": "ASTM", "category": "CS", "long": "ASTM A105"},
+      {"short": "A350-LF2",   "std": "ASTM", "category": "LTCS", "long": "ASTM A350 LF2"},
+      {"short": "A182-F304",  "std": "ASTM", "category": "SS", "long": "ASTM A182 F304"},
+      {"short": "A182-F316",  "std": "ASTM", "category": "SS", "long": "ASTM A182 F316"},
+      {"short": "A182-F304L", "std": "ASTM", "category": "SS", "long": "ASTM A182 F304L"},
+      {"short": "A182-F316L", "std": "ASTM", "category": "SS", "long": "ASTM A182 F316L"},
+      {"short": "A182-F11",   "std": "ASTM", "category": "AS", "long": "ASTM A182 F11"},
+      {"short": "A182-F22",   "std": "ASTM", "category": "AS", "long": "ASTM A182 F22"},
+      {"short": "SF440A",     "std": "JIS", "category": "CS",  "long": "JIS SF440A"},
+      {"short": "SUS304-F",   "std": "JIS", "category": "SS",  "long": "JIS SUS304 Forged"},
+      {"short": "SUS316-F",   "std": "JIS", "category": "SS",  "long": "JIS SUS316 Forged"}
     ],
     "Rating": [
       {"short": "2000#", "std": "ASTM", "long": "Class 2000"},
@@ -143,24 +143,24 @@
       {"short": "EN",   "long": "EN"}
     ],
     "Matl_Code": [
-      {"short": "A234-WPB",   "std": "ASTM", "long": "ASTM A234 WPB"},
-      {"short": "A234-WPC",   "std": "ASTM", "long": "ASTM A234 WPC"},
-      {"short": "A420-WPL6",  "std": "ASTM", "long": "ASTM A420 WPL6"},
-      {"short": "A420-WPL3",  "std": "ASTM", "long": "ASTM A420 WPL3"},
-      {"short": "A403-WP304", "std": "ASTM", "long": "ASTM A403 WP304"},
-      {"short": "A403-WP316", "std": "ASTM", "long": "ASTM A403 WP316"},
-      {"short": "A403-WP304L","std": "ASTM", "long": "ASTM A403 WP304L"},
-      {"short": "A403-WP316L","std": "ASTM", "long": "ASTM A403 WP316L"},
-      {"short": "A234-WP11",  "std": "ASTM", "long": "ASTM A234 WP11"},
-      {"short": "A234-WP22",  "std": "ASTM", "long": "ASTM A234 WP22"},
-      {"short": "PG370",      "std": "JIS",  "long": "JIS B 2311 PG370"},
-      {"short": "PS410",      "std": "JIS",  "long": "JIS B 2311 PS410"},
-      {"short": "PL380",      "std": "JIS",  "long": "JIS B 2311 PL380"},
-      {"short": "PA22",       "std": "JIS",  "long": "JIS B 2311 PA22"},
-      {"short": "SUS304",     "std": "JIS",  "long": "JIS B 2311 SUS304"},
-      {"short": "SUS304L",    "std": "JIS",  "long": "JIS B 2311 SUS304L"},
-      {"short": "SUS316",     "std": "JIS",  "long": "JIS B 2311 SUS316"},
-      {"short": "SUS316L",    "std": "JIS",  "long": "JIS B 2311 SUS316L"}
+      {"short": "A234-WPB",   "std": "ASTM", "category": "CS", "long": "ASTM A234 WPB"},
+      {"short": "A234-WPC",   "std": "ASTM", "category": "CS", "long": "ASTM A234 WPC"},
+      {"short": "A420-WPL6",  "std": "ASTM", "category": "LTCS", "long": "ASTM A420 WPL6"},
+      {"short": "A420-WPL3",  "std": "ASTM", "category": "LTCS", "long": "ASTM A420 WPL3"},
+      {"short": "A403-WP304", "std": "ASTM", "category": "SS", "long": "ASTM A403 WP304"},
+      {"short": "A403-WP316", "std": "ASTM", "category": "SS", "long": "ASTM A403 WP316"},
+      {"short": "A403-WP304L","std": "ASTM", "category": "SS", "long": "ASTM A403 WP304L"},
+      {"short": "A403-WP316L","std": "ASTM", "category": "SS", "long": "ASTM A403 WP316L"},
+      {"short": "A234-WP11",  "std": "ASTM", "category": "AS", "long": "ASTM A234 WP11"},
+      {"short": "A234-WP22",  "std": "ASTM", "category": "AS", "long": "ASTM A234 WP22"},
+      {"short": "PG370",      "std": "JIS", "category": "CS",  "long": "JIS B 2311 PG370"},
+      {"short": "PS410",      "std": "JIS", "category": "CS",  "long": "JIS B 2311 PS410"},
+      {"short": "PL380",      "std": "JIS", "category": "LTCS",  "long": "JIS B 2311 PL380"},
+      {"short": "PA22",       "std": "JIS", "category": "AS",  "long": "JIS B 2311 PA22"},
+      {"short": "SUS304",     "std": "JIS", "category": "SS",  "long": "JIS B 2311 SUS304"},
+      {"short": "SUS304L",    "std": "JIS", "category": "SS",  "long": "JIS B 2311 SUS304L"},
+      {"short": "SUS316",     "std": "JIS", "category": "SS",  "long": "JIS B 2311 SUS316"},
+      {"short": "SUS316L",    "std": "JIS", "category": "SS",  "long": "JIS B 2311 SUS316L"}
     ],
     "Manufacturing_Method": [
       {"short": "SMLS", "long": "Seamless"},
@@ -191,17 +191,17 @@
       {"short": "EN",   "long": "EN"}
     ],
     "Matl_Code": [
-      {"short": "A105",       "std": "ASTM", "long": "ASTM A105"},
-      {"short": "A350-LF2",   "std": "ASTM", "long": "ASTM A350 LF2"},
-      {"short": "A182-F304",  "std": "ASTM", "long": "ASTM A182 F304"},
-      {"short": "A182-F316",  "std": "ASTM", "long": "ASTM A182 F316"},
-      {"short": "A182-F304L", "std": "ASTM", "long": "ASTM A182 F304L"},
-      {"short": "A182-F316L", "std": "ASTM", "long": "ASTM A182 F316L"},
-      {"short": "A182-F11",   "std": "ASTM", "long": "ASTM A182 F11"},
-      {"short": "A182-F22",   "std": "ASTM", "long": "ASTM A182 F22"},
-      {"short": "SF440A",     "std": "JIS",  "long": "JIS SF440A"},
-      {"short": "SUS304-F",   "std": "JIS",  "long": "JIS SUS304 Forged"},
-      {"short": "SUS316-F",   "std": "JIS",  "long": "JIS SUS316 Forged"}
+      {"short": "A105",       "std": "ASTM", "category": "CS", "long": "ASTM A105"},
+      {"short": "A350-LF2",   "std": "ASTM", "category": "LTCS", "long": "ASTM A350 LF2"},
+      {"short": "A182-F304",  "std": "ASTM", "category": "SS", "long": "ASTM A182 F304"},
+      {"short": "A182-F316",  "std": "ASTM", "category": "SS", "long": "ASTM A182 F316"},
+      {"short": "A182-F304L", "std": "ASTM", "category": "SS", "long": "ASTM A182 F304L"},
+      {"short": "A182-F316L", "std": "ASTM", "category": "SS", "long": "ASTM A182 F316L"},
+      {"short": "A182-F11",   "std": "ASTM", "category": "AS", "long": "ASTM A182 F11"},
+      {"short": "A182-F22",   "std": "ASTM", "category": "AS", "long": "ASTM A182 F22"},
+      {"short": "SF440A",     "std": "JIS", "category": "CS",  "long": "JIS SF440A"},
+      {"short": "SUS304-F",   "std": "JIS", "category": "SS",  "long": "JIS SUS304 Forged"},
+      {"short": "SUS316-F",   "std": "JIS", "category": "SS",  "long": "JIS SUS316 Forged"}
     ],
     "Rating": [
       {"short": "150#",   "std": "ASTM", "long": "Class 150"},
@@ -387,16 +387,16 @@
       {"short": "EN",   "long": "EN"}
     ],
     "Matl_Code": [
-      {"short": "A216-WCB", "std": "ASTM", "long": "ASTM A216 WCB"},
-      {"short": "A352-LCB", "std": "ASTM", "long": "ASTM A352 LCB"},
-      {"short": "A352-LCC", "std": "ASTM", "long": "ASTM A352 LCC"},
-      {"short": "A351-CF8", "std": "ASTM", "long": "ASTM A351 CF8"},
-      {"short": "A351-CF8M","std": "ASTM", "long": "ASTM A351 CF8M"},
-      {"short": "A217-WC1", "std": "ASTM", "long": "ASTM A217 WC1"},
-      {"short": "A217-WC6", "std": "ASTM", "long": "ASTM A217 WC6"},
-      {"short": "A217-WC9", "std": "ASTM", "long": "ASTM A217 WC9"},
-      {"short": "SCS13A",   "std": "JIS",  "long": "JIS SCS13A"},
-      {"short": "SCS14A",   "std": "JIS",  "long": "JIS SCS14A"}
+      {"short": "A216-WCB", "std": "ASTM", "category": "CS", "long": "ASTM A216 WCB"},
+      {"short": "A352-LCB", "std": "ASTM", "category": "LTCS", "long": "ASTM A352 LCB"},
+      {"short": "A352-LCC", "std": "ASTM", "category": "LTCS", "long": "ASTM A352 LCC"},
+      {"short": "A351-CF8", "std": "ASTM", "category": "SS", "long": "ASTM A351 CF8"},
+      {"short": "A351-CF8M","std": "ASTM", "category": "SS", "long": "ASTM A351 CF8M"},
+      {"short": "A217-WC1", "std": "ASTM", "category": "AS", "long": "ASTM A217 WC1"},
+      {"short": "A217-WC6", "std": "ASTM", "category": "AS", "long": "ASTM A217 WC6"},
+      {"short": "A217-WC9", "std": "ASTM", "category": "AS", "long": "ASTM A217 WC9"},
+      {"short": "SCS13A",   "std": "JIS", "category": "SS",  "long": "JIS SCS13A"},
+      {"short": "SCS14A",   "std": "JIS", "category": "SS",  "long": "JIS SCS14A"}
     ],
     "Trim_Matl": [
       {"short": "13Cr",         "long": "13Cr"},
@@ -484,16 +484,16 @@
       {"short": "EN",   "long": "EN"}
     ],
     "Matl_Code": [
-      {"short": "A216-WCB", "std": "ASTM", "long": "ASTM A216 WCB"},
-      {"short": "A352-LCB", "std": "ASTM", "long": "ASTM A352 LCB"},
-      {"short": "A352-LCC", "std": "ASTM", "long": "ASTM A352 LCC"},
-      {"short": "A351-CF8", "std": "ASTM", "long": "ASTM A351 CF8"},
-      {"short": "A351-CF8M","std": "ASTM", "long": "ASTM A351 CF8M"},
-      {"short": "A217-WC1", "std": "ASTM", "long": "ASTM A217 WC1"},
-      {"short": "A217-WC6", "std": "ASTM", "long": "ASTM A217 WC6"},
-      {"short": "A217-WC9", "std": "ASTM", "long": "ASTM A217 WC9"},
-      {"short": "SCS13A",   "std": "JIS",  "long": "JIS SCS13A"},
-      {"short": "SCS14A",   "std": "JIS",  "long": "JIS SCS14A"}
+      {"short": "A216-WCB", "std": "ASTM", "category": "CS", "long": "ASTM A216 WCB"},
+      {"short": "A352-LCB", "std": "ASTM", "category": "LTCS", "long": "ASTM A352 LCB"},
+      {"short": "A352-LCC", "std": "ASTM", "category": "LTCS", "long": "ASTM A352 LCC"},
+      {"short": "A351-CF8", "std": "ASTM", "category": "SS", "long": "ASTM A351 CF8"},
+      {"short": "A351-CF8M","std": "ASTM", "category": "SS", "long": "ASTM A351 CF8M"},
+      {"short": "A217-WC1", "std": "ASTM", "category": "AS", "long": "ASTM A217 WC1"},
+      {"short": "A217-WC6", "std": "ASTM", "category": "AS", "long": "ASTM A217 WC6"},
+      {"short": "A217-WC9", "std": "ASTM", "category": "AS", "long": "ASTM A217 WC9"},
+      {"short": "SCS13A",   "std": "JIS", "category": "SS",  "long": "JIS SCS13A"},
+      {"short": "SCS14A",   "std": "JIS", "category": "SS",  "long": "JIS SCS14A"}
     ],
     "Trim_Matl": [
       {"short": "13Cr",         "long": "13Cr"},
@@ -580,16 +580,16 @@
       {"short": "EN",   "long": "EN"}
     ],
     "Matl_Code": [
-      {"short": "A216-WCB", "std": "ASTM", "long": "ASTM A216 WCB"},
-      {"short": "A352-LCB", "std": "ASTM", "long": "ASTM A352 LCB"},
-      {"short": "A352-LCC", "std": "ASTM", "long": "ASTM A352 LCC"},
-      {"short": "A351-CF8", "std": "ASTM", "long": "ASTM A351 CF8"},
-      {"short": "A351-CF8M","std": "ASTM", "long": "ASTM A351 CF8M"},
-      {"short": "A217-WC1", "std": "ASTM", "long": "ASTM A217 WC1"},
-      {"short": "A217-WC6", "std": "ASTM", "long": "ASTM A217 WC6"},
-      {"short": "A217-WC9", "std": "ASTM", "long": "ASTM A217 WC9"},
-      {"short": "SCS13A",   "std": "JIS",  "long": "JIS SCS13A"},
-      {"short": "SCS14A",   "std": "JIS",  "long": "JIS SCS14A"}
+      {"short": "A216-WCB", "std": "ASTM", "category": "CS", "long": "ASTM A216 WCB"},
+      {"short": "A352-LCB", "std": "ASTM", "category": "LTCS", "long": "ASTM A352 LCB"},
+      {"short": "A352-LCC", "std": "ASTM", "category": "LTCS", "long": "ASTM A352 LCC"},
+      {"short": "A351-CF8", "std": "ASTM", "category": "SS", "long": "ASTM A351 CF8"},
+      {"short": "A351-CF8M","std": "ASTM", "category": "SS", "long": "ASTM A351 CF8M"},
+      {"short": "A217-WC1", "std": "ASTM", "category": "AS", "long": "ASTM A217 WC1"},
+      {"short": "A217-WC6", "std": "ASTM", "category": "AS", "long": "ASTM A217 WC6"},
+      {"short": "A217-WC9", "std": "ASTM", "category": "AS", "long": "ASTM A217 WC9"},
+      {"short": "SCS13A",   "std": "JIS", "category": "SS",  "long": "JIS SCS13A"},
+      {"short": "SCS14A",   "std": "JIS", "category": "SS",  "long": "JIS SCS14A"}
     ],
     "Trim_Matl": [
       {"short": "13Cr",         "long": "13Cr"},
@@ -662,16 +662,16 @@
       {"short": "EN",   "long": "EN"}
     ],
     "Matl_Code": [
-      {"short": "A216-WCB", "std": "ASTM", "long": "ASTM A216 WCB"},
-      {"short": "A352-LCB", "std": "ASTM", "long": "ASTM A352 LCB"},
-      {"short": "A352-LCC", "std": "ASTM", "long": "ASTM A352 LCC"},
-      {"short": "A351-CF8", "std": "ASTM", "long": "ASTM A351 CF8"},
-      {"short": "A351-CF8M","std": "ASTM", "long": "ASTM A351 CF8M"},
-      {"short": "A105",     "std": "ASTM", "long": "ASTM A105"},
-      {"short": "A350-LF2", "std": "ASTM", "long": "ASTM A350 LF2"},
-      {"short": "A182-F316","std": "ASTM", "long": "ASTM A182 F316"},
-      {"short": "SCS13A",   "std": "JIS",  "long": "JIS SCS13A"},
-      {"short": "SCS14A",   "std": "JIS",  "long": "JIS SCS14A"}
+      {"short": "A216-WCB", "std": "ASTM", "category": "CS", "long": "ASTM A216 WCB"},
+      {"short": "A352-LCB", "std": "ASTM", "category": "LTCS", "long": "ASTM A352 LCB"},
+      {"short": "A352-LCC", "std": "ASTM", "category": "LTCS", "long": "ASTM A352 LCC"},
+      {"short": "A351-CF8", "std": "ASTM", "category": "SS", "long": "ASTM A351 CF8"},
+      {"short": "A351-CF8M","std": "ASTM", "category": "SS", "long": "ASTM A351 CF8M"},
+      {"short": "A105",     "std": "ASTM", "category": "CS", "long": "ASTM A105"},
+      {"short": "A350-LF2", "std": "ASTM", "category": "LTCS", "long": "ASTM A350 LF2"},
+      {"short": "A182-F316","std": "ASTM", "category": "SS", "long": "ASTM A182 F316"},
+      {"short": "SCS13A",   "std": "JIS", "category": "SS",  "long": "JIS SCS13A"},
+      {"short": "SCS14A",   "std": "JIS", "category": "SS",  "long": "JIS SCS14A"}
     ],
     "Trim_Matl": [
       {"short": "F316",        "long": "Stainless Steel 316"},
@@ -754,14 +754,14 @@
       {"short": "EN",   "long": "EN"}
     ],
     "Matl_Code": [
-      {"short": "A216-WCB", "std": "ASTM", "long": "ASTM A216 WCB"},
-      {"short": "A352-LCB", "std": "ASTM", "long": "ASTM A352 LCB"},
-      {"short": "A351-CF8", "std": "ASTM", "long": "ASTM A351 CF8"},
-      {"short": "A351-CF8M","std": "ASTM", "long": "ASTM A351 CF8M"},
-      {"short": "A126-B",   "std": "ASTM", "long": "ASTM A126 Cl.B"},
-      {"short": "A395",     "std": "ASTM", "long": "ASTM A395"},
-      {"short": "SCS13A",   "std": "JIS",  "long": "JIS SCS13A"},
-      {"short": "SCS14A",   "std": "JIS",  "long": "JIS SCS14A"}
+      {"short": "A216-WCB", "std": "ASTM", "category": "CS", "long": "ASTM A216 WCB"},
+      {"short": "A352-LCB", "std": "ASTM", "category": "LTCS", "long": "ASTM A352 LCB"},
+      {"short": "A351-CF8", "std": "ASTM", "category": "SS", "long": "ASTM A351 CF8"},
+      {"short": "A351-CF8M","std": "ASTM", "category": "SS", "long": "ASTM A351 CF8M"},
+      {"short": "A126-B",   "std": "ASTM", "category": "CI", "long": "ASTM A126 Cl.B"},
+      {"short": "A395",     "std": "ASTM", "category": "CI", "long": "ASTM A395"},
+      {"short": "SCS13A",   "std": "JIS", "category": "SS",  "long": "JIS SCS13A"},
+      {"short": "SCS14A",   "std": "JIS", "category": "SS",  "long": "JIS SCS14A"}
     ],
     "Disc_Matl": [
       {"short": "F316",       "long": "Stainless Steel 316"},
@@ -829,13 +829,13 @@
       {"short": "EN",   "long": "EN"}
     ],
     "Matl_Code": [
-      {"short": "A216-WCB", "std": "ASTM", "long": "ASTM A216 WCB"},
-      {"short": "A352-LCB", "std": "ASTM", "long": "ASTM A352 LCB"},
-      {"short": "A352-LCC", "std": "ASTM", "long": "ASTM A352 LCC"},
-      {"short": "A351-CF8", "std": "ASTM", "long": "ASTM A351 CF8"},
-      {"short": "A351-CF8M","std": "ASTM", "long": "ASTM A351 CF8M"},
-      {"short": "SCS13A",   "std": "JIS",  "long": "JIS SCS13A"},
-      {"short": "SCS14A",   "std": "JIS",  "long": "JIS SCS14A"}
+      {"short": "A216-WCB", "std": "ASTM", "category": "CS", "long": "ASTM A216 WCB"},
+      {"short": "A352-LCB", "std": "ASTM", "category": "LTCS", "long": "ASTM A352 LCB"},
+      {"short": "A352-LCC", "std": "ASTM", "category": "LTCS", "long": "ASTM A352 LCC"},
+      {"short": "A351-CF8", "std": "ASTM", "category": "SS", "long": "ASTM A351 CF8"},
+      {"short": "A351-CF8M","std": "ASTM", "category": "SS", "long": "ASTM A351 CF8M"},
+      {"short": "SCS13A",   "std": "JIS", "category": "SS",  "long": "JIS SCS13A"},
+      {"short": "SCS14A",   "std": "JIS", "category": "SS",  "long": "JIS SCS14A"}
     ],
     "Plug_Matl": [
       {"short": "F316",        "long": "Stainless Steel 316"},

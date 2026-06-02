@@ -8,6 +8,12 @@
         "Item_Code",
         "Size_From",
         "Size_To"
+      ],
+      "code_category_consistency": [
+        {
+          "code_field": "Matl_Code",
+          "category_field": "Matl_Category"
+        }
       ]
     },
     "Fitting_Group": {
@@ -30,22 +36,181 @@
         "Item_Code",
         "Size1_From",
         "Size1_To"
+      ],
+      "conditional_required": [
+        {
+          "when_field": "Flange_Type",
+          "when_values": [
+            "RD"
+          ],
+          "require_non_empty": [
+            "Size2_From",
+            "Size2_To"
+          ]
+        }
+      ],
+      "conditional_empty": [
+        {
+          "when_field": "Flange_Type",
+          "when_values": [
+            "WN",
+            "SO",
+            "LJ",
+            "SW",
+            "THRD"
+          ],
+          "require_empty": [
+            "Size2_From",
+            "Size2_To"
+          ]
+        }
+      ],
+      "code_category_consistency": [
+        {
+          "code_field": "Matl_Code",
+          "category_field": "Matl_Category"
+        }
       ]
     },
-    "Valve": {
-      "required_non_empty": [
-        "Class_Name",
-        "Item_Code",
-        "Size_From",
-        "Size_To"
-      ]
-    },
-    "Valve_Group": {
+    "Gate_Valve_Group": {
       "required_non_empty": [
         "Class_Name",
         "Item_Code",
         "Size1_From",
-        "Size1_To"
+        "Size1_To",
+        "Matl_Category",
+        "Matl_Std",
+        "Matl_Code",
+        "Trim_Matl",
+        "Seat_Matl",
+        "Rating",
+        "End_Type",
+        "Bonnet_Type",
+        "Operation",
+        "Option_Code"
+      ],
+      "code_category_consistency": [
+        {
+          "code_field": "Matl_Code",
+          "category_field": "Matl_Category"
+        }
+      ]
+    },
+    "Globe_Valve_Group": {
+      "required_non_empty": [
+        "Class_Name",
+        "Item_Code",
+        "Size1_From",
+        "Size1_To",
+        "Matl_Category",
+        "Matl_Std",
+        "Matl_Code",
+        "Trim_Matl",
+        "Seat_Matl",
+        "Rating",
+        "End_Type",
+        "Bonnet_Type",
+        "Operation",
+        "Option_Code"
+      ],
+      "code_category_consistency": [
+        {
+          "code_field": "Matl_Code",
+          "category_field": "Matl_Category"
+        }
+      ]
+    },
+    "Check_Valve_Group": {
+      "required_non_empty": [
+        "Class_Name",
+        "Item_Code",
+        "Size1_From",
+        "Size1_To",
+        "Matl_Category",
+        "Matl_Std",
+        "Matl_Code",
+        "Trim_Matl",
+        "Seat_Matl",
+        "Rating",
+        "End_Type",
+        "Option_Code"
+      ],
+      "code_category_consistency": [
+        {
+          "code_field": "Matl_Code",
+          "category_field": "Matl_Category"
+        }
+      ]
+    },
+    "Ball_Valve_Group": {
+      "required_non_empty": [
+        "Class_Name",
+        "Item_Code",
+        "Size1_From",
+        "Size1_To",
+        "Matl_Category",
+        "Matl_Std",
+        "Matl_Code",
+        "Trim_Matl",
+        "Seat_Matl",
+        "Rating",
+        "End_Type",
+        "Bore",
+        "Operation",
+        "Option_Code"
+      ],
+      "code_category_consistency": [
+        {
+          "code_field": "Matl_Code",
+          "category_field": "Matl_Category"
+        }
+      ]
+    },
+    "Butterfly_Valve_Group": {
+      "required_non_empty": [
+        "Class_Name",
+        "Item_Code",
+        "Size1_From",
+        "Size1_To",
+        "Matl_Category",
+        "Matl_Std",
+        "Matl_Code",
+        "Disc_Matl",
+        "Seat_Matl",
+        "Rating",
+        "End_Type",
+        "Operation",
+        "Option_Code"
+      ],
+      "code_category_consistency": [
+        {
+          "code_field": "Matl_Code",
+          "category_field": "Matl_Category"
+        }
+      ]
+    },
+    "Plug_Valve_Group": {
+      "required_non_empty": [
+        "Class_Name",
+        "Item_Code",
+        "Size1_From",
+        "Size1_To",
+        "Matl_Category",
+        "Matl_Std",
+        "Matl_Code",
+        "Plug_Matl",
+        "Seat_Matl",
+        "Rating",
+        "End_Type",
+        "Operation",
+        "Plug_Type",
+        "Option_Code"
+      ],
+      "code_category_consistency": [
+        {
+          "code_field": "Matl_Code",
+          "category_field": "Matl_Category"
+        }
       ]
     },
     "Gasket_Group": {

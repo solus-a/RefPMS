@@ -31,6 +31,8 @@ from thickness_engine import (
 from validator import (
     load_class_size_ranges,
     load_component_mapping,
+    load_matl_code_category_lookup,
+    validate_class_define_uniqueness,
     validate_size_range_for_row,
     validate_template_row,
 )
@@ -1066,11 +1068,17 @@ def _iter_output_rows(
     branch_data: Optional[dict[str, dict[tuple[str, str], str]]] = None,
     class_branch_codes: Optional[dict[str, str]] = None,
     class_size_ranges: Optional[dict[str, list[str]]] = None,
+    matl_code_categories: Optional[dict[str, dict[str, str]]] = None,
 ):
     mapping = component_mapping if component_mapping is not None else load_component_mapping()
     branch_data = branch_data if branch_data is not None else {}
     class_branch_codes = class_branch_codes if class_branch_codes is not None else {}
     class_size_ranges = class_size_ranges if class_size_ranges is not None else {}
+    matl_code_categories = (
+        matl_code_categories
+        if matl_code_categories is not None
+        else load_matl_code_category_lookup()
+    )
 
     fitting_ws = workbook["Fitting_Group"] if "Fitting_Group" in workbook.sheetnames else None
     fitting_header_to_col: dict[str, int] = {}
@@ -1114,7 +1122,7 @@ def _iter_output_rows(
 
             if sheet_name == "Fitting_Group" and item_code in REDUCER_ITEM_CODES_FROM_TABLE:
                 for msg in validate_template_row(
-                    sheet_name, ws, row_idx, header_to_col, mapping
+                    sheet_name, ws, row_idx, header_to_col, mapping, matl_code_categories
                 ):
                     logger.warning(msg)
                 continue
@@ -1123,13 +1131,13 @@ def _iter_output_rows(
                 bt_code = class_branch_codes.get(class_name, "")
                 if bt_code and branch_data.get(bt_code):
                     for msg in validate_template_row(
-                        sheet_name, ws, row_idx, header_to_col, mapping
+                        sheet_name, ws, row_idx, header_to_col, mapping, matl_code_categories
                     ):
                         logger.warning(msg)
                     continue
 
             row_issues = validate_template_row(
-                sheet_name, ws, row_idx, header_to_col, mapping
+                sheet_name, ws, row_idx, header_to_col, mapping, matl_code_categories
             )
             if row_issues:
                 for msg in row_issues:
@@ -1410,6 +1418,7 @@ def _iter_output_rows(
                         template_row_idx,
                         fitting_header_to_col,
                         mapping,
+                        matl_code_categories,
                     )
                     if reducer_issues:
                         for msg in reducer_issues:
@@ -1558,6 +1567,7 @@ def _iter_output_rows(
                     template_row_idx,
                     fitting_header_to_col,
                     mapping,
+                    matl_code_categories,
                 )
                 if branch_issues:
                     for msg in branch_issues:
@@ -1648,12 +1658,22 @@ def generate_piping_material_class_data(
     ensure_all_program_data_files()
     item_code_db = _load_item_code_db(logger)
     component_mapping = load_component_mapping()
+    matl_code_categories = load_matl_code_category_lookup()
 
     in_wb = load_workbook(template_path, data_only=True)
     bundle = load_class_level_bundle_from_template(template_path)
     schedule_rows = load_schedule_rows(in_wb)
     class_specs = load_class_specs_from_workbook(in_wb)
     class_size_ranges = load_class_size_ranges(in_wb)
+
+    class_name_dup_errors = validate_class_define_uniqueness(in_wb)
+    if class_name_dup_errors:
+        for _m in class_name_dup_errors:
+            logger.error(_m)
+        raise ValueError(
+            "Class_Define has duplicate Class_Name entries; "
+            "Class_Name must be unique within Class_Define."
+        )
 
     size_range_errors: list[str] = []
     if class_size_ranges and "Schedule" in in_wb.sheetnames:
@@ -1761,6 +1781,7 @@ def generate_piping_material_class_data(
             branch_data=branch_data,
             class_branch_codes=class_branch_codes,
             class_size_ranges=class_size_ranges,
+            matl_code_categories=matl_code_categories,
         )
     )
     def _sort_size2_key(r: dict[str, Any]) -> tuple:
