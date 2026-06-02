@@ -897,5 +897,96 @@
     "Option_Code": [
       {"short": "001", "long": "Default item"}
     ]
+  },
+
+  "Needle_Valve_Group": {
+    "Matl_Category": [
+      {"short": "CS",       "long": "Carbon Steel"},
+      {"short": "LTCS",     "long": "Low Temperature Carbon Steel"},
+      {"short": "AS",       "long": "Alloy Steel"},
+      {"short": "SS",       "long": "Stainless Steel"},
+      {"short": "DSS",      "long": "Duplex Stainless Steel"},
+      {"short": "SDSS",     "long": "Super Duplex Stainless Steel"},
+      {"short": "Ni-Alloy", "long": "Nickel Alloy"}
+    ],
+    "Matl_Std": [
+      {"short": "ASTM", "long": "ASTM"},
+      {"short": "JIS",  "long": "JIS"},
+      {"short": "KS",   "long": "KS"},
+      {"short": "EN",   "long": "EN"}
+    ],
+    "Matl_Code": [
+      {"short": "A105",       "std": "ASTM", "category": "CS",   "long": "ASTM A105"},
+      {"short": "A350-LF2",   "std": "ASTM", "category": "LTCS", "long": "ASTM A350 LF2"},
+      {"short": "A182-F304",  "std": "ASTM", "category": "SS",   "long": "ASTM A182 F304"},
+      {"short": "A182-F316",  "std": "ASTM", "category": "SS",   "long": "ASTM A182 F316"},
+      {"short": "A182-F304L", "std": "ASTM", "category": "SS",   "long": "ASTM A182 F304L"},
+      {"short": "A182-F316L", "std": "ASTM", "category": "SS",   "long": "ASTM A182 F316L"},
+      {"short": "A182-F11",   "std": "ASTM", "category": "AS",   "long": "ASTM A182 F11"},
+      {"short": "A182-F22",   "std": "ASTM", "category": "AS",   "long": "ASTM A182 F22"},
+      {"short": "SF440A",     "std": "JIS",  "category": "CS",   "long": "JIS SF440A"},
+      {"short": "SUS304-F",   "std": "JIS",  "category": "SS",   "long": "JIS SUS304 Forged"},
+      {"short": "SUS316-F",   "std": "JIS",  "category": "SS",   "long": "JIS SUS316 Forged"}
+    ],
+    "Trim_Matl": [
+      {"short": "F316",        "long": "Stainless Steel 316"},
+      {"short": "F304",        "long": "Stainless Steel 304"},
+      {"short": "13Cr",        "long": "13Cr"},
+      {"short": "Inconel-625", "long": "Inconel 625"},
+      {"short": "Monel-400",   "long": "Monel 400"}
+    ],
+    "Seat_Matl": [
+      {"short": "PTFE",       "long": "PTFE"},
+      {"short": "Viton",      "long": "Viton"},
+      {"short": "F316",       "long": "Stainless Steel 316"},
+      {"short": "Stellite-6", "long": "Stellite Gr.6"}
+    ],
+    "Rating": [
+      {"short": "150#",   "std": "ASTM", "long": "Class 150"},
+      {"short": "300#",   "std": "ASTM", "long": "Class 300"},
+      {"short": "600#",   "std": "ASTM", "long": "Class 600"},
+      {"short": "900#",   "std": "ASTM", "long": "Class 900"},
+      {"short": "1500#",  "std": "ASTM", "long": "Class 1500"},
+      {"short": "2500#",  "std": "ASTM", "long": "Class 2500"},
+      {"short": "JIS5K",  "std": "JIS",  "long": "JIS 5K"},
+      {"short": "JIS10K", "std": "JIS",  "long": "JIS 10K"},
+      {"short": "JIS16K", "std": "JIS",  "long": "JIS 16K"},
+      {"short": "JIS20K", "std": "JIS",  "long": "JIS 20K"},
+      {"short": "JIS30K", "std": "JIS",  "long": "JIS 30K"},
+      {"short": "JIS40K", "std": "JIS",  "long": "JIS 40K"},
+      {"short": "JIS63K", "std": "JIS",  "long": "JIS 63K"},
+      {"short": "KS5K",   "std": "KS",   "long": "KS 5K"},
+      {"short": "KS10K",  "std": "KS",   "long": "KS 10K"},
+      {"short": "KS16K",  "std": "KS",   "long": "KS 16K"},
+      {"short": "KS20K",  "std": "KS",   "long": "KS 20K"},
+      {"short": "KS30K",  "std": "KS",   "long": "KS 30K"},
+      {"short": "KS40K",  "std": "KS",   "long": "KS 40K"},
+      {"short": "KS63K",  "std": "KS",   "long": "KS 63K"}
+    ],
+    "End_Type": [
+      {"short": "BW",  "long": "Butt Weld"},
+      {"short": "SW",  "long": "Socket Weld"},
+      {"short": "TH",  "long": "Threaded"},
+      {"short": "FLG", "long": "Flanged"}
+    ],
+    "Bonnet_Type": [
+      {"short": "Bolted",  "long": "Bolted Bonnet"},
+      {"short": "PSB",     "long": "Pressure-Sealed Bonnet"},
+      {"short": "Welded",  "long": "Welded Bonnet"},
+      {"short": "Screwed", "long": "Screwed Bonnet"}
+    ],
+    "Operation": [
+      {"short": "Manual",  "long": "Manual"},
+      {"short": "Lever",   "long": "Lever Operated"},
+      {"short": "Wrench",  "long": "Wrench Operated"},
+      {"short": "Gear",    "long": "Gear Operated"},
+      {"short": "Chain",   "long": "Chain Operated"}
+    ],
+    "Disc_Type": [
+      {"short": "Needle", "long": "Needle Disc"}
+    ],
+    "Option_Code": [
+      {"short": "001", "long": "Default item"}
+    ]
   }
 }

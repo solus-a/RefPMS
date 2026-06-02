@@ -276,6 +276,25 @@ BUTTERFLY_VALVE_HEADERS = [
     "Remarks",
 ]
 
+NEEDLE_VALVE_HEADERS = [
+    "Class_Name",
+    "Item_Code",
+    "Size1_From",
+    "Size1_To",
+    "Matl_Category",
+    "Matl_Std",
+    "Matl_Code",
+    "Trim_Matl",
+    "Seat_Matl",
+    "Rating",
+    "End_Type",
+    "Bonnet_Type",
+    "Operation",
+    "Disc_Type",
+    "Option_Code",
+    "Remarks",
+]
+
 PLUG_VALVE_HEADERS = [
     "Class_Name",
     "Item_Code",
@@ -307,6 +326,7 @@ COMPONENT_GROUP_DEFS: list[tuple[str, str, list[str]]] = [
     ("Ball_Valve_Group",      "Ball Valve Group",     BALL_VALVE_HEADERS),
     ("Butterfly_Valve_Group", "Butterfly Valve Group",BUTTERFLY_VALVE_HEADERS),
     ("Plug_Valve_Group",      "Plug Valve Group",     PLUG_VALVE_HEADERS),
+    ("Needle_Valve_Group",    "Needle Valve Group",   NEEDLE_VALVE_HEADERS),
 ]
 
 HEADER_FONT = Font(bold=True)

@@ -5268,3 +5268,477 @@ PLUG_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
 ]
+
+
+# ── Needle_Valve_Group ─────────────────────────────────────────────────────────
+#
+# Needle Valve (정밀 유량 조절용 instrumentation valve) — Globe valve 의 변종.
+# Component 계층 13번째 시트. 원래 Globe_Valve_Group.Disc_Type 의 Needle 옵션
+# 으로 처리했었으나 도메인 결정 (사용자) 으로 별도 시트로 분리.
+#
+# Globe_Valve_Group 과의 주요 차이:
+#   - **Matl_Code = Forged grades** — Needle valve 는 instrumentation 영역이라
+#     forged body 가 표준 (Globe valve 의 Cast grade A216-WCB 등과 다름).
+#     ASTM: A105 / A350-LF2 / A182-F304/F316/F304L/F316L / A182-F11 / A182-F22
+#     (Forged_Fitting_Group 과 동일 패턴). JIS: SF440A / SUS304-F / SUS316-F.
+#   - **Disc_Type 컬럼은 Needle 1종 고정** — needle disc geometry 가 시트 자체
+#     의 정체성. optional + 빈 값 허용 (Globe Disc_Type 패턴과 동일).
+#   - **Item_Code = VN** (NEEDLE VALVE).
+#
+# Globe_Valve_Group 과 동일한 부분:
+#   - 16 필드 구조 그대로 (Class_Name → Item_Code → Size1 → Body Matl →
+#     Trim_Matl/Seat_Matl → Rating → End_Type → Bonnet_Type → Operation →
+#     Disc_Type → Option_Code → Remarks).
+#   - Matl_Category 7종 (CS/LTCS/AS/SS/DSS/SDSS/Ni-Alloy).
+#   - Trim_Matl 5종, Seat_Matl 4종 (PTFE/Viton/F316/Stellite-6 — PTFE seat 가
+#     needle valve 에 흔함).
+#   - Rating std-aware 20종 (ASTM 6 + JIS 7 + KS 7) — Globe 와 동일.
+#   - End_Type 4종 (BW/SW/TH/FLG — TH 가 instrumentation 표준 흔함).
+#   - Bonnet_Type 4종 (Bolted/PSB/Welded/Screwed) — Globe 와 동일.
+#   - Operation 5종 (Manual/Lever/Wrench/Gear/Chain) — 일반적으로 소구경 Manual
+#     이지만 옵션 풀은 일관성 유지.
+#
+# 도메인 표준:
+#   - ASME B16.34 (Valve body/bonnet 표준)
+#   - API 6D (Pipeline valve)
+#   - ISO 15761 (Control valve testing)
+#   - MSS SP-99 (Instrumentation valves and manifolds)
+#
+# 미고려 항목 (추후 도메인 합의 시 확장):
+#   - Body Pattern (Straight / Angle / Multiport) — Swagelok / SSP 등 표준 옵션
+#     인데 현재 미신설. 별도 컬럼 신설 후 도메인 합의 시 등록.
+#   - Needle 고유 Bonnet 분류 (Integral / Union / Locked) — 현재 Globe 의 4종
+#     공용. instrumentation 표준 분류로 별도 옵션 풀 검토 가능.
+#   - Stem 형식 (Regulating / Vee / Sharp) — needle tip 정밀도.
+#   - Pressure 단위 PSI (instrumentation 관행) — 현재 Rating 은 ASME Class 표기.
+#   - Connection sizes ⅛" ~ 2" (instrumentation 표준) — Class_Define 의 size
+#     범위에서 자연스럽게 처리.
+
+NEEDLE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
+    FieldDefinition(
+        name="Class_Name",
+        meaning=(
+            "이 행이 소속될 Class 의 이름. Pipe_Group.Class_Name 과 의미·검증"
+            " 모두 동일."
+        ),
+        data_type="string",
+        required=True,
+        format_constraint=(
+            "공백 trim. Class_Define.Class_Name 행 집합 기준 일치 검사."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Class_Name 으로 FK",
+        ],
+        validation_location=(
+            "Pipe_Group.Class_Name 과 동일 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class_Define 행 목록)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Item_Code",
+        meaning=(
+            "Needle_Valve_Group 의 component 종류 식별자. 현재 'VN' (NEEDLE"
+            " VALVE) 하나만 정의 — Needle valve 의 body pattern (Straight/"
+            "Angle/Multiport) 구분은 별도 컬럼 신설 시 도메인 합의 후 처리."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/item_code_db.json 의 Needle_Valve_Group 행 (closed set, 현재"
+            " 1개)."
+        ),
+        unique=None,
+        relations=[
+            "item_code_db.json Needle_Valve_Group 의 code 값 중 하나 (FK)",
+            "PMS description prefix 합성: VN → NEEDLE VALVE",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — item_code_db 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_From",
+        meaning=(
+            "NPS/DN size 범위의 하한. Needle valve 는 instrumentation 영역이라"
+            " ⅛\" ~ 2\" 범위가 표준이지만 옵션 풀 자체는 Class_Define 의 catalog"
+            " 따라감."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제 (행 단위 검증, 별도 작업)."
+        ),
+        unique=None,
+        relations=[
+            "Class_Define.Size_From / Size_To 범위 안",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_From 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size1_To",
+        meaning=(
+            "NPS/DN size 범위의 상한. Size1_From 의 상한 짝."
+        ),
+        data_type="string (NPS or DN token)",
+        required=True,
+        format_constraint=(
+            "Class_Define 의 Nominal_Size_System 기반 NPS/DN catalog."
+            " Size1_From <= Size1_To 강제."
+        ),
+        unique=None,
+        relations=[
+            "(Size1_From, Size1_To) 의 상한",
+        ],
+        validation_location=(
+            "Pipe_Group.Size_To 패턴."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Category",
+        meaning=(
+            "Needle valve body 재질의 대분류 카테고리. 7종 (Globe 와 동일):"
+            " CS / LTCS / AS / SS / DSS / SDSS / Ni-Alloy."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Needle_Valve_Group.Matl_Category 옵션"
+            " (closed set, 7개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std / Matl_Code 와 종속 체인 (Pipe_Group 패턴 동일)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Std",
+        meaning=(
+            "Needle valve body 재질 표준 발행 기관. 4개 (ASTM/JIS/KS/EN)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Needle_Valve_Group.Matl_Std 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Code 의 std 키와 일치",
+            "Rating 의 std 키와도 일치 — std-aware Rating 필터링",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Matl_Code",
+        meaning=(
+            "Needle valve body 의 구체 재질 규격 코드. **Forged grade** —"
+            " instrumentation 영역의 needle valve 표준 (Globe valve 의 Cast"
+            " grade A216-WCB 등과 다름). ASTM (8): A105, A350-LF2, A182-F304/"
+            "F316/F304L/F316L, A182-F11/F22. JIS (3): SF440A, SUS304-F,"
+            " SUS316-F. KS/EN 항목은 추후 추가."
+        ),
+        data_type="string (short code; e.g. A105 / A182-F316)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Needle_Valve_Group.Matl_Code 옵션"
+            " (closed set, 11개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 필터링",
+            "Matl_Code 의 category 키 ↔ Matl_Category 셀 일치"
+            " (code_category_consistency rule)",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중"
+            " Matl_Std 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Trim_Matl",
+        meaning=(
+            "Needle valve trim (stem/seat ring 등 내부 부품) 재질. 5종 (Globe"
+            " 와 동일): F316 / F304 / 13Cr / Inconel-625 / Monel-400. Body 와"
+            " 다른 재질 선택 가능 — body 는 forged carbon steel, trim 은 F316"
+            " 흔함."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Needle_Valve_Group.Trim_Matl 옵션"
+            " (closed set, 5개)."
+        ),
+        unique=None,
+        relations=[
+            "Seat_Matl 와 호환 관행: trim + seat 의 재질 짝이 sealing 성능 결정",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Seat_Matl",
+        meaning=(
+            "Valve seat (needle 과 body 사이 sealing 면) 재질. 4종 (Globe 와"
+            " 동일): PTFE (soft seat, instrumentation 흔함), Viton (rubber"
+            " seat), F316 (metal seat), Stellite-6 (hardfacing metal seat)."
+            " Needle valve 는 PTFE seat 가 일반적이지만 고온·고압엔 metal"
+            " seat 가 선호."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Needle_Valve_Group.Seat_Matl 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Trim_Matl 와 호환 관행 (위 Trim_Matl.relations 참조)",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Rating",
+        meaning=(
+            "Valve 의 압력 등급. std-aware 필드 — Globe 와 옵션 풀 동일 (20개),"
+            " ASTM 기준 표준은 ASME **B16.34**."
+            "\n - ASTM: 150# / 300# / 600# / 900# / 1500# / 2500#."
+            "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
+            "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
+            " Instrumentation needle valve 는 PSI 표기 (6000~20000 PSI) 가"
+            " 흔하나 본 시트는 ASME Class 통일 (별도 PSI 단위 옵션 미신설)."
+        ),
+        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Needle_Valve_Group.Rating 옵션"
+            " (closed set, 20개)."
+        ),
+        unique=None,
+        relations=[
+            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "Globe/Gate/Check/Ball/Plug 의 Rating 과 옵션 풀 동일",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
+            " 와 일치하는 항목만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="End_Type",
+        meaning=(
+            "Valve 단부 (end connection) 형식. 4종 (Globe 와 동일):"
+            " BW (Butt Weld), SW (Socket Weld), TH (Threaded — NPT,"
+            " instrumentation 표준 흔함), FLG (Flanged)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Needle_Valve_Group.End_Type 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
+            " (별도 검증 영역)",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Bonnet_Type",
+        meaning=(
+            "Valve bonnet 형식. 4종 (Globe 와 동일): Bolted (표준), PSB"
+            " (Pressure-Sealed Bonnet — 고압 1500# 이상), Welded (소형/severe"
+            " service), Screwed (Threaded bonnet — instrumentation 흔함)."
+            " Needle valve 고유 분류 (Integral / Union / Locked-Bonnet) 는"
+            " 별도 도메인 합의 후 등록 (현재 Globe 분류 공용)."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Needle_Valve_Group.Bonnet_Type 옵션"
+            " (closed set, 4개)."
+        ),
+        unique=None,
+        relations=[
+            "Bonnet_Type=PSB 일 때 Rating 고압 (1500# 이상) 흔함 — 강제 검증"
+            " 없음",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Operation",
+        meaning=(
+            "Valve 조작 방식. 5종 (Globe 와 동일):"
+            " Manual (Handwheel — 표준), Lever, Wrench, Gear, Chain."
+            " Instrumentation needle valve 는 거의 Manual 이지만 옵션 풀은"
+            " 일관성 유지."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Needle_Valve_Group.Operation 옵션"
+            " (closed set, 5개)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Disc_Type",
+        meaning=(
+            "Needle valve disc 형태. **Needle 1종 고정** — needle disc 가"
+            " 시트 자체의 정체성이라 다른 옵션 없음. 빈 값 허용 (PMS"
+            " description 에 명시 안 하는 케이스). Globe Disc_Type 패턴과"
+            " 동일 (optional)."
+        ),
+        data_type="string (short code)",
+        required=False,
+        format_constraint=(
+            "data/field_values.json 의 Needle_Valve_Group.Disc_Type 옵션"
+            " (closed set, 1개)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 에 합성 (값 있을 때만)",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Option_Code",
+        meaning=(
+            "Item_Code 변종/옵션 식별자. Pipe_Group.Option_Code 와 의미·형식"
+            " 동일 — 3자리 숫자 텍스트, '001' = 해당 Class · Needle_Valve_Group"
+            " 의 표준형."
+        ),
+        data_type="string (3자리 0-9 숫자 텍스트; e.g. '001')",
+        required=True,
+        format_constraint=(
+            "정규식 ^\\d{3}$. data/field_values.json 의 Needle_Valve_Group."
+            "Option_Code 옵션 (closed set). 현재 '001' 한 개만 등록."
+        ),
+        unique=(
+            "(Class_Name, Option_Code) 가 Needle_Valve_Group 시트 안에서 유일."
+            " 다른 시트의 Option_Code 와는 독립."
+        ),
+        relations=[
+            "(Class_Name, Option_Code) 가 Needle_Valve_Group 행의 자연 키",
+            "Pipe_Group.Option_Code 와 동일 패턴",
+        ],
+        validation_location=(
+            "Pipe_Group.Option_Code 와 동일 패턴 — 검증 모두 현재 미구현."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "행 단위 비고/설명 자유 텍스트. Pipe_Group.Remarks 와 의미·동작"
+            " 동일. Body pattern (Straight/Angle/Multiport), Stem 형식"
+            " (Regulating/Vee/Sharp), Bonnet 변종 (Integral/Union/Locked),"
+            " PSI 단위 압력 등 별도 컬럼 미신설 항목은 자유 입력."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "형식 강제 없음 — data/field_values.json 의 _meta.free_input_fields"
+            " 에 'Remarks' 명시 (모든 시트 공통)."
+        ),
+        unique=None,
+        relations=[
+            "PMS description 합성의 마지막 토큰 — Pipe_Group.Remarks 와 동일 패턴",
+        ],
+        validation_location=(
+            "검증 없음 (자유 입력). required 아님."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)"
+        ),
+        unit=None,
+    ),
+]

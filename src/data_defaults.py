@@ -191,6 +191,27 @@ DEFAULT_COMPONENT_MAPPING: dict = {
                 {"code_field": "Matl_Code", "category_field": "Matl_Category"},
             ],
         },
+        "Needle_Valve_Group": {
+            "required_non_empty": [
+                "Class_Name",
+                "Item_Code",
+                "Size1_From",
+                "Size1_To",
+                "Matl_Category",
+                "Matl_Std",
+                "Matl_Code",
+                "Trim_Matl",
+                "Seat_Matl",
+                "Rating",
+                "End_Type",
+                "Bonnet_Type",
+                "Operation",
+                "Option_Code",
+            ],
+            "code_category_consistency": [
+                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
+            ],
+        },
         "Gasket_Group": {
             "required_non_empty": [
                 "Class_Name",

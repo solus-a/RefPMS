@@ -76,5 +76,9 @@
 
   "Plug_Valve_Group": [
     {"code": "VP", "code_name": "PLUG VALVE"}
+  ],
+
+  "Needle_Valve_Group": [
+    {"code": "VN", "code_name": "NEEDLE VALVE"}
   ]
 }
