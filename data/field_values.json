@@ -795,6 +795,11 @@
       {"short": "BW",  "long": "Butt Weld"},
       {"short": "FLG", "long": "Flanged"}
     ],
+    "Body_Type": [
+      {"short": "Wafer",          "long": "Wafer Body"},
+      {"short": "Lug",            "long": "Lug Body"},
+      {"short": "Double-Flanged", "long": "Double-Flanged Body"}
+    ],
     "Operation": [
       {"short": "Manual", "long": "Manual"},
       {"short": "Lever",  "long": "Lever Operated"},

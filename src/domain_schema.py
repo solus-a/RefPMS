@@ -4325,6 +4325,14 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #       · TripleOffset (TOV — Triple Offset Valve): 추가 conical seat offset,
 #         metal seat tight closure. 고압·고온, ASME B16.34 적용.
 #       · (빈 값): Procurement Description 에 명시 안 하는 케이스.
+#   - **Body_Type 컬럼 신설 (Butterfly 고유)** — body 형태 (API 609 표준).
+#     End_Type 과 직교 (End_Type = 인터페이스 BW/FLG, Body_Type = body 형태).
+#     3종, 빈 값 불허 (required + Ball Bore / Plug Plug_Type 패턴):
+#       · Wafer: 두 flange 사이에 끼움 — 가장 컴팩트/저렴, dead-end service
+#         불가 (양쪽 flange 모두 있어야 sealing).
+#       · Lug: threaded lugs 로 flange 별도 bolt — dead-end service 가능,
+#         downstream 분리 가능.
+#       · Double-Flanged: body 에 flange 통합 — 고압·고온 안정성, NPS 3~36.
 #
 # 다른 Valve 시트와 동일한 부분:
 #   - Size 시스템: Size1_From / Size1_To 한 짝 (Reducing 없음).
@@ -4334,8 +4342,7 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #     Gear 가 흔함.
 #
 # 미고려 항목 (추후 도메인 합의 시 확장):
-#   - Body type (Wafer / Lug / Double-Flanged / U-Section) — 별도 컬럼 미신설
-#     (Remarks 우회).
+#   - U-Section body — 표준 외 변종, 현재 Body_Type 옵션에 미포함.
 #   - Seat alignment (loose / locked) — Triple Offset 의 세부 옵션.
 #   - Actuator 종류 (Motor / Pneumatic / Hydraulic) — 별도 actuator 시트.
 #   - Stem extension / Bare stem 옵션.
@@ -4343,11 +4350,10 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #     현재 VU 하나로 유지, 구분은 Disc_Type 컬럼.
 #
 # 다른 Valve 시트와의 공통 구조:
-#   - 15 필드 (Gate/Globe/Ball 16개 - Bonnet_Type 1개 = 15; 또는 Check 14개 +
-#     Disc_Type 1개 = 15).
+#   - 16 필드 (Gate/Globe/Ball 16개; Butterfly 도 Body_Type 추가로 16개).
 #   - Class_Name → Item_Code → Size1 → Body Matl → Disc_Matl/Seat_Matl →
-#     Rating → End_Type → Operation → (Butterfly 고유: Disc_Type) →
-#     Option_Code → Remarks 순서.
+#     Rating → End_Type → (Butterfly 고유: Body_Type) → Operation →
+#     (Butterfly 고유: Disc_Type) → Option_Code → Remarks 순서.
 
 BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
@@ -4623,8 +4629,8 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
             " 좁은 풀):"
             " BW (Butt Weld — 드묾), FLG (Flanged — 표준)."
             " Butterfly 는 face-to-face short body 가 표준이라 SW / TH 없음."
-            " FLG 일 때 body type 은 Wafer / Lug / Double-Flanged 중 하나 —"
-            " 별도 컬럼 미신설로 Remarks 우회."
+            " Body 형태 (Wafer/Lug/Double-Flanged) 는 별도 Body_Type 컬럼에서"
+            " 처리."
         ),
         data_type="string (short code)",
         required=True,
@@ -4636,6 +4642,43 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         relations=[
             "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
             " (별도 검증 영역)",
+            "Body_Type 과 의미적 직교 — End_Type 은 인터페이스, Body_Type 은"
+            " body 형태",
+            "PMS description 에 합성",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Body_Type",
+        meaning=(
+            "Butterfly Valve 의 body 형태 (API 609 표준 3종). **Butterfly 고유"
+            " 컬럼** — End_Type 과 직교 (End_Type 은 연결 인터페이스 BW/FLG,"
+            " Body_Type 은 body 의 물리 형태):"
+            " Wafer (두 flange 사이에 끼움 — 가장 컴팩트/저렴, dead-end service"
+            " 불가),"
+            " Lug (threaded lugs 로 flange 별도 bolt — dead-end service 가능),"
+            " Double-Flanged (body 에 flange 통합 — 고압·고온 안정성)."
+            " 빈 값 불허 — Butterfly valve 도메인 핵심 분류로 항상 명시."
+        ),
+        data_type="string (short code)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Butterfly_Valve_Group.Body_Type 옵션"
+            " (closed set, 3개)."
+        ),
+        unique=None,
+        relations=[
+            "End_Type 과 의미적 직교 (위 End_Type.relations 참조)",
+            "Body_Type=Wafer 일 때 dead-end service 금지 — 도메인 관행, 강제"
+            " 검증 없음",
+            "Body_Type=Double-Flanged 일 때 Rating 고압 (300# 이상) 흔함 —"
+            " 강제 검증 없음",
             "PMS description 에 합성",
         ],
         validation_location=(

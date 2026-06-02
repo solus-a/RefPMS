@@ -269,6 +269,7 @@ BUTTERFLY_VALVE_HEADERS = [
     "Seat_Matl",
     "Rating",
     "End_Type",
+    "Body_Type",
     "Operation",
     "Disc_Type",
     "Option_Code",

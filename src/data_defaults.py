@@ -162,6 +162,7 @@ DEFAULT_COMPONENT_MAPPING: dict = {
                 "Seat_Matl",
                 "Rating",
                 "End_Type",
+                "Body_Type",
                 "Operation",
                 "Option_Code",
             ],
