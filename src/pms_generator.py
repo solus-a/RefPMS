@@ -10,6 +10,7 @@ from openpyxl.utils import get_column_letter
 
 import config
 from class_spec import (
+    VALVE_SHEET_NAMES,
     ClassSpec,
     corrosion_allowance_validation_messages,
     load_class_specs_from_workbook,
@@ -85,7 +86,6 @@ BRANCH_TABLE_REQUIRED_HEADERS = [
     "Size2",
     "Item_Type",
 ]
-VALVE_SHEET_NAMES = frozenset({"Valve", "Valve_Group"})
 
 MATERIAL_SHEET_CONFIGS = [
     {
@@ -141,7 +141,7 @@ MATERIAL_SHEET_CONFIGS = [
         "size_to_2": None,
     },
     {
-        "sheet_name": "Valve_Group",
+        "sheet_name": "Gate_Valve_Group",
         "required_headers": [
             "Class_Name",
             "Item_Code",
@@ -150,19 +150,84 @@ MATERIAL_SHEET_CONFIGS = [
         ],
         "size_from_1": "Size1_From",
         "size_to_1": "Size1_To",
-        "size_from_2": "Size2_From",
-        "size_to_2": "Size2_To",
+        "size_from_2": None,
+        "size_to_2": None,
     },
     {
-        "sheet_name": "Valve",
+        "sheet_name": "Globe_Valve_Group",
         "required_headers": [
             "Class_Name",
             "Item_Code",
-            "Size_From",
-            "Size_To",
+            "Size1_From",
+            "Size1_To",
         ],
-        "size_from_1": "Size_From",
-        "size_to_1": "Size_To",
+        "size_from_1": "Size1_From",
+        "size_to_1": "Size1_To",
+        "size_from_2": None,
+        "size_to_2": None,
+    },
+    {
+        "sheet_name": "Check_Valve_Group",
+        "required_headers": [
+            "Class_Name",
+            "Item_Code",
+            "Size1_From",
+            "Size1_To",
+        ],
+        "size_from_1": "Size1_From",
+        "size_to_1": "Size1_To",
+        "size_from_2": None,
+        "size_to_2": None,
+    },
+    {
+        "sheet_name": "Ball_Valve_Group",
+        "required_headers": [
+            "Class_Name",
+            "Item_Code",
+            "Size1_From",
+            "Size1_To",
+        ],
+        "size_from_1": "Size1_From",
+        "size_to_1": "Size1_To",
+        "size_from_2": None,
+        "size_to_2": None,
+    },
+    {
+        "sheet_name": "Butterfly_Valve_Group",
+        "required_headers": [
+            "Class_Name",
+            "Item_Code",
+            "Size1_From",
+            "Size1_To",
+        ],
+        "size_from_1": "Size1_From",
+        "size_to_1": "Size1_To",
+        "size_from_2": None,
+        "size_to_2": None,
+    },
+    {
+        "sheet_name": "Plug_Valve_Group",
+        "required_headers": [
+            "Class_Name",
+            "Item_Code",
+            "Size1_From",
+            "Size1_To",
+        ],
+        "size_from_1": "Size1_From",
+        "size_to_1": "Size1_To",
+        "size_from_2": None,
+        "size_to_2": None,
+    },
+    {
+        "sheet_name": "Needle_Valve_Group",
+        "required_headers": [
+            "Class_Name",
+            "Item_Code",
+            "Size1_From",
+            "Size1_To",
+        ],
+        "size_from_1": "Size1_From",
+        "size_to_1": "Size1_To",
         "size_from_2": None,
         "size_to_2": None,
     },
@@ -973,62 +1038,53 @@ def _build_item_description_by_rule(
         )
 
     if _is_valve_sheet(sheet_name):
-        valve_type = _get_cell_text(ws, row_idx, header_to_col, "Valve_Type")
-        body_mat = _get_cell_text(ws, row_idx, header_to_col, "Body_Mat")
-        trim_mat = _get_cell_text_any(
-            ws, row_idx, header_to_col, ["Trim_Mat", "Stem/Disc/Ball_Mat"]
-        )
-        rating = _pick_first_non_empty(ws, row_idx, header_to_col, ["Rating", "Rating_Thickness"])
+        body_mat = _get_cell_text(ws, row_idx, header_to_col, "Matl_Code")
+        seat_mat = _get_cell_text(ws, row_idx, header_to_col, "Seat_Matl")
+        rating = _get_cell_text(ws, row_idx, header_to_col, "Rating")
         end_type = _get_cell_text(ws, row_idx, header_to_col, "End_Type")
         operation = _get_cell_text(ws, row_idx, header_to_col, "Operation")
         bonnet_type = _get_cell_text(ws, row_idx, header_to_col, "Bonnet_Type")
-        valve_feature = _get_cell_text_any(
-            ws, row_idx, header_to_col, ["Valve_Feature", "Disc_Type"]
+
+        if sheet_name == "Butterfly_Valve_Group":
+            trim_mat = _get_cell_text(ws, row_idx, header_to_col, "Disc_Matl")
+        elif sheet_name == "Plug_Valve_Group":
+            trim_mat = _get_cell_text(ws, row_idx, header_to_col, "Plug_Matl")
+        else:
+            trim_mat = _get_cell_text(ws, row_idx, header_to_col, "Trim_Matl")
+
+        if sheet_name == "Gate_Valve_Group":
+            feature = _get_cell_text(ws, row_idx, header_to_col, "Wedge_Type")
+        elif sheet_name == "Ball_Valve_Group":
+            feature = _get_cell_text(ws, row_idx, header_to_col, "Bore")
+        elif sheet_name == "Plug_Valve_Group":
+            feature = _get_cell_text(ws, row_idx, header_to_col, "Plug_Type")
+        elif sheet_name == "Butterfly_Valve_Group":
+            disc_t = _get_cell_text(ws, row_idx, header_to_col, "Disc_Type")
+            body_t = _get_cell_text(ws, row_idx, header_to_col, "Body_Type")
+            feature = " ".join(t for t in (body_t, disc_t) if t)
+        else:
+            feature = _get_cell_text(ws, row_idx, header_to_col, "Disc_Type")
+
+        trim_token = (
+            f"{trim_mat}+{seat_mat}" if trim_mat and seat_mat else (trim_mat or seat_mat)
         )
-        if sheet_name == "Valve_Group":
-            code_u = _to_text(item_code).upper()
-            op_upper = _to_text(operation).upper()
-            seat_mat = _get_cell_text(ws, row_idx, header_to_col, "Seat_Mat")
-            trim_token = (
-                f"{trim_mat}+{seat_mat}" if trim_mat and seat_mat else (trim_mat or seat_mat)
-            )
-            operation_token = ""
-            if "OS&Y" in op_upper:
-                operation_token = "OS&Y"
-            elif code_u == "VL":
-                operation_token = "FS"
-            go_token = "GO" if op_upper.startswith("GR") else ""
-            disc_token = ""
-            if code_u == "VC":
-                disc_token = valve_feature
-            elif code_u == "VL":
-                size1_num = _to_float(size1_value or "")
-                disc_token = "FB" if size1_num is not None and size1_num >= 2.0 else "RB"
-            rating_disp = _flange_rating_display(rating)
-            return _join_tokens(
-                _join_tokens(valve_type, "VALVE"),
-                body_mat,
-                "/",
-                trim_token,
-                rating_disp,
-                end_type,
-                bonnet_type,
-                disc_token,
-                operation_token,
-                go_token,
-            )
-        trim_segment = f"/ TRIM {trim_mat}" if trim_mat else ""
+
+        op_upper = _to_text(operation).upper()
+        operation_token = "OS&Y" if "OS&Y" in op_upper else ""
+        go_token = "GO" if op_upper.startswith("GR") else ""
+
+        rating_disp = _flange_rating_display(rating)
         return _join_tokens(
             description_lead,
             body_mat,
-            trim_segment,
-            rating,
+            "/",
+            trim_token,
+            rating_disp,
             end_type,
-            operation,
             bonnet_type,
-            valve_feature,
-            sch1,
-            dim_standard,
+            feature,
+            operation_token,
+            go_token,
         )
 
     if sheet_name == "Bolt_Group":
@@ -1206,7 +1262,9 @@ def _iter_output_rows(
 
             desc_lead = description_prefix
             if _is_valve_sheet(sheet_name) and not desc_lead:
-                desc_lead = _get_cell_text(ws, row_idx, header_to_col, "Valve_Type")
+                desc_lead = _join_tokens(
+                    sheet_name.removesuffix("_Valve_Group").upper(), "VALVE"
+                )
 
             size_from_1 = _get_cell_text(ws, row_idx, header_to_col, size_from_1_header)
             size_to_1 = _get_cell_text(ws, row_idx, header_to_col, size_to_1_header)
@@ -1278,7 +1336,7 @@ def _iter_output_rows(
                     if sheet_name == "Bolt_Group" and not out_item_name:
                         out_item_name = "BOLT&NUT"
                     if _is_valve_sheet(sheet_name) and not out_item_name:
-                        valve_type = _get_cell_text(ws, row_idx, header_to_col, "Valve_Type")
+                        valve_type = sheet_name.removesuffix("_Valve_Group").upper()
                         out_item_name = _join_tokens(valve_type, "VALVE")
                     out_remarks = remarks
                 yield {
@@ -1353,7 +1411,7 @@ def _iter_output_rows(
                     if sheet_name == "Bolt_Group" and not out_item_name:
                         out_item_name = "BOLT&NUT"
                     if _is_valve_sheet(sheet_name) and not out_item_name:
-                        valve_type = _get_cell_text(ws, row_idx, header_to_col, "Valve_Type")
+                        valve_type = sheet_name.removesuffix("_Valve_Group").upper()
                         out_item_name = _join_tokens(valve_type, "VALVE")
                     out_remarks = remarks
                 yield {

@@ -18,6 +18,18 @@ from units_notation_headers import class_define_excel_to_spec_key
 
 CLASS_DEFINE_REQUIRED_HEADERS = ["Class_Name"]
 
+VALVE_SHEET_NAMES = frozenset(
+    {
+        "Gate_Valve_Group",
+        "Globe_Valve_Group",
+        "Check_Valve_Group",
+        "Ball_Valve_Group",
+        "Butterfly_Valve_Group",
+        "Plug_Valve_Group",
+        "Needle_Valve_Group",
+    }
+)
+
 
 def _class_define_excel_to_spec_key(workbook) -> dict[str, str]:
     """Class_Define 엑셀 헤더 → ClassSpec 키 매핑. 단위 헤더는 워크북의 Unit_System 시트에서 결정."""
@@ -312,9 +324,9 @@ def row_rating_for_constraint_check(
 ) -> str:
     """부품 시트에서 클래스 등급 대비 검사에 쓸 Rating 문자열."""
     if sheet_name == "Flange_Group":
-        return pick_first_non_empty(ws, row_idx, header_to_col, ["Rating", "Rating_Thickness"])
-    if sheet_name in ("Valve", "Valve_Group"):
-        return pick_first_non_empty(ws, row_idx, header_to_col, ["Rating", "Rating_Thickness"])
+        return get_cell_text(ws, row_idx, header_to_col, "Rating")
+    if sheet_name in VALVE_SHEET_NAMES:
+        return get_cell_text(ws, row_idx, header_to_col, "Rating")
     if sheet_name == "Fitting_Group":
         return get_cell_text(ws, row_idx, header_to_col, "Rating")
     return ""
@@ -392,7 +404,7 @@ def log_class_constraint_warnings_for_row(
     if not spec:
         return
 
-    if sheet_name not in ("Valve", "Valve_Group"):
+    if sheet_name not in VALVE_SHEET_NAMES:
         class_rating = spec.get("class_rating", "")
         row_rating = _row_rating_for_constraint_check_dict(sheet_name, row)
         rmsg = rating_mismatch_message(row_rating, class_rating)
@@ -400,8 +412,8 @@ def log_class_constraint_warnings_for_row(
             logger.warning(f"{sheet_name} row {row_idx} Class {class_name}: {rmsg}")
 
     class_base = spec.get("class_base_material", "")
-    if sheet_name in ("Valve", "Valve_Group"):
-        part_mat = to_text(row.get("Body_Mat") or "")
+    if sheet_name in VALVE_SHEET_NAMES:
+        part_mat = to_text(row.get("Matl_Code") or "")
     elif sheet_name in ("Pipe_Group", "Fitting_Group", "Flange_Group"):
         part_mat = _mat_code_grade_for_constraint_dict(row)
     else:
@@ -414,9 +426,9 @@ def log_class_constraint_warnings_for_row(
 
 def _row_rating_for_constraint_check_dict(sheet_name: str, row: dict[str, str]) -> str:
     if sheet_name == "Flange_Group":
-        return _pick_first_non_empty_dict(row, ["Rating", "Rating_Thickness"])
-    if sheet_name in ("Valve", "Valve_Group"):
-        return _pick_first_non_empty_dict(row, ["Rating", "Rating_Thickness"])
+        return to_text(row.get("Rating") or "")
+    if sheet_name in VALVE_SHEET_NAMES:
+        return to_text(row.get("Rating") or "")
     if sheet_name == "Fitting_Group":
         return to_text(row.get("Rating") or "")
     return ""
@@ -455,7 +467,7 @@ def log_class_constraint_warnings(
         return
     # Valve rating은 설계 규격(B16.34/API 602 등) 기반으로 운용하므로
     # Class_Define Class_Rating(B16.5)과 직접 비교하지 않는다.
-    if sheet_name not in ("Valve", "Valve_Group"):
+    if sheet_name not in VALVE_SHEET_NAMES:
         class_rating = spec.get("class_rating", "")
         row_rating = row_rating_for_constraint_check(sheet_name, ws, row_idx, header_to_col)
         rmsg = rating_mismatch_message(row_rating, class_rating)
@@ -463,8 +475,8 @@ def log_class_constraint_warnings(
             logger.warning(f"{sheet_name} row {row_idx} Class {class_name}: {rmsg}")
 
     class_base = spec.get("class_base_material", "")
-    if sheet_name in ("Valve", "Valve_Group"):
-        part_mat = get_cell_text(ws, row_idx, header_to_col, "Body_Mat")
+    if sheet_name in VALVE_SHEET_NAMES:
+        part_mat = get_cell_text(ws, row_idx, header_to_col, "Matl_Code")
     elif sheet_name in ("Pipe_Group", "Fitting_Group", "Flange_Group"):
         part_mat = mat_code_grade_for_constraint(ws, row_idx, header_to_col)
     else:

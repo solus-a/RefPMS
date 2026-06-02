@@ -23,6 +23,9 @@ Prefer many small, focused files over few large ones.
 **UI wizard / dialog files** (`class_template_wizard`, `project_settings_dialog`, etc.):
 No hard line. tkinter has no component model, so a multi-tab wizard accumulates setup, event handlers, and refresh logic that cannot be split across files without artificial seams. Keep cohesion by grouping private helpers near the method that uses them, and extract self-contained helper classes (dialogs, validators, formatters) into the same file or a dedicated `_helpers` module when they grow large enough to obscure the main class.
 
+**SSOT definition files** (`domain_schema.py`):
+No hard line. A file with zero functions that exists only to declare metadata (`FieldDefinition` lists per sheet) has a single responsibility by construction — splitting it scatters the SSOT, breaks cross-sheet comparison (e.g. Gate vs Globe disc options), and forces the non-developer domain expert to navigate multiple files to read related domain context. Keep cohesion through per-sheet header comments (`# ── <Sheet>_Group ──`) that demarcate sections and carry the domain rationale.
+
 ## 6. Naming
 - Python code is `snake_case` by default.
 - Existing rule-style helpers use `camelCase` (e.g. schedule-rule normalizers). Match the surrounding file's convention; do not mass-rename.
