@@ -332,7 +332,7 @@ def row_rating_for_constraint_check(
     return ""
 
 
-def mat_code_grade_for_constraint(
+def matl_code_for_constraint(
     ws,
     row_idx: int,
     header_to_col: dict[str, int],
@@ -411,7 +411,7 @@ def log_class_constraint_warnings_for_row(
         "Wrought_Fitting_Group",
         "Flange_Group",
     ):
-        part_mat = _mat_code_grade_for_constraint_dict(row)
+        part_mat = _matl_code_for_constraint_dict(row)
     else:
         part_mat = ""
 
@@ -430,7 +430,7 @@ def _row_rating_for_constraint_check_dict(sheet_name: str, row: dict[str, str]) 
     return ""
 
 
-def _mat_code_grade_for_constraint_dict(row: dict[str, str]) -> str:
+def _matl_code_for_constraint_dict(row: dict[str, str]) -> str:
     return to_text(row.get("Matl_Code") or "")
 
 
@@ -473,7 +473,7 @@ def log_class_constraint_warnings(
         "Wrought_Fitting_Group",
         "Flange_Group",
     ):
-        part_mat = mat_code_grade_for_constraint(ws, row_idx, header_to_col)
+        part_mat = matl_code_for_constraint(ws, row_idx, header_to_col)
     else:
         part_mat = ""
 

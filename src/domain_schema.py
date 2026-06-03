@@ -293,8 +293,8 @@ PIPE_GROUP_FIELDS: list[FieldDefinition] = [
             " 모두를 의미하거나 (PE/BE/TE, PBE/BBE/TBE), 양쪽이 다르면 슬래시로"
             " 두 토큰 결합 (PE/TE(NPT), PE/TE(PT), BE/PE) — 보통 Nipple 등."
             " PMS description 4번째 토큰 (예: 'PIPE A106-B SMLS BE')."
-            " Fitting/Reducer 시트는 End_Type 대신 End_Type_1 / End_Type_2 로"
-            " 양 끝을 별도 컬럼에 두며 PMS 엔진이 dimensional standard 결정에 사용."
+            " SSOT 13 시트 모두 End_Type 단일 컬럼만 사용; reducer/swage 의 양 끝"
+            " 차이는 Reducing_Table 에서 별도 표현."
         ),
         data_type="string (short code, e.g. PE / BE / PE/TE(NPT))",
         required=True,
@@ -311,14 +311,12 @@ PIPE_GROUP_FIELDS: list[FieldDefinition] = [
             "직접적 FK 없음 (자유 선택)",
             "Item_Code 와의 관행적 호환: Pipe (P) 는 PE/BE 중심,"
             " Nipple (JN) 은 PE/TE(NPT)·PE/TE(PT) 혼합형 — 강제 안 함",
-            "PMS 엔진의 Fitting/Reducer 처리에서는 End_Type_1/_2 로 dimensional"
-            " standard (ASME B16.9 / B16.11 등) 결정. Pipe_Group 의 End_Type 은"
-            " description 출력 전용.",
+            "PMS description 출력 전용. dimensional standard (ASME B16.9 / B16.11"
+            " 등) 결정은 시트별 Dim_Standard 컬럼 / Class_Define 의 design code"
+            " 에서 처리.",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
-            " PMS 엔진은 ['End_Type_1', 'End_Type'] fallback 으로 옛 헤더 / 단일"
-            " End_Type 시트도 받음."
         ),
         input_method=(
             "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"

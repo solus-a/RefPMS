@@ -65,9 +65,9 @@
       ],
       "conditional_required": [
         {
-          "when_field": "Flange_Type",
+          "when_field": "Item_Code",
           "when_values": [
-            "RD"
+            "FR"
           ],
           "require_non_empty": [
             "Size2_From",
@@ -77,13 +77,12 @@
       ],
       "conditional_empty": [
         {
-          "when_field": "Flange_Type",
+          "when_field": "Item_Code",
           "when_values": [
-            "WN",
-            "SO",
-            "LJ",
-            "SW",
-            "THRD"
+            "F",
+            "FB",
+            "F8",
+            "FBS"
           ],
           "require_empty": [
             "Size2_From",

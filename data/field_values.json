@@ -238,8 +238,7 @@
       {"short": "SO",   "long": "Slip-On"},
       {"short": "LJ",   "long": "Lap Joint"},
       {"short": "SW",   "long": "Socket Weld"},
-      {"short": "THRD", "long": "Threaded"},
-      {"short": "RD",   "long": "Reducing"}
+      {"short": "THRD", "long": "Threaded"}
     ],
     "Option_Code": [
       {"short": "001", "long": "Default item"}

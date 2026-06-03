@@ -76,15 +76,15 @@ DEFAULT_COMPONENT_MAPPING: dict = {
             ],
             "conditional_required": [
                 {
-                    "when_field": "Flange_Type",
-                    "when_values": ["RD"],
+                    "when_field": "Item_Code",
+                    "when_values": ["FR"],
                     "require_non_empty": ["Size2_From", "Size2_To"],
                 },
             ],
             "conditional_empty": [
                 {
-                    "when_field": "Flange_Type",
-                    "when_values": ["WN", "SO", "LJ", "SW", "THRD"],
+                    "when_field": "Item_Code",
+                    "when_values": ["F", "FB", "F8", "FBS"],
                     "require_empty": ["Size2_From", "Size2_To"],
                 },
             ],

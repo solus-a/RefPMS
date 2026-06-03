@@ -75,11 +75,46 @@ REDUCING_TABLE_REQUIRED_HEADERS = [
     "Item_Type",
 ]
 
-# RC/RE/RCS/RES는 Reducing_Table에서만 풀고, Fitting_Group 템플릿 행으로는 중복 생성하지 않음.
-REDUCER_ITEM_CODES_FROM_TABLE = frozenset({"RC", "RE", "RCS", "RES"})
-# T/TR/TH는 클래스에 Branch_Table_1 이 연결되고 해당 테이블에 행이 있으면 Branch_Table에서만 전개.
-# TH(Half Coupling)는 Branch_Table에 존재해야 하며, 실제 전개는 Size2(분기관) 기준으로만 처리.
-BRANCH_ITEM_CODES_FROM_TABLE = frozenset({"T", "TR", "TH"})
+def _load_shape_item_codes() -> tuple[frozenset[str], frozenset[str]]:
+    """item_code_db.json 의 reducing / branching 메타 (Y/N) 에서 동적 빌드.
+
+    각 item code 가 어떤 시트에 등록됐는지와 무관하게 통합 frozenset.
+    파일 없거나 손상 시 빈 frozenset.
+    """
+    import json
+    path = config.item_code_db_json_path()
+    if not path.exists():
+        return frozenset(), frozenset()
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return frozenset(), frozenset()
+    if not isinstance(data, dict):
+        return frozenset(), frozenset()
+    reducing: set[str] = set()
+    branching: set[str] = set()
+    for sheet_name, items in data.items():
+        if sheet_name.startswith("_") or not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            code = str(item.get("code", "")).strip()
+            if not code:
+                continue
+            if str(item.get("reducing", "")).strip().upper() == "Y":
+                reducing.add(code)
+            if str(item.get("branching", "")).strip().upper() == "Y":
+                branching.add(code)
+    return frozenset(reducing), frozenset(branching)
+
+
+# Reducing/Branching 분기 대상 item code 들 — item_code_db.json 의 shape 메타에서 빌드.
+# Reducer/Swage (RC/RE/RCS/RES, JFR, JB, TR, FR 등) 는 Reducing_Table 에서 양쪽 size 를 풀고,
+# template 행으로는 중복 생성하지 않음.
+# Branch (T/TR/TH 등) 는 클래스에 Branch_Table_1 이 연결되면 Branch_Table 전개.
+REDUCER_ITEM_CODES_FROM_TABLE, BRANCH_ITEM_CODES_FROM_TABLE = _load_shape_item_codes()
 BRANCH_TABLE_REQUIRED_HEADERS = [
     "Table_Code",
     "Size1",
@@ -758,6 +793,19 @@ def _build_item_description_by_rule(
             if rating_token.strip().upper().startswith("CL"):
                 converted = rating_token.strip()[2:].strip()
                 rating_token = f"{converted}#" if converted else ""
+
+        # Reducer / Swage / Bushing / Reducing Coupling (RCS/RES/JFR/JB 등) —
+        # Reducing_Table 의 양쪽 두께 활용. item_code_db.json 의 reducing 메타로 판별.
+        if item_code in REDUCER_ITEM_CODES_FROM_TABLE:
+            if thickness1 and thickness2 and thickness1 != thickness2:
+                thickness_pair = f"{sch1} x {thickness2}"
+            else:
+                thickness_pair = thickness1 or thickness2
+            dim_disp = _reducer_description_dim_standard(dim_standard)
+            return _join_tokens(
+                description_lead, mat, end_type, thickness_pair, rating_token, remarks, dim_disp
+            )
+
         return _join_tokens(
             description_lead,
             mat,
@@ -775,7 +823,7 @@ def _build_item_description_by_rule(
         remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
 
         # Tee branch dual schedule (T/TR) — Branch_Table 사용 시 양쪽 schedule
-        if fitting_dual_schedule and item_code in ("T", "TR"):
+        if fitting_dual_schedule and item_code in BRANCH_ITEM_CODES_FROM_TABLE:
             sch2_eff = thickness2 or sch1
             if sch1 and sch2_eff and sch1 == sch2_eff:
                 thickness_pair = sch1
@@ -787,9 +835,9 @@ def _build_item_description_by_rule(
                 description_lead, mat, method, end_type, thickness_pair, remarks, dim_standard
             )
 
-        # Reducer / Swage (RC/RE/RCS/RES) — Reducing_Table 의 양쪽 두께 활용
-        reducer_codes = {"RC", "RE", "RCS", "RES"}
-        if item_code in reducer_codes:
+        # Reducer / Swage / Reducing Tee 등 — Reducing_Table 의 양쪽 두께 활용.
+        # item_code_db.json 의 reducing 메타로 판별.
+        if item_code in REDUCER_ITEM_CODES_FROM_TABLE:
             if thickness1 and thickness2 and thickness1 != thickness2:
                 thickness_pair = f"{sch1} x {thickness2}"
             else:

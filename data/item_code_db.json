@@ -1,84 +1,89 @@
 {
   "_meta": {
-    "version": 1,
-    "purpose": "Per-group Item Code definitions. code = identifier used in templates; code_name = label appearing in PMS output descriptions."
+    "version": 2,
+    "purpose": "Per-group Item Code definitions. code = identifier used in templates; code_name = label appearing in PMS output descriptions.",
+    "shape_attributes": {
+      "reducing": "'Y' / 'N'. 'Y' = 양 끝 size 가 다른 component — Reducing_Table 의 dual size 적용 대상 (Concentric/Eccentric Reducer, Swage, Reducing Tee, Reducing Coupling, Reducing Flange 등). PMS description 합성 시 양쪽 schedule pair 토큰.",
+      "branching": "'Y' / 'N'. 'Y' = branch 가 있는 component — Branch_Table 적용 대상 (Tee, Half Coupling 등). PMS description 합성 시 branch 사이즈/etype 추가 분기."
+    }
   },
 
   "Pipe_Group": [
-    {"code": "P",  "code_name": "PIPE"},
-    {"code": "JN", "code_name": "NIPPLE"}
+    {"code": "P",  "code_name": "PIPE",   "reducing": "N", "branching": "N"},
+    {"code": "JN", "code_name": "NIPPLE", "reducing": "N", "branching": "N"}
   ],
 
   "Forged_Fitting_Group": [
-    {"code": "E",   "code_name": "ELBOW 90 DEG"},
-    {"code": "E4",  "code_name": "ELBOW 45 DEG"},
-    {"code": "T",   "code_name": "TEE"},
-    {"code": "RCS", "code_name": "SWAGE CON"},
-    {"code": "RES", "code_name": "SWAGE ECC"},
-    {"code": "CP",  "code_name": "CAP"},
-    {"code": "JF",  "code_name": "FULL COUPLING"},
-    {"code": "JFR", "code_name": "REDUCING FULL COUPLING"},
-    {"code": "TH",  "code_name": "HALF COUPLING"},
-    {"code": "JU",  "code_name": "UNION"},
-    {"code": "JP",  "code_name": "PLUG"},
-    {"code": "JB",  "code_name": "BUSHING"}
+    {"code": "E",   "code_name": "ELBOW 90 DEG",            "reducing": "N", "branching": "N"},
+    {"code": "E4",  "code_name": "ELBOW 45 DEG",            "reducing": "N", "branching": "N"},
+    {"code": "T",   "code_name": "TEE",                     "reducing": "N", "branching": "Y"},
+    {"code": "RCS", "code_name": "SWAGE CON",               "reducing": "Y", "branching": "N"},
+    {"code": "RES", "code_name": "SWAGE ECC",               "reducing": "Y", "branching": "N"},
+    {"code": "CP",  "code_name": "CAP",                     "reducing": "N", "branching": "N"},
+    {"code": "JF",  "code_name": "FULL COUPLING",           "reducing": "N", "branching": "N"},
+    {"code": "JFR", "code_name": "REDUCING FULL COUPLING",  "reducing": "Y", "branching": "N"},
+    {"code": "TH",  "code_name": "HALF COUPLING",           "reducing": "N", "branching": "Y"},
+    {"code": "JU",  "code_name": "UNION",                   "reducing": "N", "branching": "N"},
+    {"code": "JP",  "code_name": "PLUG",                    "reducing": "N", "branching": "N"},
+    {"code": "JB",  "code_name": "BUSHING",                 "reducing": "Y", "branching": "N"}
   ],
 
   "Wrought_Fitting_Group": [
-    {"code": "E",   "code_name": "ELBOW 90 DEG LR"},
-    {"code": "ES",  "code_name": "ELBOW 90 DEG SR"},
-    {"code": "E4",  "code_name": "ELBOW 45 DEG LR"},
-    {"code": "ES4", "code_name": "ELBOW 45 DEG SR"},
-    {"code": "T",   "code_name": "TEE"},
-    {"code": "TR",  "code_name": "REDUCING TEE"},
-    {"code": "RC",  "code_name": "REDUCER CON"},
-    {"code": "RE",  "code_name": "REDUCER ECC"},
-    {"code": "RCS", "code_name": "SWAGE CON"},
-    {"code": "RES", "code_name": "SWAGE ECC"},
-    {"code": "CP", "code_name": "CAP"},
-    {"code": "SE",  "code_name": "STUB END"}
+    {"code": "E",   "code_name": "ELBOW 90 DEG LR",         "reducing": "N", "branching": "N"},
+    {"code": "ES",  "code_name": "ELBOW 90 DEG SR",         "reducing": "N", "branching": "N"},
+    {"code": "E4",  "code_name": "ELBOW 45 DEG LR",         "reducing": "N", "branching": "N"},
+    {"code": "ES4", "code_name": "ELBOW 45 DEG SR",         "reducing": "N", "branching": "N"},
+    {"code": "T",   "code_name": "TEE",                     "reducing": "N", "branching": "Y"},
+    {"code": "TR",  "code_name": "REDUCING TEE",            "reducing": "Y", "branching": "Y"},
+    {"code": "RC",  "code_name": "REDUCER CON",             "reducing": "Y", "branching": "N"},
+    {"code": "RE",  "code_name": "REDUCER ECC",             "reducing": "Y", "branching": "N"},
+    {"code": "RCS", "code_name": "SWAGE CON",               "reducing": "Y", "branching": "N"},
+    {"code": "RES", "code_name": "SWAGE ECC",               "reducing": "Y", "branching": "N"},
+    {"code": "CP",  "code_name": "CAP",                     "reducing": "N", "branching": "N"},
+    {"code": "SE",  "code_name": "STUB END",                "reducing": "N", "branching": "N"}
   ],
 
   "Flange_Group": [
-    {"code": "F",   "code_name": "FLANGE"},
-    {"code": "FB",  "code_name": "BLIND FLANGE"},
-    {"code": "F8",  "code_name": "SPECTACLE BLIND"},
-    {"code": "FBS", "code_name": "PADDLE SPACER & BLANK"}
+    {"code": "F",   "code_name": "FLANGE",                  "reducing": "N", "branching": "N"},
+    {"code": "FR",  "code_name": "REDUCING FLANGE",         "reducing": "Y", "branching": "N"},
+    {"code": "FB",  "code_name": "BLIND FLANGE",            "reducing": "N", "branching": "N"},
+    {"code": "F8",  "code_name": "SPECTACLE BLIND",         "reducing": "N", "branching": "N"},
+    {"code": "FBS", "code_name": "PADDLE SPACER & BLANK",   "reducing": "N", "branching": "N"}
   ],
 
   "Gasket_Group": [
-    {"code": "G", "code_name": "GASKET"}
+    {"code": "G", "code_name": "GASKET", "reducing": "N", "branching": "N"}
   ],
 
   "Bolt_Group": [
-    {"code": "B", "code_name": "BOLT & NUT"}
+    {"code": "B", "code_name": "BOLT & NUT", "reducing": "N", "branching": "N"}
   ],
 
   "Gate_Valve_Group": [
-    {"code": "VA", "code_name": "GATE VALVE"}
+    {"code": "VA", "code_name": "GATE VALVE", "reducing": "N", "branching": "N"}
   ],
 
   "Globe_Valve_Group": [
-    {"code": "VB", "code_name": "GLOBE VALVE"}
+    {"code": "VB", "code_name": "GLOBE VALVE", "reducing": "N", "branching": "N"}
   ],
 
   "Check_Valve_Group": [
-    {"code": "VC", "code_name": "CHECK VALVE"}
+    {"code": "VC", "code_name": "CHECK VALVE", "reducing": "N", "branching": "N"}
   ],
 
   "Ball_Valve_Group": [
-    {"code": "VL", "code_name": "BALL VALVE"}
+    {"code": "VL", "code_name": "BALL VALVE", "reducing": "N", "branching": "N"}
   ],
 
   "Butterfly_Valve_Group": [
-    {"code": "VU", "code_name": "BUTTERFLY VALVE"}
+    {"code": "VU", "code_name": "BUTTERFLY VALVE", "reducing": "N", "branching": "N"}
   ],
 
   "Plug_Valve_Group": [
-    {"code": "VP", "code_name": "PLUG VALVE"}
+    {"code": "VP", "code_name": "PLUG VALVE", "reducing": "N", "branching": "N"}
   ],
 
   "Needle_Valve_Group": [
-    {"code": "VN", "code_name": "NEEDLE VALVE"}
+    {"code": "VN", "code_name": "NEEDLE VALVE", "reducing": "N", "branching": "N"}
   ]
 }
