@@ -33,14 +33,39 @@ DEFAULT_COMPONENT_MAPPING: dict = {
                 {"code_field": "Matl_Code", "category_field": "Matl_Category"},
             ],
         },
-        "Fitting_Group": {
+        "Forged_Fitting_Group": {
             "required_non_empty": [
                 "Class_Name",
                 "Item_Code",
                 "Size_From",
                 "Size_To",
+                "Matl_Category",
+                "Matl_Std",
+                "Matl_Code",
+                "Rating",
+                "End_Type",
+                "Option_Code",
             ],
-            "xor_at_most_one_filled": [["Schedule", "Rating"]],
+            "code_category_consistency": [
+                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
+            ],
+        },
+        "Wrought_Fitting_Group": {
+            "required_non_empty": [
+                "Class_Name",
+                "Item_Code",
+                "Size_From",
+                "Size_To",
+                "Matl_Category",
+                "Matl_Std",
+                "Matl_Code",
+                "Manufacturing_Method",
+                "End_Type",
+                "Option_Code",
+            ],
+            "code_category_consistency": [
+                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
+            ],
         },
         "Flange_Group": {
             "required_non_empty": [

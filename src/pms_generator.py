@@ -77,9 +77,9 @@ REDUCING_TABLE_REQUIRED_HEADERS = [
 
 # RC/RE/RCS/RES는 Reducing_Table에서만 풀고, Fitting_Group 템플릿 행으로는 중복 생성하지 않음.
 REDUCER_ITEM_CODES_FROM_TABLE = frozenset({"RC", "RE", "RCS", "RES"})
-# T/RT/TH는 클래스에 Branch_Table_1 이 연결되고 해당 테이블에 행이 있으면 Branch_Table에서만 전개.
+# T/TR/TH는 클래스에 Branch_Table_1 이 연결되고 해당 테이블에 행이 있으면 Branch_Table에서만 전개.
 # TH(Half Coupling)는 Branch_Table에 존재해야 하며, 실제 전개는 Size2(분기관) 기준으로만 처리.
-BRANCH_ITEM_CODES_FROM_TABLE = frozenset({"T", "RT", "TH"})
+BRANCH_ITEM_CODES_FROM_TABLE = frozenset({"T", "TR", "TH"})
 BRANCH_TABLE_REQUIRED_HEADERS = [
     "Table_Code",
     "Size1",
@@ -102,7 +102,20 @@ MATERIAL_SHEET_CONFIGS = [
         "size_to_2": None,
     },
     {
-        "sheet_name": "Fitting_Group",
+        "sheet_name": "Forged_Fitting_Group",
+        "required_headers": [
+            "Class_Name",
+            "Item_Code",
+            "Size_From",
+            "Size_To",
+        ],
+        "size_from_1": "Size_From",
+        "size_to_1": "Size_To",
+        "size_from_2": None,
+        "size_to_2": None,
+    },
+    {
+        "sheet_name": "Wrought_Fitting_Group",
         "required_headers": [
             "Class_Name",
             "Item_Code",
@@ -309,23 +322,6 @@ def _strip_trailing_lr_sr(label: str) -> str:
     return re.sub(r"\s+\b(LR|SR)\s*$", "", _to_text(label), flags=re.I).strip()
 
 
-def _rating_looks_forged_socket_class(rating_raw: str) -> bool:
-    """ASME B16.11 단조 이음관 등급(CL2000/3000/6000/9000 등). 플랜지 CL150~2500 과 구분."""
-    r = _to_text(rating_raw).upper().replace(" ", "")
-    if not r:
-        return False
-    return bool(re.match(r"^CL(2000|3000|6000|9000)\b", r))
-
-
-def _piping_design_implies_socket_screwed_b16_11_fitting_dims(class_design_code: str) -> bool:
-    """
-    해당 Class 의 Design_Code 가 소켓·나사 단조이음관 치수에 ASME B16.11 계열을 전제로 할 때
-    (예: ASME B31.3 / B31.4). 컴포넌트 시트의 Dim_Standard 대신 End_Type 으로 구분.
-    """
-    sel = _to_text(class_design_code).upper()
-    return "B31.3" in sel or "B31.4" in sel
-
-
 def _class_design_code_for(class_specs: dict[str, ClassSpec], class_name: str) -> str:
     spec = class_specs.get(class_name)
     if not spec:
@@ -363,24 +359,6 @@ def _reducer_description_dim_standard(dim_standard: str) -> str:
     if re.match(r"^ASME\s+B16\.9\s+BW\s*$", s, flags=re.I):
         return "ASME B16.9"
     return s
-
-
-def _mat_code_grade(
-    ws,
-    row_idx: int,
-    header_to_col: dict[str, int],
-    mat_code_header: str = "Mat_Code",
-) -> str:
-    mat_code = _get_cell_text(ws, row_idx, header_to_col, mat_code_header)
-    mat_grade = _pick_first_non_empty(
-        ws,
-        row_idx,
-        header_to_col,
-        ["Mat_Grade", "Material_Code_Grade", "Mat_Class"],
-    )
-    if mat_code and mat_grade:
-        return f"{mat_code}-{mat_grade}"
-    return mat_code or mat_grade
 
 
 def _format_size2(size_from: str, size_to: str) -> str:
@@ -421,113 +399,28 @@ def _try_nipple_pipe_output(
     description_prefix: str,
 ) -> Optional[tuple[str, str, str]]:
     """
-    Pipe_Group 니플 (JN): 양 끝 End_Type 은 End_Type_1 / End_Type_2 컬럼으로
-    표현 (예: PE/TE(NPT)). Item_Description 선두는 Item_Code_DB 의 Description_Prefix.
-    길이는 Length 열만 사용(Remarks 에서 길이 폴백 없음). 특수 조건은 Remarks 를 설명·출력에 반영.
-    Item_Name 은 Catalog_Item_Name 을 기준으로 길이 열을 반영해 정리합니다.
+    Pipe_Group 니플 (JN): End_Type 단일 컬럼 (양 끝 동일 가정 — dual-end nipple
+    의 다른 한쪽 표현은 Remarks 우회). Item_Description 선두는 Item_Code_DB 의
+    Description_Prefix. 길이는 Length 열만 사용 (Remarks 에서 길이 폴백 없음).
+    특수 조건은 Remarks 를 설명·출력에 반영. Item_Name 은 Catalog_Item_Name 을
+    기준으로 길이 열을 반영해 정리합니다.
     """
     code = _to_text(item_code).upper()
     if code not in NIPPLE_PIPE_CODES:
         return None
-    mat = _mat_code_grade(ws, row_idx, header_to_col, "Mat_Code")
-    method = _pick_first_non_empty(
-        ws, row_idx, header_to_col, ["Manufacturing_Method", "Method"]
-    )
+    mat = _get_cell_text(ws, row_idx, header_to_col, "Matl_Code")
+    method = _get_cell_text(ws, row_idx, header_to_col, "Manufacturing_Method")
     dim_standard = _get_cell_text(ws, row_idx, header_to_col, "Dim_Standard")
     length_note = _get_cell_text(ws, row_idx, header_to_col, "Length")
     remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
-    et1 = _get_cell_text(ws, row_idx, header_to_col, "End_Type_1")
-    et2 = _get_cell_text(ws, row_idx, header_to_col, "End_Type_2")
-    sch = th1 or _pick_first_non_empty(
-        ws, row_idx, header_to_col, ["Rating_Thickness", "Schedule", "Rating"]
-    )
+    end_type = _get_cell_text(ws, row_idx, header_to_col, "End_Type")
+    sch = th1
     prefix = _to_text(description_prefix) or "NIPPLE"
-    pair = f"{et1}/{et2}".strip("/") if et2 else et1
-    desc = _join_tokens(prefix, mat, method, pair, sch, length_note, remarks, dim_standard)
+    desc = _join_tokens(prefix, mat, method, end_type, sch, length_note, remarks, dim_standard)
     out_name = _apply_length_to_catalog_nipple_name(catalog_item_name, length_note)
     if not out_name:
-        out_name = f"{prefix} ({pair}) {length_note}".strip()
+        out_name = f"{prefix} ({end_type}) {length_note}".strip()
     return desc, out_name, remarks
-
-
-def _normalize_reducer_end_kind(raw: str) -> str:
-    """
-    RCS/RES 이음 표기용. BE(비벨/버트)·PE(플레인)·TE(나사) 계열로 정규화.
-    매핑 불가 시 빈 문자열 → 호출부에서 원문 조합으로 폴백.
-    """
-    t = _to_text(raw).upper().replace(" ", "")
-    if not t:
-        return ""
-    if t in ("BE", "BW", "BWE") or (t.startswith("BW") and "WN" not in t):
-        return "BE"
-    if t == "PE":
-        return "PE"
-    if any(x in t for x in ("TE", "NPT", "TSE")):
-        return "TE"
-    return ""
-
-
-def _reducer_both_ends_token(kind: str) -> str:
-    if kind == "BE":
-        return "BBE"
-    if kind == "PE":
-        return "PBE"
-    if kind == "TE":
-        return "TBE"
-    return ""
-
-
-def _reducer_large_small_token(kind: str, large_or_small: str) -> str:
-    """large_or_small: 'L' 또는 'S'. BE/PE만 정의(TE·기타는 빈 문자열)."""
-    if kind == "BE":
-        return "BLE" if large_or_small == "L" else "BSE"
-    if kind == "PE":
-        return "PLE" if large_or_small == "L" else "PSE"
-    return ""
-
-
-def _rcs_res_end_type_token(
-    et1_raw: str,
-    et2_raw: str,
-    size1: Optional[str],
-    size2: Optional[str],
-) -> str:
-    """
-    RCS·RES: L/S = Large/Small 단면, B = Both(양끝 동일 타입 → BBE·PBE·TBE).
-    Size1/End_Type_1, Size2/End_Type_2는 Reducing_Table·템플릿 열 순서에 대응.
-    """
-    e1 = _to_text(et1_raw)
-    e2 = _to_text(et2_raw)
-    k1 = _normalize_reducer_end_kind(e1)
-    k2 = _normalize_reducer_end_kind(e2)
-    if not k1 or not k2:
-        if e1 and e2 and e1.upper() != e2.upper():
-            return f"{e1}/{e2}"
-        return e1 or e2
-
-    if k1 == k2:
-        both = _reducer_both_ends_token(k1)
-        return both if both else (e1 or e2)
-
-    n1 = _to_float(_to_text(size1))
-    n2 = _to_float(_to_text(size2))
-    if n1 is None or n2 is None or n1 == n2:
-        return f"{e1}/{e2}" if e1 and e2 else (e1 or e2)
-
-    if n1 > n2:
-        large_k, small_k = k1, k2
-        large_raw, small_raw = e1, e2
-    else:
-        large_k, small_k = k2, k1
-        large_raw, small_raw = e2, e1
-
-    if large_k in ("BE", "PE") and small_k in ("BE", "PE"):
-        tl = _reducer_large_small_token(large_k, "L")
-        ts = _reducer_large_small_token(small_k, "S")
-        if tl and ts:
-            return f"{tl}/{ts}"
-
-    return f"{large_raw}/{small_raw}"
 
 
 def _flange_rating_display(rating: str) -> str:
@@ -701,7 +594,7 @@ def _branch_rt_template_reference_nps(
     run_nps: str,
 ) -> str:
     """
-    이경 티(RT) 템플릿 행 선택 기준은 RUN(size1)이다.
+    이경 티(TR) 템플릿 행 선택 기준은 RUN(size1)이다.
     """
     return _to_text(run_nps)
 
@@ -755,7 +648,7 @@ def _find_rt_fitting_template_row(
     nominal_mode: str,
 ) -> Optional[int]:
     """
-    이경 티(RT): 소단이 SW 구간(예: 0.5~1.5)이어도 대단이 2\" 이상 BW 구간이면 BW 템플릿을 쓴다.
+    이경 티(TR): 소단이 SW 구간(예: 0.5~1.5)이어도 대단이 2\" 이상 BW 구간이면 BW 템플릿을 쓴다.
     """
     ref = _branch_rt_template_reference_nps(run_nps)
     row_sw = _find_fitting_template_row_for_nps(
@@ -763,7 +656,7 @@ def _find_rt_fitting_template_row(
         fitting_header_row,
         fitting_header_to_col,
         class_name,
-        "RT",
+        "TR",
         ref,
         logger,
         nominal_mode,
@@ -775,13 +668,13 @@ def _find_rt_fitting_template_row(
             fitting_header_row,
             fitting_header_to_col,
             class_name,
-            "RT",
+            "TR",
             run_nps,
             logger,
             nominal_mode,
         )
 
-    et_ref = _get_cell_text(fitting_ws, row_sw, fitting_header_to_col, "End_Type_1")
+    et_ref = _get_cell_text(fitting_ws, row_sw, fitting_header_to_col, "End_Type")
     f_run = _to_float(_to_text(run_nps))
     if "SW" in et_ref.upper() and f_run is not None and f_run >= 2:
         row_bw = _find_fitting_template_row_for_nps(
@@ -789,14 +682,14 @@ def _find_rt_fitting_template_row(
             fitting_header_row,
             fitting_header_to_col,
             class_name,
-            "RT",
+            "TR",
             run_nps,
             logger,
             nominal_mode,
             log_if_missing=False,
         )
         if row_bw is not None:
-            et_run = _get_cell_text(fitting_ws, row_bw, fitting_header_to_col, "End_Type_1")
+            et_run = _get_cell_text(fitting_ws, row_bw, fitting_header_to_col, "End_Type")
             if "BW" in et_run.upper():
                 return row_bw
 
@@ -807,7 +700,7 @@ def _find_rt_fitting_template_row(
         fitting_header_row,
         fitting_header_to_col,
         class_name,
-        "RT",
+        "TR",
         run_nps,
         logger,
         nominal_mode,
@@ -830,181 +723,93 @@ def _build_item_description_by_rule(
     size1_value: Optional[str] = None,
     class_design_code: str = "",
 ) -> str:
-    method = _pick_first_non_empty(
-        ws, row_idx, header_to_col, ["Manufacturing_Method", "Method"]
-    )
+    method = _get_cell_text(ws, row_idx, header_to_col, "Manufacturing_Method")
     dim_standard = _get_cell_text(ws, row_idx, header_to_col, "Dim_Standard")
-    row_fallback_thickness = _pick_first_non_empty(
-        ws, row_idx, header_to_col, ["Rating_Thickness", "Schedule", "Rating"]
-    )
-    sch1 = thickness1 or row_fallback_thickness
+    sch1 = thickness1
 
     if sheet_name == "Pipe_Group":
-        mat = _mat_code_grade(ws, row_idx, header_to_col, "Mat_Code")
-        end_type_1 = _pick_first_non_empty(
-            ws, row_idx, header_to_col, ["End_Type_1", "End_Type"]
-        )
+        mat = _get_cell_text(ws, row_idx, header_to_col, "Matl_Code")
+        end_type = _get_cell_text(ws, row_idx, header_to_col, "End_Type")
         remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
         pipe_label = description_lead or "PIPE"
         return _join_tokens(
             pipe_label,
             mat,
             method,
-            end_type_1,
+            end_type,
             sch1,
             remarks,
             dim_standard,
         )
 
-    if sheet_name == "Fitting_Group":
-        if db_group and db_group.strip() != "Fitting_Group":
+    if sheet_name == "Forged_Fitting_Group":
+        if db_group and db_group.strip() != "Forged_Fitting_Group":
             return ""
-        mat = _mat_code_grade(ws, row_idx, header_to_col, "Mat_Code")
-        end_type_1 = _get_cell_text(ws, row_idx, header_to_col, "End_Type_1")
-        end_type_2 = _get_cell_text(ws, row_idx, header_to_col, "End_Type_2")
-        end_type_upper = end_type_1.strip().upper()
-        is_plug_item = item_code.upper() == "PL"
-        dim_has_b16_11 = "B16.11" in dim_standard.upper()
-        implicit_socket_dims = _piping_design_implies_socket_screwed_b16_11_fitting_dims(
-            class_design_code
-        )
+        mat = _get_cell_text(ws, row_idx, header_to_col, "Matl_Code")
+        end_type = _get_cell_text(ws, row_idx, header_to_col, "End_Type")
         rating_cell = _get_cell_text(ws, row_idx, header_to_col, "Rating")
-        forged_socket_rating = _rating_looks_forged_socket_class(rating_cell)
-        fitting_thickness_or_rating = sch1
-        if is_plug_item:
-            # ASME B16.11 PLUG는 class/rating으로 식별하지 않으므로 설명 토큰에서 두께·등급을 생략.
-            fitting_thickness_or_rating = ""
-        if end_type_upper == "SW" or (
-            end_type_upper in {"TE", "NPT", "PT"}
-            and not is_plug_item
-            and (implicit_socket_dims or dim_has_b16_11 or forged_socket_rating)
-        ):
-            sw_rating = rating_cell
-            if sw_rating.strip().upper().startswith("CL"):
-                converted = sw_rating.strip()[2:].strip()
-                fitting_thickness_or_rating = f"{converted}#" if converted else ""
-            else:
-                fitting_thickness_or_rating = sw_rating
-
-        if fitting_dual_schedule and item_code in ("T", "RT"):
-            rating_raw = _get_cell_text(ws, row_idx, header_to_col, "Rating").strip()
-            rating_token = rating_raw
-            if rating_raw.upper().startswith("CL"):
-                converted = rating_raw[2:].strip()
-                rating_token = f"{converted}#" if converted else ""
-
-            def _tee_is_schedule_end(end_type: str) -> bool:
-                t = end_type.strip().upper()
-                if not t:
-                    return True
-                return any(key in t for key in ["BW", "PBE", "BLE", "TSE"])
-
-            def _tee_side_token(end_type: str, schedule_token: str) -> str:
-                t = end_type.strip().upper()
-                if "SW" in t:
-                    return rating_token
-                if _tee_is_schedule_end(t):
-                    return schedule_token
-                return schedule_token
-
-            sch2_eff = thickness2 or sch1
-            side1 = _tee_side_token(end_type_1, sch1)
-            side2 = _tee_side_token(end_type_2 or end_type_1, sch2_eff)
-            if side1 and side2 and side1 == side2:
-                thickness_pair = side1
-            elif side1 and side2:
-                thickness_pair = f"{side1} x {side2}"
-            else:
-                thickness_pair = side1 or side2
-
-            end_token = end_type_1
-            if end_type_2 and end_type_2.strip() != end_type_1.strip():
-                end_token = f"{end_type_1}/{end_type_2}"
-
-            return _join_tokens(
-                description_lead, mat, method, end_token, thickness_pair, dim_standard
-            )
-
-        reducer_codes = {"RC", "RE", "RCS", "RES"}
-        if item_code in reducer_codes:
-            rating_raw = _get_cell_text(ws, row_idx, header_to_col, "Rating").strip()
-            rating_token = rating_raw
-            if rating_raw.upper().startswith("CL"):
-                converted = rating_raw[2:].strip()
-                rating_token = f"{converted}#" if converted else ""
-
-            def _is_schedule_end(end_type: str) -> bool:
-                t = end_type.strip().upper()
-                if not t:
-                    return True
-                return any(key in t for key in ["BW", "PBE", "BLE", "TSE"])
-
-            def _side_token(end_type: str, schedule_token: str) -> str:
-                t = end_type.strip().upper()
-                if "SW" in t:
-                    return rating_token
-                if _is_schedule_end(t):
-                    return schedule_token
-                return schedule_token
-
-            side1 = _side_token(end_type_1, sch1)
-            side2 = _side_token(end_type_2 or end_type_1, thickness2 or sch1)
-            if side1 and side2 and side1 == side2:
-                thickness_pair = side1
-            elif side1 and side2:
-                thickness_pair = f"{side1} x {side2}"
-            else:
-                thickness_pair = side1 or side2
-
-            if item_code in {"RCS", "RES"}:
-                et1u = end_type_1.strip().upper()
-                et2u = (end_type_2 or "").strip().upper()
-                if et1u == "BE" and et2u == "PE":
-                    if side1 and side2 and side1 == side2:
-                        end_type_token = "PBE"
-                    elif side1 and side2:
-                        end_type_token = "BLE/PSE"
-                    else:
-                        end_type_token = f"{end_type_1}/{end_type_2}".strip("/")
-                else:
-                    end_type_token = _rcs_res_end_type_token(
-                        end_type_1,
-                        end_type_2 or end_type_1,
-                        reducer_size1,
-                        reducer_size2,
-                    )
-            else:
-                end_type_token = end_type_1
-                if end_type_2 and end_type_2 != end_type_1:
-                    end_type_token = f"{end_type_1}/{end_type_2}"
-
-            dim_disp = _reducer_description_dim_standard(dim_standard)
-            return _join_tokens(
-                description_lead, mat, method, end_type_token, thickness_pair, dim_disp
-            )
-
         remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
-        tokens = [
+        is_plug_item = item_code.upper() == "JP"
+        # ASME B16.11 PLUG는 class/rating으로 식별하지 않으므로 설명 토큰에서 등급을 생략.
+        if is_plug_item:
+            rating_token = ""
+        else:
+            rating_token = rating_cell
+            if rating_token.strip().upper().startswith("CL"):
+                converted = rating_token.strip()[2:].strip()
+                rating_token = f"{converted}#" if converted else ""
+        return _join_tokens(
             description_lead,
             mat,
-            method,
-            end_type_1,
-            fitting_thickness_or_rating,
+            end_type,
+            rating_token,
             remarks,
             dim_standard,
-        ]
-        return _join_tokens(*tokens)
+        )
+
+    if sheet_name == "Wrought_Fitting_Group":
+        if db_group and db_group.strip() != "Wrought_Fitting_Group":
+            return ""
+        mat = _get_cell_text(ws, row_idx, header_to_col, "Matl_Code")
+        end_type = _get_cell_text(ws, row_idx, header_to_col, "End_Type")
+        remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
+
+        # Tee branch dual schedule (T/TR) — Branch_Table 사용 시 양쪽 schedule
+        if fitting_dual_schedule and item_code in ("T", "TR"):
+            sch2_eff = thickness2 or sch1
+            if sch1 and sch2_eff and sch1 == sch2_eff:
+                thickness_pair = sch1
+            elif sch1 and sch2_eff:
+                thickness_pair = f"{sch1} x {sch2_eff}"
+            else:
+                thickness_pair = sch1 or sch2_eff
+            return _join_tokens(
+                description_lead, mat, method, end_type, thickness_pair, remarks, dim_standard
+            )
+
+        # Reducer / Swage (RC/RE/RCS/RES) — Reducing_Table 의 양쪽 두께 활용
+        reducer_codes = {"RC", "RE", "RCS", "RES"}
+        if item_code in reducer_codes:
+            if thickness1 and thickness2 and thickness1 != thickness2:
+                thickness_pair = f"{sch1} x {thickness2}"
+            else:
+                thickness_pair = thickness1 or thickness2
+            dim_disp = _reducer_description_dim_standard(dim_standard)
+            return _join_tokens(
+                description_lead, mat, method, end_type, thickness_pair, remarks, dim_disp
+            )
+
+        # 일반 (Elbow / Cap / Stub End 등)
+        return _join_tokens(
+            description_lead, mat, method, end_type, sch1, remarks, dim_standard
+        )
 
     if sheet_name == "Flange_Group":
-        flange_type_raw = _pick_first_non_empty(
-            ws, row_idx, header_to_col, ["Flange_Type", "End_Type"]
-        )
+        flange_type_raw = _get_cell_text(ws, row_idx, header_to_col, "Flange_Type")
         flange_type = _normalize_flange_type_token(flange_type_raw)
         facing = _get_cell_text(ws, row_idx, header_to_col, "Facing")
-        mat = _mat_code_grade(ws, row_idx, header_to_col, "Mat_Code")
-        rating_raw = _pick_first_non_empty(
-            ws, row_idx, header_to_col, ["Rating", "Rating_Thickness"]
-        )
+        mat = _get_cell_text(ws, row_idx, header_to_col, "Matl_Code")
+        rating_raw = _get_cell_text(ws, row_idx, header_to_col, "Rating")
         rating_disp = _flange_rating_display(rating_raw)
         # SW/WN만 조인트 파이프와 보어 매칭이 필요하므로 SCH를 설명에 표기.
         show_sch = flange_type in {"SW", "WN"}
@@ -1136,13 +941,17 @@ def _iter_output_rows(
         else load_matl_code_category_lookup()
     )
 
-    fitting_ws = workbook["Fitting_Group"] if "Fitting_Group" in workbook.sheetnames else None
+    fitting_ws = (
+        workbook["Wrought_Fitting_Group"]
+        if "Wrought_Fitting_Group" in workbook.sheetnames
+        else None
+    )
     fitting_header_to_col: dict[str, int] = {}
     fitting_header_row: Optional[int] = None
     if fitting_ws is not None:
         try:
             fitting_header_row = _detect_header_row(
-                fitting_ws, ["Class_Name", "Item_Code", "End_Type_1"]
+                fitting_ws, ["Class_Name", "Item_Code", "End_Type"]
             )
             fitting_header_to_col = _build_header_index(fitting_ws, fitting_header_row)
         except ValueError:
@@ -1176,14 +985,14 @@ def _iter_output_rows(
             if not class_name:
                 continue
 
-            if sheet_name == "Fitting_Group" and item_code in REDUCER_ITEM_CODES_FROM_TABLE:
+            if sheet_name == "Wrought_Fitting_Group" and item_code in REDUCER_ITEM_CODES_FROM_TABLE:
                 for msg in validate_template_row(
                     sheet_name, ws, row_idx, header_to_col, mapping, matl_code_categories
                 ):
                     logger.warning(msg)
                 continue
 
-            if sheet_name == "Fitting_Group" and item_code in BRANCH_ITEM_CODES_FROM_TABLE:
+            if sheet_name == "Wrought_Fitting_Group" and item_code in BRANCH_ITEM_CODES_FROM_TABLE:
                 bt_code = class_branch_codes.get(class_name, "")
                 if bt_code and branch_data.get(bt_code):
                     for msg in validate_template_row(
@@ -1252,12 +1061,12 @@ def _iter_output_rows(
             db_group = db_row.get("Group") if db_row else None
 
             code_u = _to_text(item_code).upper()
-            if sheet_name == "Fitting_Group" and code_u in ELBOW_LR_SR_ITEM_CODES:
+            if sheet_name == "Wrought_Fitting_Group" and code_u in ELBOW_LR_SR_ITEM_CODES:
                 catalog_item_name = _strip_trailing_lr_sr(catalog_item_name)
                 dim_std = _get_cell_text(ws, row_idx, header_to_col, "Dim_Standard")
-                end_t1 = _get_cell_text(ws, row_idx, header_to_col, "End_Type_1")
+                end_t = _get_cell_text(ws, row_idx, header_to_col, "End_Type")
                 rating_c = _get_cell_text(ws, row_idx, header_to_col, "Rating")
-                if _fitting_elbow_should_strip_lr_sr(code_u, dim_std, end_t1, rating_c):
+                if _fitting_elbow_should_strip_lr_sr(code_u, dim_std, end_t, rating_c):
                     description_prefix = _strip_trailing_lr_sr(description_prefix)
 
             desc_lead = description_prefix
@@ -1471,7 +1280,7 @@ def _iter_output_rows(
                         continue
 
                     reducer_issues = validate_template_row(
-                        "Fitting_Group",
+                        "Wrought_Fitting_Group",
                         fitting_ws,
                         template_row_idx,
                         fitting_header_to_col,
@@ -1488,7 +1297,7 @@ def _iter_output_rows(
                         reducer_constraint_logged.add(log_key)
                         log_class_constraint_warnings(
                             logger,
-                            "Fitting_Group",
+                            "Wrought_Fitting_Group",
                             class_name,
                             template_row_idx,
                             fitting_ws,
@@ -1509,7 +1318,7 @@ def _iter_output_rows(
                         schedule_rows, class_name, size2, nominal_mode_cls
                     )
                     desc = _build_item_description_by_rule(
-                        "Fitting_Group",
+                        "Wrought_Fitting_Group",
                         fitting_ws,
                         template_row_idx,
                         fitting_header_to_col,
@@ -1536,9 +1345,9 @@ def _iter_output_rows(
                         "Remarks": "",
                     }
 
-    # Branch_Table 기반 T / RT / TH
+    # Branch_Table 기반 T / TR / TH
     # - T: 등경 티
-    # - RT: 이경 티
+    # - TR: 이경 티
     # - TH: Half Coupling (run size 영향 없이 branch size(Size2) 기준으로만 전개)
     if branch_data:
         branch_constraint_logged: set[tuple[str, str]] = set()
@@ -1556,8 +1365,8 @@ def _iter_output_rows(
                 if it == "T":
                     mapped_code = "T"
                     use_dual = False
-                elif it == "RT":
-                    mapped_code = "RT"
+                elif it == "TR":
+                    mapped_code = "TR"
                     use_dual = True
                 elif it == "TH":
                     mapped_code = "TH"
@@ -1583,7 +1392,7 @@ def _iter_output_rows(
                     th_output_size = ""
 
                 nominal_mode_cls = _class_nominal_mode_for(class_specs, class_name)
-                if mapped_code == "RT":
+                if mapped_code == "TR":
                     template_row_idx = _find_rt_fitting_template_row(
                         fitting_ws,
                         fitting_header_row,
@@ -1620,7 +1429,7 @@ def _iter_output_rows(
                     continue
 
                 branch_issues = validate_template_row(
-                    "Fitting_Group",
+                    "Wrought_Fitting_Group",
                     fitting_ws,
                     template_row_idx,
                     fitting_header_to_col,
@@ -1637,7 +1446,7 @@ def _iter_output_rows(
                     branch_constraint_logged.add(log_key_b)
                     log_class_constraint_warnings(
                         logger,
-                        "Fitting_Group",
+                        "Wrought_Fitting_Group",
                         class_name,
                         template_row_idx,
                         fitting_ws,
@@ -1665,7 +1474,7 @@ def _iter_output_rows(
                     )
 
                 desc_b = _build_item_description_by_rule(
-                    "Fitting_Group",
+                    "Wrought_Fitting_Group",
                     fitting_ws,
                     template_row_idx,
                     fitting_header_to_col,
@@ -1843,11 +1652,11 @@ def generate_piping_material_class_data(
         )
     )
     def _sort_size2_key(r: dict[str, Any]) -> tuple:
-        """RT/T 는 Size2 를 NPS 숫자로, 그 외(Reducing_Table 전개 등)는 문자열 순으로 정렬(기존 산출물과 동일)."""
+        """TR/T 는 Size2 를 NPS 숫자로, 그 외(Reducing_Table 전개 등)는 문자열 순으로 정렬(기존 산출물과 동일)."""
         ic = _to_text(r.get("Item_Code"))
         t2 = _to_text(r.get("Size2"))
         f2 = _to_float(t2)
-        if ic in ("RT", "T"):
+        if ic in ("TR", "T"):
             return (0, f2 if f2 is not None else -1.0, t2)
         return (1, t2)
 

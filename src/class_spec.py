@@ -327,7 +327,7 @@ def row_rating_for_constraint_check(
         return get_cell_text(ws, row_idx, header_to_col, "Rating")
     if sheet_name in VALVE_SHEET_NAMES:
         return get_cell_text(ws, row_idx, header_to_col, "Rating")
-    if sheet_name == "Fitting_Group":
+    if sheet_name == "Forged_Fitting_Group":
         return get_cell_text(ws, row_idx, header_to_col, "Rating")
     return ""
 
@@ -337,16 +337,7 @@ def mat_code_grade_for_constraint(
     row_idx: int,
     header_to_col: dict[str, int],
 ) -> str:
-    mat_code = get_cell_text(ws, row_idx, header_to_col, "Mat_Code")
-    mat_grade = pick_first_non_empty(
-        ws,
-        row_idx,
-        header_to_col,
-        ["Mat_Grade", "Material_Code_Grade", "Mat_Class"],
-    )
-    if mat_code and mat_grade:
-        return f"{mat_code}-{mat_grade}"
-    return mat_code or mat_grade
+    return get_cell_text(ws, row_idx, header_to_col, "Matl_Code")
 
 
 def corrosion_allowance_validation_messages_from_bundle(
@@ -414,7 +405,12 @@ def log_class_constraint_warnings_for_row(
     class_base = spec.get("class_base_material", "")
     if sheet_name in VALVE_SHEET_NAMES:
         part_mat = to_text(row.get("Matl_Code") or "")
-    elif sheet_name in ("Pipe_Group", "Fitting_Group", "Flange_Group"):
+    elif sheet_name in (
+        "Pipe_Group",
+        "Forged_Fitting_Group",
+        "Wrought_Fitting_Group",
+        "Flange_Group",
+    ):
         part_mat = _mat_code_grade_for_constraint_dict(row)
     else:
         part_mat = ""
@@ -429,19 +425,13 @@ def _row_rating_for_constraint_check_dict(sheet_name: str, row: dict[str, str]) 
         return to_text(row.get("Rating") or "")
     if sheet_name in VALVE_SHEET_NAMES:
         return to_text(row.get("Rating") or "")
-    if sheet_name == "Fitting_Group":
+    if sheet_name == "Forged_Fitting_Group":
         return to_text(row.get("Rating") or "")
     return ""
 
 
 def _mat_code_grade_for_constraint_dict(row: dict[str, str]) -> str:
-    mat_code = to_text(row.get("Mat_Code") or "")
-    mat_grade = _pick_first_non_empty_dict(
-        row, ["Mat_Grade", "Material_Code_Grade", "Mat_Class"]
-    )
-    if mat_code and mat_grade:
-        return f"{mat_code}-{mat_grade}"
-    return mat_code or mat_grade
+    return to_text(row.get("Matl_Code") or "")
 
 
 def _pick_first_non_empty_dict(row: dict[str, str], fields: list[str]) -> str:
@@ -477,7 +467,12 @@ def log_class_constraint_warnings(
     class_base = spec.get("class_base_material", "")
     if sheet_name in VALVE_SHEET_NAMES:
         part_mat = get_cell_text(ws, row_idx, header_to_col, "Matl_Code")
-    elif sheet_name in ("Pipe_Group", "Fitting_Group", "Flange_Group"):
+    elif sheet_name in (
+        "Pipe_Group",
+        "Forged_Fitting_Group",
+        "Wrought_Fitting_Group",
+        "Flange_Group",
+    ):
         part_mat = mat_code_grade_for_constraint(ws, row_idx, header_to_col)
     else:
         part_mat = ""
