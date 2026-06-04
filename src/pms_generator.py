@@ -635,9 +635,9 @@ def _branch_rt_template_reference_nps(
 
 
 def _find_fitting_template_row_for_nps(
-    fitting_ws,
-    fitting_header_row: int,
-    fitting_header_to_col: dict[str, int],
+    target_ws,
+    target_header_row: int,
+    target_header_to_col: dict[str, int],
     class_name: str,
     item_code: str,
     reference_nps: str,
@@ -646,20 +646,25 @@ def _find_fitting_template_row_for_nps(
     *,
     log_if_missing: bool = True,
 ) -> Optional[int]:
-    """Size_From~Size_To 구간에 reference_nps 가 포함되는 첫 Fitting_Group 템플릿 행."""
+    """Size_From~Size_To 구간에 reference_nps 가 포함되는 첫 fitting 템플릿 행.
+
+    target_ws 는 Forged_Fitting_Group 또는 Wrought_Fitting_Group 의 worksheet —
+    caller 가 item code 의 소속 시트에 따라 적절한 ws / header_row / header_to_col
+    을 전달한다.
+    """
     ref = _to_text(reference_nps)
     if not ref:
         return None
     ref_span = _explode_size_range(ref, ref, nominal_mode)
     ref_set = set(ref_span) if ref_span else {ref}
 
-    for row_idx in range(fitting_header_row + 1, fitting_ws.max_row + 1):
-        cls = _get_cell_text(fitting_ws, row_idx, fitting_header_to_col, "Class_Name")
-        code = _get_cell_text(fitting_ws, row_idx, fitting_header_to_col, "Item_Code")
+    for row_idx in range(target_header_row + 1, target_ws.max_row + 1):
+        cls = _get_cell_text(target_ws, row_idx, target_header_to_col, "Class_Name")
+        code = _get_cell_text(target_ws, row_idx, target_header_to_col, "Item_Code")
         if cls != class_name or code != item_code:
             continue
-        sf = _get_cell_text(fitting_ws, row_idx, fitting_header_to_col, "Size_From")
-        st = _get_cell_text(fitting_ws, row_idx, fitting_header_to_col, "Size_To")
+        sf = _get_cell_text(target_ws, row_idx, target_header_to_col, "Size_From")
+        st = _get_cell_text(target_ws, row_idx, target_header_to_col, "Size_To")
         span = _explode_size_range(sf, st, nominal_mode)
         span_set = set(span) if span else set()
         if ref_set & span_set:
@@ -667,15 +672,15 @@ def _find_fitting_template_row_for_nps(
 
     if log_if_missing:
         logger.warning(
-            f"No Fitting_Group template row for {class_name}/{item_code} covering NPS {ref!r}"
+            f"No fitting template row for {class_name}/{item_code} covering NPS {ref!r}"
         )
     return None
 
 
 def _find_rt_fitting_template_row(
-    fitting_ws,
-    fitting_header_row: int,
-    fitting_header_to_col: dict[str, int],
+    target_ws,
+    target_header_row: int,
+    target_header_to_col: dict[str, int],
     class_name: str,
     run_nps: str,
     branch_nps: str,
@@ -687,9 +692,9 @@ def _find_rt_fitting_template_row(
     """
     ref = _branch_rt_template_reference_nps(run_nps)
     row_sw = _find_fitting_template_row_for_nps(
-        fitting_ws,
-        fitting_header_row,
-        fitting_header_to_col,
+        target_ws,
+        target_header_row,
+        target_header_to_col,
         class_name,
         "TR",
         ref,
@@ -699,9 +704,9 @@ def _find_rt_fitting_template_row(
     )
     if row_sw is None:
         return _find_fitting_template_row_for_nps(
-            fitting_ws,
-            fitting_header_row,
-            fitting_header_to_col,
+            target_ws,
+            target_header_row,
+            target_header_to_col,
             class_name,
             "TR",
             run_nps,
@@ -709,13 +714,13 @@ def _find_rt_fitting_template_row(
             nominal_mode,
         )
 
-    et_ref = _get_cell_text(fitting_ws, row_sw, fitting_header_to_col, "End_Type")
+    et_ref = _get_cell_text(target_ws, row_sw, target_header_to_col, "End_Type")
     f_run = _to_float(_to_text(run_nps))
     if "SW" in et_ref.upper() and f_run is not None and f_run >= 2:
         row_bw = _find_fitting_template_row_for_nps(
-            fitting_ws,
-            fitting_header_row,
-            fitting_header_to_col,
+            target_ws,
+            target_header_row,
+            target_header_to_col,
             class_name,
             "TR",
             run_nps,
@@ -724,16 +729,16 @@ def _find_rt_fitting_template_row(
             log_if_missing=False,
         )
         if row_bw is not None:
-            et_run = _get_cell_text(fitting_ws, row_bw, fitting_header_to_col, "End_Type")
+            et_run = _get_cell_text(target_ws, row_bw, target_header_to_col, "End_Type")
             if "BW" in et_run.upper():
                 return row_bw
 
     if row_sw is not None:
         return row_sw
     return _find_fitting_template_row_for_nps(
-        fitting_ws,
-        fitting_header_row,
-        fitting_header_to_col,
+        target_ws,
+        target_header_row,
+        target_header_to_col,
         class_name,
         "TR",
         run_nps,
