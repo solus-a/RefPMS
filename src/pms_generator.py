@@ -989,22 +989,25 @@ def _iter_output_rows(
         else load_matl_code_category_lookup()
     )
 
-    fitting_ws = (
-        workbook["Wrought_Fitting_Group"]
-        if "Wrought_Fitting_Group" in workbook.sheetnames
-        else None
-    )
-    fitting_header_to_col: dict[str, int] = {}
-    fitting_header_row: Optional[int] = None
-    if fitting_ws is not None:
+    def _load_fitting_sheet(sheet_name: str):
+        if sheet_name not in workbook.sheetnames:
+            return None, None, {}
+        ws_local = workbook[sheet_name]
         try:
-            fitting_header_row = _detect_header_row(
-                fitting_ws, ["Class_Name", "Item_Code", "End_Type"]
+            hr = _detect_header_row(
+                ws_local, ["Class_Name", "Item_Code", "End_Type"]
             )
-            fitting_header_to_col = _build_header_index(fitting_ws, fitting_header_row)
+            htc = _build_header_index(ws_local, hr)
         except ValueError:
-            fitting_ws = None
-            fitting_header_row = None
+            return None, None, {}
+        return ws_local, hr, htc
+
+    wrought_fitting_ws, wrought_fitting_header_row, wrought_fitting_header_to_col = (
+        _load_fitting_sheet("Wrought_Fitting_Group")
+    )
+    forged_fitting_ws, forged_fitting_header_row, forged_fitting_header_to_col = (
+        _load_fitting_sheet("Forged_Fitting_Group")
+    )
 
     for sheet_config in MATERIAL_SHEET_CONFIGS:
         sheet_name = sheet_config["sheet_name"]
@@ -1285,10 +1288,9 @@ def _iter_output_rows(
                     "__template_row_idx": row_idx,
                 }
 
-    if fitting_ws is None or fitting_header_row is None:
-        return
-
-    # Reducing_Table 기반 추가 생성 (RD/SN -> RC/RE/RCS/RES 분해)
+    # Reducing_Table 기반 추가 생성:
+    #   RD (generic reducer) → Wrought (RC/RE)  — ASME B16.9
+    #   SN (swage nipple)    → Forged  (RCS/RES) — MSS SP-95 (제작은 forged, marking 은 wrought grade)
     if reducing_data:
         reducer_constraint_logged: set[tuple[str, str]] = set()
 
@@ -1299,20 +1301,33 @@ def _iter_output_rows(
 
             for (size1, size2), item_type in size_map.items():
                 item_type_upper = item_type.upper()
-                mapped_codes: list[str] = []
                 if item_type_upper == "RD":
+                    target_ws = wrought_fitting_ws
+                    target_hr = wrought_fitting_header_row
+                    target_htc = wrought_fitting_header_to_col
+                    target_sheet = "Wrought_Fitting_Group"
                     mapped_codes = ["RC", "RE"]
                 elif item_type_upper == "SN":
+                    target_ws = forged_fitting_ws
+                    target_hr = forged_fitting_header_row
+                    target_htc = forged_fitting_header_to_col
+                    target_sheet = "Forged_Fitting_Group"
                     mapped_codes = ["RCS", "RES"]
                 else:
+                    continue
+                if target_ws is None or target_hr is None:
+                    logger.warning(
+                        f"{target_sheet} sheet missing — cannot expand "
+                        f"Reducing_Table {item_type_upper} for class {class_name}"
+                    )
                     continue
 
                 for mapped_code in mapped_codes:
                     nominal_mode_cls = _class_nominal_mode_for(class_specs, class_name)
                     template_row_idx = _find_fitting_template_row_for_nps(
-                        fitting_ws,
-                        fitting_header_row,
-                        fitting_header_to_col,
+                        target_ws,
+                        target_hr,
+                        target_htc,
                         class_name,
                         mapped_code,
                         size1,
@@ -1322,16 +1337,16 @@ def _iter_output_rows(
                     )
                     if template_row_idx is None:
                         logger.warning(
-                            f"Fitting_Group template row missing for class/item/size: "
+                            f"{target_sheet} template row missing for class/item/size: "
                             f"{class_name}/{mapped_code}/{size1}"
                         )
                         continue
 
                     reducer_issues = validate_template_row(
-                        "Wrought_Fitting_Group",
-                        fitting_ws,
+                        target_sheet,
+                        target_ws,
                         template_row_idx,
-                        fitting_header_to_col,
+                        target_htc,
                         mapping,
                         matl_code_categories,
                     )
@@ -1345,11 +1360,11 @@ def _iter_output_rows(
                         reducer_constraint_logged.add(log_key)
                         log_class_constraint_warnings(
                             logger,
-                            "Wrought_Fitting_Group",
+                            target_sheet,
                             class_name,
                             template_row_idx,
-                            fitting_ws,
-                            fitting_header_to_col,
+                            target_ws,
+                            target_htc,
                             class_specs,
                         )
 
@@ -1366,10 +1381,10 @@ def _iter_output_rows(
                         schedule_rows, class_name, size2, nominal_mode_cls
                     )
                     desc = _build_item_description_by_rule(
-                        "Wrought_Fitting_Group",
-                        fitting_ws,
+                        target_sheet,
+                        target_ws,
                         template_row_idx,
-                        fitting_header_to_col,
+                        target_htc,
                         mapped_code,
                         desc_lead_red,
                         th1,
@@ -1440,11 +1455,28 @@ def _iter_output_rows(
                     th_output_size = ""
 
                 nominal_mode_cls = _class_nominal_mode_for(class_specs, class_name)
+                # TH (Half Coupling) 는 Forged_Fitting_Group; T/TR 은 Wrought.
+                if mapped_code == "TH":
+                    target_ws = forged_fitting_ws
+                    target_hr = forged_fitting_header_row
+                    target_htc = forged_fitting_header_to_col
+                    target_sheet = "Forged_Fitting_Group"
+                else:
+                    target_ws = wrought_fitting_ws
+                    target_hr = wrought_fitting_header_row
+                    target_htc = wrought_fitting_header_to_col
+                    target_sheet = "Wrought_Fitting_Group"
+                if target_ws is None or target_hr is None:
+                    logger.warning(
+                        f"{target_sheet} sheet missing — cannot expand "
+                        f"Branch_Table {mapped_code} for class {class_name}"
+                    )
+                    continue
                 if mapped_code == "TR":
                     template_row_idx = _find_rt_fitting_template_row(
-                        fitting_ws,
-                        fitting_header_row,
-                        fitting_header_to_col,
+                        target_ws,
+                        target_hr,
+                        target_htc,
                         class_name,
                         size1,
                         size2,
@@ -1453,9 +1485,9 @@ def _iter_output_rows(
                     )
                 elif mapped_code == "TH":
                     template_row_idx = _find_fitting_template_row_for_nps(
-                        fitting_ws,
-                        fitting_header_row,
-                        fitting_header_to_col,
+                        target_ws,
+                        target_hr,
+                        target_htc,
                         class_name,
                         mapped_code,
                         th_output_size,
@@ -1464,9 +1496,9 @@ def _iter_output_rows(
                     )
                 else:
                     template_row_idx = _find_fitting_template_row_for_nps(
-                        fitting_ws,
-                        fitting_header_row,
-                        fitting_header_to_col,
+                        target_ws,
+                        target_hr,
+                        target_htc,
                         class_name,
                         mapped_code,
                         size1,
@@ -1477,10 +1509,10 @@ def _iter_output_rows(
                     continue
 
                 branch_issues = validate_template_row(
-                    "Wrought_Fitting_Group",
-                    fitting_ws,
+                    target_sheet,
+                    target_ws,
                     template_row_idx,
-                    fitting_header_to_col,
+                    target_htc,
                     mapping,
                     matl_code_categories,
                 )
@@ -1494,11 +1526,11 @@ def _iter_output_rows(
                     branch_constraint_logged.add(log_key_b)
                     log_class_constraint_warnings(
                         logger,
-                        "Wrought_Fitting_Group",
+                        target_sheet,
                         class_name,
                         template_row_idx,
-                        fitting_ws,
-                        fitting_header_to_col,
+                        target_ws,
+                        target_htc,
                         class_specs,
                     )
 
@@ -1522,10 +1554,10 @@ def _iter_output_rows(
                     )
 
                 desc_b = _build_item_description_by_rule(
-                    "Wrought_Fitting_Group",
-                    fitting_ws,
+                    target_sheet,
+                    target_ws,
                     template_row_idx,
-                    fitting_header_to_col,
+                    target_htc,
                     mapped_code,
                     desc_lead_b,
                     th1b,
