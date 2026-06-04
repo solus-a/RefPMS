@@ -1142,7 +1142,7 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
 #
 # 다른 시트와 비교한 특성:
 #   - Size 시스템: Size1_From/To + Size2_From/To (Reducing flange 용 두 번째 size)
-#     · Size2 는 RD (Reducing flange) 행에서만 의미; 다른 Flange_Type 은 빈 값
+#     · Size2 는 Item_Code=FR (Reducing flange) 행에서만 의미; 다른 Item_Code 는 빈 값
 #   - Rating 옵션 풀 20개 (ASTM 6 + JIS 7 + KS 7), std-aware (Forged Rating 패턴 따름)
 #     · ASTM (ASME B16.5): 150 / 300 / 600 / 900 / 1500 / 2500#
 #     · JIS (JIS B 2220):  5K / 10K / 16K / 20K / 30K / 40K / 63K
@@ -1185,27 +1185,34 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Item_Code",
         meaning=(
-            "Flange_Group 의 component 종류 식별자. 4종:"
+            "Flange_Group 의 component 종류 식별자. 5종:"
             " F (일반 flange — 연결용; 세부 형식은 Flange_Type 컬럼으로 구분),"
+            " FR (Reducing flange — 두 size 의 flange 일체화. Item Code 자체가"
+            " reducing 특성 'Y' 를 가지며, 그 안의 Flange_Type 은 WN/SO/LJ/SW/"
+            "THRD 중 결정 — ASME B16.5 정합),"
             " FB (Blind flange — line-blank, 한 면이 막힘),"
             " F8 (Spectacle Blind — 8자 모양 line-blank, 회전으로 open/close),"
             " FBS (Paddle Spacer & Blank — 막대형 spacer 또는 blank)."
-            " 일반 flange 와 line-blank 의 의미 차이가 커서 Item_Code 로 분리;"
-            " 일반 flange 안에서의 WN/SO/LJ/SW/THRD/RD 구분은 Flange_Type 으로 처리."
+            " 일반 flange / reducing flange / line-blank 의 의미 차이가 커서"
+            " Item_Code 로 분리; 일반 flange 안에서의 WN/SO/LJ/SW/THRD 구분은"
+            " Flange_Type 으로 처리."
         ),
         data_type="string (short code)",
         required=True,
         format_constraint=(
-            "data/item_code_db.json 의 Flange_Group 행 (closed set, 4개)."
+            "data/item_code_db.json 의 Flange_Group 행 (closed set, 5개)."
         ),
         unique=None,
         relations=[
             "item_code_db.json Flange_Group 의 code 값 중 하나 (FK)",
-            "Flange_Type 과의 의미 분리: Item_Code='F' 일 때만 Flange_Type 이"
-            " 의미를 가짐 (WN/SO/...). FB/F8/FBS 행에서는 Flange_Type 이 N/A —"
-            " 강제 검증은 별도 작업",
-            "PMS description prefix 합성: F → FLANGE, FB → BLIND FLANGE,"
-            " F8 → SPECTACLE BLIND, FBS → PADDLE SPACER & BLANK",
+            "Flange_Type 과의 의미 분리: Item_Code ∈ {F, FR} 일 때만 Flange_Type"
+            " 이 의미를 가짐 (WN/SO/LJ/SW/THRD). FB/F8/FBS 행에서는 Flange_Type"
+            " 이 N/A — 강제 검증은 별도 작업",
+            "Item_Code=FR 일 때 Size2_From/Size2_To 필수 (conditional_required);"
+            " Item_Code ∈ {F, FB, F8, FBS} 일 때 Size2 비어야 함"
+            " (conditional_empty) — component_mapping.json 에서 강제",
+            "PMS description prefix 합성: F → FLANGE, FR → REDUCING FLANGE,"
+            " FB → BLIND FLANGE, F8 → SPECTACLE BLIND, FBS → PADDLE SPACER & BLANK",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set 옵션 강제)."
@@ -1221,7 +1228,7 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
             "주(main) NPS/DN size 범위의 하한. 다른 시트의 Size_From 과 같은"
             " 의미지만 Flange 는 size 가 두 짝 (main / branch) 가능한 행을"
             " 가지므로 'Size1' / 'Size2' 로 분리 표기."
-            " Reducing flange (Flange_Type=RD) 에서는 large end size."
+            " Reducing flange (Item_Code=FR) 에서는 large end size."
         ),
         data_type="string (NPS or DN token)",
         required=True,
@@ -1233,8 +1240,8 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         relations=[
             "Class_Define.Size_From / Size_To 범위 안",
             "(Size1_From, Size1_To) 는 component 행의 주 size 적용 범위",
-            "Size2_From / Size2_To 와의 관계: Flange_Type=RD 일 때 Size1 = large,"
-            " Size2 = small (Reducing direction). 다른 Flange_Type 에서는 Size2"
+            "Size2_From / Size2_To 와의 관계: Item_Code=FR 일 때 Size1 = large,"
+            " Size2 = small (Reducing direction). 다른 Item_Code 에서는 Size2"
             " 빈 값.",
         ],
         validation_location=(
@@ -1272,9 +1279,9 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Size2_From",
         meaning=(
-            "부(branch) NPS/DN size 범위의 하한 — Reducing flange 전용 필드."
-            " Flange_Type=RD 행에서만 의미를 가지며, 그 외 Flange_Type / 그 외"
-            " Item_Code 행에서는 빈 값."
+            "부(small end) NPS/DN size 범위의 하한 — Reducing flange 전용 필드."
+            " Item_Code=FR 행에서만 의미를 가지며, 그 외 Item_Code"
+            " (F/FB/F8/FBS) 행에서는 빈 값."
             " Reducing direction 관행: Size1 = large end, Size2 = small end."
         ),
         data_type="string (NPS or DN token; 빈 값 허용 — 조건부)",
@@ -1286,24 +1293,25 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Flange_Type=RD 일 때 필수, 그 외에는 빈 값",
+            "Item_Code=FR 일 때 필수, 그 외에는 빈 값"
+            " (conditional_required / conditional_empty rule)",
             "Size1 / Size2 의 reducing direction (Size1 > Size2) 정합 검사 필요",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 에서 Flange_Type 선택에 따라 enable/disable"
+            "wizard 컴포넌트 dialog 에서 Item_Code 선택에 따라 enable/disable"
             " (별도 작업으로 구현 예정)."
         ),
         input_method=(
             "wizard 컴포넌트 dialog 의 콤보박스 (readonly — Class 의 size 범위)."
-            " Flange_Type=RD 일 때만 활성화."
+            " Item_Code=FR 일 때만 활성화."
         ),
         unit=None,
     ),
     FieldDefinition(
         name="Size2_To",
         meaning=(
-            "부(branch) NPS/DN size 범위의 상한 — Reducing flange 전용. Size2_From"
-            " 의 상한 짝."
+            "부(small end) NPS/DN size 범위의 상한 — Reducing flange 전용."
+            " Size2_From 의 상한 짝."
         ),
         data_type="string (NPS or DN token; 빈 값 허용 — 조건부)",
         required=False,
@@ -1314,13 +1322,13 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         unique=None,
         relations=[
             "(Size2_From, Size2_To) 의 상한",
-            "Flange_Type=RD 일 때 필수",
+            "Item_Code=FR 일 때 필수",
         ],
         validation_location=(
             "Size2_From 과 동일 패턴."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스. Flange_Type=RD 일 때만 활성화."
+            "wizard 컴포넌트 dialog 의 콤보박스. Item_Code=FR 일 때만 활성화."
         ),
         unit=None,
     ),
@@ -1469,14 +1477,16 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Flange_Type",
         meaning=(
-            "일반 flange (Item_Code=F) 내부의 형식 구분. 6개:"
+            "Flange 의 형식 구분 (face/neck/end 결합 방식). 5개:"
             " WN (Weld Neck — 용접 + neck 보강, 가장 흔함),"
             " SO (Slip-On — 파이프 위에 끼우고 용접),"
             " LJ (Lap Joint — stub end 와 함께 사용, 회전 가능),"
             " SW (Socket Weld — small bore 의 socket 접합),"
-            " THRD (Threaded — 나사 접합),"
-            " RD (Reducing — 두 size 의 flange 일체화)."
-            " BL (Blind) 은 Item_Code=FB 로 분리되었기에 옵션 풀에서 제외 (중복 방지)."
+            " THRD (Threaded — 나사 접합)."
+            " BL (Blind) 은 Item_Code=FB, RD (Reducing) 은 Item_Code=FR 로"
+            " 분리되었기에 옵션 풀에서 제외 (Item_Code 와 Flange_Type 의 도메인"
+            " 직교성 — ASME B16.5 정합: Reducing Flange 도 어떤 Flange_Type"
+            " 인지 결정해야 함)."
             " LWN (Long Weld Neck), Orifice flange 등은 현재 미고려."
             " Item_Code=FB/F8/FBS 행에서는 Flange_Type 이 의미 없음 (빈 값)."
         ),
@@ -1484,14 +1494,15 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         required=True,
         format_constraint=(
             "data/field_values.json 의 Flange_Group.Flange_Type 옵션"
-            " (closed set, 6개)."
-            " Item_Code=F 일 때만 required; FB/F8/FBS 행에서는 N/A (조건부 검증은"
-            " 별도 작업)."
+            " (closed set, 5개)."
+            " Item_Code ∈ {F, FR} 일 때만 의미; FB/F8/FBS 행에서는 N/A"
+            " (조건부 검증은 별도 작업)."
         ),
         unique=None,
         relations=[
-            "Item_Code 와 조건부 호환 — Item_Code=F 일 때만 의미",
-            "RD (Reducing) 일 때 Size2_From / Size2_To 필수",
+            "Item_Code 와 직교 — Item_Code ∈ {F, FR} 일 때만 의미",
+            "Size2_From/To 와의 조건부 관계는 Item_Code=FR 으로 이관"
+            " (Flange_Type 으로는 더 이상 reducing 결정하지 않음)",
             "PMS description 에 합성 (Flange_Type 토큰)",
         ],
         validation_location=(
@@ -1500,7 +1511,7 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         input_method=(
             "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)."
-            " Item_Code=F 일 때만 활성화."
+            " Item_Code ∈ {F, FR} 일 때만 활성화."
         ),
         unit=None,
     ),
