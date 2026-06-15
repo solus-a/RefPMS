@@ -1959,13 +1959,13 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
 # ── Bolt_Group ─────────────────────────────────────────────────────────────────
 #
 # Bolt (flange 끼리, 또는 flange-equipment 결합용 체결재) — 한 행에 Bolt 와 Nut
-# 두 component 의 재질 정보를 동시에 담는 이중(dual) 재질 구조.
+# 두 component 의 정보를 담되, Nut 재질은 Bolt 를 따라간다.
 # Item_Code 는 'B' (BOLT & NUT) 하나만 정의되어 있음; 변종은 Option_Code 로 처리.
 #
 # 다른 시트와 비교한 주요 특성:
-#   - 이중 재질 컬럼: Bolt_Matl_Category/Std/Code + Nut_Matl_Category/Std/Code
-#     · 자유 조합 — Bolt 와 Nut 의 std/category 가 일치할 필요 없음.
-#     · 일반적 표준 짝 (예: A193-B7 ↔ A194-2H) 은 사용자가 판단; 강제 검증 없음.
+#   - Bolt 재질: Bolt_Matl_Category/Std/Code 3컬럼. Nut 는 Nut_Type + Nut_Matl_Std
+#     만 받고, Nut 의 category/code 는 Bolt 를 추종 (전용 입력 컬럼 폐지 — 생성 시
+#     Nut_Matl_Code = Bolt_Matl_Code).
 #   - Bolt_Length_Table: size 별 bolt 길이를 별도 시트에 두고 키로 참조
 #     · 옵션 풀은 닫힌 집합이 아니라 사용자 자유 — _meta.external_dropdown_sources
 #       에 "TBD: separate length table file" 로 표기되어 있음.
@@ -2151,7 +2151,7 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
         unique=None,
         relations=[
             "Bolt_Matl_Std / Bolt_Matl_Code 와 종속 체인 (Pipe_Group 패턴 동일)",
-            "Nut_Matl_Category 와는 독립 — 자유 조합",
+            "Nut 재질은 Bolt 를 추종 (Nut 전용 category/code 입력 없음)",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
@@ -2206,7 +2206,7 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
             "Bolt_Matl_Std (FK), Bolt_Matl_Category (의미적 정합) 와 함께 필터링",
             "Bolt_Type 과 호환 관행: Stud-grade (B7 등) 와 Machine-grade (A307 등)"
             " 구분 — 강제 검증 없음",
-            "Nut_Matl_Code 와의 표준 짝 (A193-B7 ↔ A194-2H 등) 은 사용자 판단",
+            "Nut 재질은 이 Bolt_Matl_Code 를 추종 (생성 시 동일 값 사용)",
             "PMS description 에 합성",
         ],
         validation_location=(
@@ -2246,36 +2246,13 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
     FieldDefinition(
-        name="Nut_Matl_Category",
-        meaning=(
-            "Nut 재질의 대분류 카테고리. Bolt_Matl_Category 와 옵션 풀 동일 (4개)."
-            " Bolt 의 category 와 독립 — 다를 수 있음 (예: Bolt=AS, Nut=AS 가 일반적"
-            " 이지만 강제 X)."
-        ),
-        data_type="string (short code)",
-        required=True,
-        format_constraint=(
-            "data/field_values.json 의 Bolt_Group.Nut_Matl_Category 옵션"
-            " (closed set, 4개)."
-        ),
-        unique=None,
-        relations=[
-            "Nut_Matl_Std / Nut_Matl_Code 와 종속 체인",
-            "Bolt_Matl_Category 와는 독립 — 자유 조합",
-        ],
-        validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
-        ),
-        input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
-        ),
-        unit=None,
-    ),
-    FieldDefinition(
         name="Nut_Matl_Std",
         meaning=(
             "Nut 재질 표준 발행 기관. Bolt_Matl_Std 와 옵션 풀 동일 (3개:"
-            " ASTM/JIS/KS). Bolt 의 std 와 독립 — 자유 조합."
+            " ASTM/JIS/KS)."
+            " 참고: Nut_Matl_Category / Nut_Matl_Code 전용 필드는 폐지되었다 —"
+            " Nut 재질은 Bolt 를 따라가며(생성 시 Nut_Matl_Code = Bolt_Matl_Code),"
+            " 입력은 Std 만 별도로 받는다."
         ),
         data_type="string (short code)",
         required=True,
@@ -2285,44 +2262,13 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Nut_Matl_Code 의 std 키와 일치",
-            "Bolt_Matl_Std 와는 독립 — 자유 조합",
+            "Nut 의 category/code 는 Bolt 를 추종 (전용 입력 필드 없음)",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
         ),
         input_method=(
             "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
-        ),
-        unit=None,
-    ),
-    FieldDefinition(
-        name="Nut_Matl_Code",
-        meaning=(
-            "Nut 의 구체 재질 규격 코드. std-aware 필드."
-            " ASTM (6개): A194-2H/2HM (CS Nut, B7 짝), A194-7/7M (Cr-Mo Nut),"
-            " A194-8/8M (SS304/SS316 Nut)."
-            " JIS (1개): S45C (CS Nut). KS 항목은 추후 추가."
-            " Bolt_Matl_Code 와의 표준 짝 (B7 ↔ 2H, B7M ↔ 2HM 등) 은 사용자 판단."
-        ),
-        data_type="string (short code; e.g. A194-2H / S45C)",
-        required=True,
-        format_constraint=(
-            "data/field_values.json 의 Bolt_Group.Nut_Matl_Code 옵션"
-            " (closed set, 7개). KS/EN 항목은 추후 추가."
-        ),
-        unique=None,
-        relations=[
-            "Nut_Matl_Std (FK), Nut_Matl_Category 와 함께 필터링",
-            "Bolt_Matl_Code 와의 표준 짝 — 강제 검증 없음",
-            "PMS description 에 합성",
-        ],
-        validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
-        ),
-        input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중"
-            " Nut_Matl_Std 와 일치하는 항목만)"
         ),
         unit=None,
     ),
@@ -2427,7 +2373,8 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
 # 다른 시트와 비교한 주요 특성:
 #   - Body Matl_Code 는 cast grade (A216-WCB 등) — Pipe/Flange 의 forged grade
 #     와 다른 옵션 풀. Cast valve body 가 일반.
-#   - Trim_Matl + Seat_Matl 두 컬럼: valve 의 내부 마모 부품 재질 별도 명시.
+#   - Trim_Matl 단일 컬럼: API 600 trim number 표준 세트를 재질조합 문자열로
+#     저장 (seat/disc/stem 조합을 한 값으로 표현). Seat_Matl 전용 컬럼은 폐지.
 #     Body 재질과 독립적으로 운영 조건 (corrosive / hardness) 따라 선택.
 #   - Wedge_Type 는 Item_Code 분리 대신 컬럼화 — 도메인 관행상 Procurement
 #     description 에 명시 안 하는 경우도 흔함 (forged=Solid, cast=Flexible 의
@@ -2439,9 +2386,8 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
 #     대부분의 구조 정보가 표현됨.
 #   - Size 시스템: Size1_From / Size1_To 한 짝 (Flange Size1 패턴; Valve 는
 #     Reducing 없음).
-#   - Rating: std-aware (ASTM 6 + JIS 7 + KS 7 = 20개) — Flange/Gasket 과 동일
-#     옵션 풀 + std 키 부여. 다만 ASTM 기준 표준은 ASME B16.5 (Flange) 가 아닌
-#     ASME B16.34 (Valve).
+#   - Rating: std-aware (ASTM 7 + JIS 7 + KS 7 = 21개; ASTM 에 800# 추가) —
+#     ASTM 기준 표준은 ASME B16.5 (Flange) 가 아닌 ASME B16.34 (Valve).
 #   - End_Type: BW/SW/TH/FLG 4종.
 #   - Bonnet_Type: Bolted / PSB (Pressure-Sealed) / Welded / Screwed 4종.
 #   - Operation: Manual (Handwheel) / Lever / Wrench / Gear / Chain 5종 — Motor
@@ -2452,15 +2398,14 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
 #   - Stem_Type 컬럼
 #   - Bore 컬럼 (FB/RB) — Gate 에서는 의미 작음, Ball/Plug 에서 의미 큼
 #   - Actuator 종류 (Motor/Pneumatic/Hydraulic) — 별도 actuator 시트
-#   - Trim_Matl / Seat_Matl 의 std-aware 필터링 (현재 단순 풀)
 #   - Wedge_Type 'Parallel Slide' (Gate 의 특수 형식)
 #   - Bypass valve 정보 (대구경 Gate 의 보조 valve)
 #   - Item_Code 분리: Cast vs Forged (VA / VAF) 등 — 현재 VA 하나로 유지
 #
 # 다른 Valve 시트와의 공통 구조:
-#   - 16 필드 (현재 Gate). 다른 Valve (Globe/Check 등) 는 valve 별 고유 컬럼
-#     (Disc_Type / Plug_Type 등) 으로 비슷한 길이.
-#   - Class_Name → Item_Code → Size1 → Body Matl → Trim/Seat → Rating →
+#   - 15 필드 (현재 Gate; Seat_Matl 폐지). 다른 Valve (Globe/Check 등) 는 valve
+#     별 고유 컬럼 (Disc_Type / Plug_Type 등) 으로 비슷한 길이.
+#   - Class_Name → Item_Code → Size1 → Body Matl → Trim → Rating →
 #     End_Type → Bonnet_Type → (valve 고유: Wedge_Type) → Operation →
 #     Option_Code → Remarks 순서.
 
@@ -2642,47 +2587,21 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Trim_Matl",
         meaning=(
-            "Valve trim (stem / wedge contact / back-seat 등 내부 마모 부품)"
-            " 재질. Body 재질과 독립적으로 운영 조건 (마모, 부식, 온도) 따라 선택."
-            " 7종: 13Cr (F6/410 SS), F316, F304, Stellite-6 (Co-Cr Hardfacing),"
-            " Inconel-625, Monel-400, Hastelloy-C276."
+            "Valve trim 재질 조합. Seat / disc / stem 의 재질 세트를 하나의 값으로"
+            " 표현하며, API 600 trim number 표준 세트(전 번호 수록)를 재질조합"
+            " 문자열(short, 예: '13Cr+STL', 'F316', 'Alloy20+STL')로 저장한다."
+            " Seat_Matl 전용 필드는 폐지 — trim 값 하나가 seat/disc/stem 조합을 담는다."
         ),
-        data_type="string (short code)",
+        data_type="string (재질조합 문자열)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Gate_Valve_Group.Trim_Matl 옵션"
-            " (closed set, 7개)."
+            " (closed set, API 600 trim 전 번호; 현재 28개)."
         ),
         unique=None,
         relations=[
-            "Seat_Matl 와 호환 관행: 보통 Trim 과 Seat 재질이 일관 — 강제 검증 없음",
-            "PMS description 에 합성",
-        ],
-        validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
-        ),
-        input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
-        ),
-        unit=None,
-    ),
-    FieldDefinition(
-        name="Seat_Matl",
-        meaning=(
-            "Valve seat (밸브가 닫혔을 때 wedge 와 접촉하는 면) 재질. 5종:"
-            " 13Cr, F316, F304, Stellite-6, Inconel-625."
-            " Trim 보다 옵션 풀이 좁음 — seat 는 더 보수적 선택."
-        ),
-        data_type="string (short code)",
-        required=True,
-        format_constraint=(
-            "data/field_values.json 의 Gate_Valve_Group.Seat_Matl 옵션"
-            " (closed set, 5개)."
-        ),
-        unique=None,
-        relations=[
-            "Trim_Matl 와 호환 관행 (위 Trim_Matl.relations 참조)",
-            "PMS description 에 합성",
+            "seat/disc/stem 재질을 단일 값으로 통합 (Seat_Matl 필드 대체)",
+            "PMS description 의 trim token 에 그대로 합성",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
@@ -2695,10 +2614,10 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Rating",
         meaning=(
-            "Valve 의 압력 등급. std-aware 필드 — Flange/Gasket 과 옵션 풀 동일"
-            " (20개), 다만 ASTM 기준 표준은 ASME **B16.34** (Valve), Flange 의"
-            " ASME B16.5 와 구분."
-            "\n - ASTM: 150# / 300# / 600# / 900# / 1500# / 2500#."
+            "Valve 의 압력 등급. std-aware 필드 — ASTM 기준 표준은 ASME **B16.34**"
+            " (Valve), Flange 의 ASME B16.5 와 구분."
+            "\n - ASTM: 150# / 300# / 600# / 800# / 900# / 1500# / 2500#"
+            " (800# 은 forged valve 용으로 추가)."
             "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
             "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
         ),
@@ -2706,7 +2625,7 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         required=True,
         format_constraint=(
             "data/field_values.json 의 Gate_Valve_Group.Rating 옵션"
-            " (closed set, 20개)."
+            " (closed set, 21개 — 800# 포함)."
         ),
         unique=None,
         relations=[
@@ -2902,9 +2821,9 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 # ── Globe_Valve_Group ──────────────────────────────────────────────────────────
 #
 # Globe Valve (구형 body 의 throttling/차단 valve) — Valve 6종 중 두 번째 시트.
-# Gate_Valve_Group 의 16-필드 구조를 거의 그대로 공유 (Class/Item/Size1 짝/Body
-# Matl/Trim/Seat/Rating/End/Bonnet/Operation/Option/Remarks) 하되, Gate 고유
-# Wedge_Type 자리에 Globe 고유 Disc_Type 가 들어감.
+# Gate_Valve_Group 의 15-필드 구조를 거의 그대로 공유 (Class/Item/Size1 짝/Body
+# Matl/Trim/Rating/End/Bonnet/Operation/Option/Remarks; Seat_Matl 폐지) 하되,
+# Gate 고유 Wedge_Type 자리에 Globe 고유 Disc_Type 가 들어감.
 #
 # Gate 와의 주요 차이:
 #   - 고유 컬럼: Wedge_Type → Disc_Type (Plug / Conventional / Composition 3종
@@ -2928,9 +2847,9 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 # Gate 와 동일한 부분:
 #   - Body Matl_Code 는 cast grade (A216-WCB 등) — Pipe/Flange 의 forged grade
 #     와 다른 옵션 풀.
-#   - Trim_Matl + Seat_Matl 두 컬럼: Gate 와 동일 옵션 풀.
+#   - Trim_Matl 단일 컬럼 (API 600 trim 조합): Gate 와 동일 옵션 풀. Seat_Matl 폐지.
 #   - Size 시스템: Size1_From / Size1_To 한 짝 (Reducing 없음).
-#   - Rating: std-aware (ASTM 6 + JIS 7 + KS 7 = 20개) — Flange/Gasket/Gate 와
+#   - Rating: std-aware (ASTM 7 + JIS 7 + KS 7 = 21개; 800# 포함) — Gate 와
 #     동일 옵션 풀 + std 키 부여. ASTM 기준 표준은 ASME B16.34.
 #   - End_Type 4종, Bonnet_Type 4종, Operation 5종.
 #   - Stem_Type / Bore / Actuator 종류 컬럼 미고려 (Gate 와 동일 정책).
@@ -2940,13 +2859,12 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #   - Stem_Type 컬럼
 #   - Parabolic disc (control valve 영역)
 #   - Actuator 종류 (Motor / Pneumatic / Hydraulic) — 별도 actuator 시트
-#   - Trim_Matl / Seat_Matl 의 std-aware 필터링 (현재 단순 풀)
 #   - Item_Code 분리: Cast vs Forged (VB / VBF) 등 — 현재 VB 하나로 유지
 #
 # 다른 Valve 시트와의 공통 구조:
-#   - 16 필드 (Gate 와 동일 길이). Disc_Type / Wedge_Type 같은 valve 고유 컬럼
-#     자리가 시트별 1 ~ 2 개로 변경되는 패턴.
-#   - Class_Name → Item_Code → Size1 → Body Matl → Trim/Seat → Rating →
+#   - 15 필드 (Gate 와 동일 길이; Seat_Matl 폐지). Disc_Type / Wedge_Type 같은
+#     valve 고유 컬럼 자리가 시트별 1 ~ 2 개로 변경되는 패턴.
+#   - Class_Name → Item_Code → Size1 → Body Matl → Trim → Rating →
 #     End_Type → Bonnet_Type → Operation → (Globe 고유: Disc_Type) →
 #     Option_Code → Remarks 순서.
 
@@ -3130,47 +3048,20 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Trim_Matl",
         meaning=(
-            "Valve trim (stem / disc contact / back-seat 등 내부 마모 부품) 재질."
-            " Body 재질과 독립적으로 운영 조건 (마모, 부식, 온도) 따라 선택."
-            " 7종: 13Cr (F6/410 SS), F316, F304, Stellite-6 (Co-Cr Hardfacing),"
-            " Inconel-625, Monel-400, Hastelloy-C276 — Gate 와 동일 옵션 풀."
+            "Valve trim 재질 조합 — seat/disc/stem 재질 세트를 하나의 값으로 표현."
+            " API 600 trim number 표준 세트(전 번호)를 재질조합 문자열(short)로"
+            " 저장. Gate 와 동일 옵션 풀. Seat_Matl 전용 필드는 폐지."
         ),
-        data_type="string (short code)",
+        data_type="string (재질조합 문자열)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Globe_Valve_Group.Trim_Matl 옵션"
-            " (closed set, 7개)."
+            " (closed set, API 600 trim 전 번호; 현재 28개)."
         ),
         unique=None,
         relations=[
-            "Seat_Matl 와 호환 관행: 보통 Trim 과 Seat 재질이 일관 — 강제 검증 없음",
-            "PMS description 에 합성",
-        ],
-        validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
-        ),
-        input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
-        ),
-        unit=None,
-    ),
-    FieldDefinition(
-        name="Seat_Matl",
-        meaning=(
-            "Valve seat (밸브가 닫혔을 때 disc 와 접촉하는 면) 재질. 5종:"
-            " 13Cr, F316, F304, Stellite-6, Inconel-625 — Gate 와 동일 옵션 풀."
-            " Trim 보다 옵션 풀이 좁음 — seat 는 더 보수적 선택."
-        ),
-        data_type="string (short code)",
-        required=True,
-        format_constraint=(
-            "data/field_values.json 의 Globe_Valve_Group.Seat_Matl 옵션"
-            " (closed set, 5개)."
-        ),
-        unique=None,
-        relations=[
-            "Trim_Matl 와 호환 관행 (위 Trim_Matl.relations 참조)",
-            "PMS description 에 합성",
+            "seat/disc/stem 재질을 단일 값으로 통합 (Seat_Matl 필드 대체)",
+            "PMS description 의 trim token 에 그대로 합성",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
@@ -3183,9 +3074,9 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Rating",
         meaning=(
-            "Valve 의 압력 등급. std-aware 필드 — Flange/Gasket/Gate 와 옵션 풀"
-            " 동일 (20개), ASTM 기준 표준은 ASME **B16.34** (Valve)."
-            "\n - ASTM: 150# / 300# / 600# / 900# / 1500# / 2500#."
+            "Valve 의 압력 등급. std-aware 필드 — Gate 와 옵션 풀 동일,"
+            " ASTM 기준 표준은 ASME **B16.34** (Valve)."
+            "\n - ASTM: 150# / 300# / 600# / 800# / 900# / 1500# / 2500#."
             "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
             "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
         ),
@@ -3193,7 +3084,7 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         required=True,
         format_constraint=(
             "data/field_values.json 의 Globe_Valve_Group.Rating 옵션"
-            " (closed set, 20개)."
+            " (closed set, 21개 — 800# 포함)."
         ),
         unique=None,
         relations=[
@@ -3397,8 +3288,8 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 # Gate/Globe 와의 주요 차이:
 #   - 자동 동작: Bonnet_Type 없음 (Check valve 는 통상 cover/bonnet 구분 약함),
 #     Operation 없음 (handwheel/lever 등 조작부 없음 — 역류 시 자동 닫힘).
-#   - 헤더 길이: 14 필드 (Class/Item/Size1 짝/Body Matl/Trim/Seat/Rating/End/
-#     Disc_Type/Option/Remarks).
+#   - 헤더 길이: 13 필드 (Class/Item/Size1 짝/Body Matl/Trim/Rating/End/
+#     Disc_Type/Option/Remarks; Seat_Matl 폐지).
 #   - Disc_Type 옵션 풀 (도메인 표준 + 사용자 결정):
 #       · Swing: hinge 회전 disc, 2\"+ 대구경 표준. API 6D / ASME B16.34.
 #       · Lift: 수직 lift, gravity / 압력 의존. **Piston check 변종 포함**
@@ -3414,11 +3305,11 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #
 # Gate/Globe 와 동일한 부분:
 #   - Body Matl_Code 는 cast grade (A216-WCB 등) 옵션 풀.
-#   - Trim_Matl + Seat_Matl 두 컬럼 (단, Trim 5종 / Seat 4종 — Gate/Globe 보다
-#     약간 좁은 풀; data/field_values.json 의 Check_Valve_Group 참조).
+#   - Trim_Matl 단일 컬럼 (API 600 trim 조합): Gate/Globe 와 동일 옵션 풀.
+#     Seat_Matl 폐지. data/field_values.json 의 Check_Valve_Group 참조.
 #   - Size 시스템: Size1_From / Size1_To 한 짝 (Reducing 없음).
-#   - Rating: std-aware (ASTM 6 + JIS 7 + KS 7 = 20개) — Gate/Globe 와 동일 옵션
-#     풀 + std 키 부여. ASTM 기준 표준은 ASME B16.34.
+#   - Rating: std-aware (ASTM 7 + JIS 7 + KS 7 = 21개; 800# 포함) — Gate/Globe 와
+#     동일 옵션 풀 + std 키 부여. ASTM 기준 표준은 ASME B16.34.
 #   - End_Type 4종.
 #
 # 미고려 항목 (추후 도메인 합의 시 확장):
@@ -3427,12 +3318,11 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #   - Non-slam closure (spring-assisted) 표시 컬럼
 #   - Spring 재질 / 종류
 #   - Actuator 종류 (자동 동작이라 무관)
-#   - Trim_Matl / Seat_Matl 의 std-aware 필터링
 #   - Item_Code 분리: Cast vs Forged (VC / VCF) 등 — 현재 VC 하나로 유지
 #
 # 다른 Valve 시트와의 공통 구조:
-#   - 14 필드 (Gate/Globe 16개 - Bonnet_Type/Operation 2개 = 14).
-#   - Class_Name → Item_Code → Size1 → Body Matl → Trim/Seat → Rating →
+#   - 13 필드 (Gate/Globe 15개 - Bonnet_Type/Operation 2개 = 13).
+#   - Class_Name → Item_Code → Size1 → Body Matl → Trim → Rating →
 #     End_Type → (Check 고유: Disc_Type) → Option_Code → Remarks 순서.
 
 CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
@@ -3613,46 +3503,20 @@ CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Trim_Matl",
         meaning=(
-            "Valve trim (disc / hinge pin / spring 등 내부 마모 부품) 재질."
-            " 5종: 13Cr (F6), F316, F304, Stellite-6, Inconel-625 — Gate/Globe"
-            " 의 Trim 7종 보다 약간 좁은 풀 (Monel-400 / Hastelloy-C276 미포함)."
+            "Valve trim 재질 조합 — seat/disc/stem 재질 세트를 하나의 값으로 표현."
+            " API 600 trim number 표준 세트(전 번호)를 재질조합 문자열(short)로"
+            " 저장. Gate/Globe 와 동일 옵션 풀. Seat_Matl 전용 필드는 폐지."
         ),
-        data_type="string (short code)",
+        data_type="string (재질조합 문자열)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Check_Valve_Group.Trim_Matl 옵션"
-            " (closed set, 5개)."
+            " (closed set, API 600 trim 전 번호; 현재 28개)."
         ),
         unique=None,
         relations=[
-            "Seat_Matl 와 호환 관행: 보통 Trim 과 Seat 재질이 일관 — 강제 검증 없음",
-            "PMS description 에 합성",
-        ],
-        validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
-        ),
-        input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
-        ),
-        unit=None,
-    ),
-    FieldDefinition(
-        name="Seat_Matl",
-        meaning=(
-            "Valve seat (역류 시 disc 가 접촉하는 면) 재질. 4종:"
-            " 13Cr, F316, F304, Stellite-6 — Gate/Globe 의 5종 보다 약간 좁은 풀"
-            " (Inconel-625 미포함)."
-        ),
-        data_type="string (short code)",
-        required=True,
-        format_constraint=(
-            "data/field_values.json 의 Check_Valve_Group.Seat_Matl 옵션"
-            " (closed set, 4개)."
-        ),
-        unique=None,
-        relations=[
-            "Trim_Matl 와 호환 관행 (위 Trim_Matl.relations 참조)",
-            "PMS description 에 합성",
+            "seat/disc/stem 재질을 단일 값으로 통합 (Seat_Matl 필드 대체)",
+            "PMS description 의 trim token 에 그대로 합성",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
@@ -3665,9 +3529,9 @@ CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Rating",
         meaning=(
-            "Valve 의 압력 등급. std-aware 필드 — Flange/Gasket/Gate/Globe 와"
-            " 옵션 풀 동일 (20개), ASTM 기준 표준은 ASME **B16.34** (Valve)."
-            "\n - ASTM: 150# / 300# / 600# / 900# / 1500# / 2500#."
+            "Valve 의 압력 등급. std-aware 필드 — Gate/Globe 와 옵션 풀 동일,"
+            " ASTM 기준 표준은 ASME **B16.34** (Valve)."
+            "\n - ASTM: 150# / 300# / 600# / 800# / 900# / 1500# / 2500#."
             "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
             "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
         ),
@@ -3675,7 +3539,7 @@ CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         required=True,
         format_constraint=(
             "data/field_values.json 의 Check_Valve_Group.Rating 옵션"
-            " (closed set, 20개)."
+            " (closed set, 21개 — 800# 포함)."
         ),
         unique=None,
         relations=[

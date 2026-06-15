@@ -24,7 +24,25 @@
       "Bash(mkdir -p \"D:\\\\Programing\\\\Cursor\\\\pms_test\\\\.claude\\\\skills\\\\ui-checklist\")",
       "Bash(mkdir -p \"D:\\\\Programing\\\\Cursor\\\\pms_test\\\\.claude\\\\skills\\\\pre-code\")",
       "Bash(git *)",
-      "Bash(powershell *)"
+      "Bash(powershell *)",
+      "Bash(echo \"ahead-count exit=$?\")",
+      "Bash(cd /d D:\\\\Programing\\\\Cursor\\\\pms_test)",
+      "Bash(dir tests *)",
+      "Bash(dir tests\\\\expected)",
+      "Bash(Select-Object -Last 3)",
+      "PowerShell(git rm *)",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(python -c \"import ast; ast.parse\\(open\\('run.py',encoding='utf-8'\\).read\\(\\)\\); print\\('run.py OK'\\)\")",
+      "Bash(PYTHONIOENCODING=utf-8 python -c ' *)",
+      "WebFetch(domain:valvehax.com)",
+      "WebFetch(domain:www.reliavalve.com)",
+      "Bash(PYTHONIOENCODING=utf-8 python -)",
+      "Bash(PYTHONIOENCODING=utf-8 grep -n \"_get_cell_text\" src/pms_generator.py)",
+      "Bash(PYTHONIOENCODING=utf-8 git ls-files)",
+      "Bash(grep -iE \"\\\\.\\(refpms|xlsx\\)$\")",
+      "Bash(PYTHONIOENCODING=utf-8 grep -rn \"import domain_schema\\\\|from domain_schema\" src/)",
+      "Bash(PYTHONIOENCODING=utf-8 python -c \"import ast; ast.parse\\(open\\('src/domain_schema.py',encoding='utf-8'\\).read\\(\\)\\); print\\('domain_schema parse OK'\\)\")",
+      "Bash(git grep *)"
     ]
   }
 }

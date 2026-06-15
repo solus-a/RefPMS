@@ -144,6 +144,59 @@ def component_row_size_pair_errors(
     return []
 
 
+def component_row_missing_required(
+    sheet_name: str, values: dict[str, str]
+) -> list[str]:
+    """Component row 의 그룹별 필수 필드 검증. 빈 리스트 = OK.
+
+    필수 정의의 단일 소스는 data_defaults.DEFAULT_COMPONENT_MAPPING
+    (required_non_empty + conditional_required). 폼에 존재하지 않는 필드
+    (예: Class_Name 은 저장 단계에서 채워짐)는 건너뛴다.
+    """
+    from data_defaults import DEFAULT_COMPONENT_MAPPING
+
+    rules = (DEFAULT_COMPONENT_MAPPING.get("sheets") or {}).get(sheet_name)
+    if not isinstance(rules, dict):
+        return []
+
+    def _filled(field_name: str) -> bool:
+        return bool((values.get(field_name) or "").strip())
+
+    missing: list[str] = []
+    for field_name in rules.get("required_non_empty", []):
+        if field_name not in values:
+            continue
+        if not _filled(field_name):
+            missing.append(field_name)
+
+    for cond in rules.get("conditional_required", []):
+        if not isinstance(cond, dict):
+            continue
+        when_field = cond.get("when_field")
+        if not when_field or when_field not in values:
+            continue
+        allowed = {str(v).strip().upper() for v in (cond.get("when_values") or [])}
+        if allowed and (values.get(when_field) or "").strip().upper() not in allowed:
+            continue
+        for req in cond.get("require_non_empty", []):
+            if req in values and not _filled(req) and req not in missing:
+                missing.append(req)
+
+    return missing
+
+
+def component_row_required_fields(sheet_name: str) -> frozenset[str]:
+    """그룹의 무조건 필수 필드 집합 (required_non_empty). UI 에서 (None) 옵션을
+    줄지 여부 판단에 사용 — 필수 필드에는 (None) 선택지를 두지 않는다.
+    conditional_required(예: Flange FR Size2)는 항상 필수는 아니므로 제외."""
+    from data_defaults import DEFAULT_COMPONENT_MAPPING
+
+    rules = (DEFAULT_COMPONENT_MAPPING.get("sheets") or {}).get(sheet_name)
+    if not isinstance(rules, dict):
+        return frozenset()
+    return frozenset(rules.get("required_non_empty", []))
+
+
 @dataclass
 class ClassTemplateGlobalSettings:
     """Class Template 전역 설정 (Unit_System + Size_Selection 시트). 모든 Class 에 공통 적용."""

@@ -291,9 +291,7 @@ MATERIAL_SHEET_CONFIGS = [
             "Bolt_Matl_Std",
             "Bolt_Matl_Code",
             "Nut_Type",
-            "Nut_Matl_Category",
             "Nut_Matl_Std",
-            "Nut_Matl_Code",
             "Bolt_Length_Table",
             "Option_Code",
         ],
@@ -951,7 +949,9 @@ def _build_item_description_by_rule(
         bolt_type_token = "STUB" if bolt_type_raw == "STUD" else bolt_type_raw
         bolt_mat = _get_cell_text(ws, row_idx, header_to_col, "Bolt_Matl_Code")
         nut_type = _get_cell_text(ws, row_idx, header_to_col, "Nut_Type")
-        nut_mat = _get_cell_text(ws, row_idx, header_to_col, "Nut_Matl_Code")
+        # Nut 재질은 Bolt 재질을 따라간다 (전용 입력 필드 폐지). 레거시 시트 호환 위해
+        # Nut_Matl_Code 컬럼이 남아 있으면 그 값을 우선 사용.
+        nut_mat = _get_cell_text(ws, row_idx, header_to_col, "Nut_Matl_Code") or bolt_mat
         dim_token = _bolt_dim_standard_token(
             _get_cell_text(ws, row_idx, header_to_col, "Bolt_Dim_Standard"),
             _get_cell_text(ws, row_idx, header_to_col, "Nut_Dim_Standard"),
