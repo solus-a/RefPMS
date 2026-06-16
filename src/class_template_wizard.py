@@ -748,6 +748,17 @@ class _ComponentRowEditDialog(tk.Toplevel):
                 )
             self._apply_flange_size2_lock()
 
+        # Pipe: Length 는 Nipple (JN) Item_Code 일 때만 입력 허용 — 그 외엔 잠금(비우고 disable).
+        if self._sheet_name == "Pipe_Group":
+            ic_combo = self._combo_widgets.get("Item_Code")
+            if ic_combo is not None:
+                ic_combo.bind(
+                    "<<ComboboxSelected>>",
+                    lambda _e: self._apply_pipe_length_lock(),
+                    add="+",
+                )
+            self._apply_pipe_length_lock()
+
         bf = ttk.Frame(self, padding=(10, 0, 10, 10))
         bf.pack(fill="x")
         ttk.Button(bf, text="OK",     command=self._ok).pack(side="right", padx=(4, 0))
@@ -785,6 +796,22 @@ class _ComponentRowEditDialog(tk.Toplevel):
                 if var is not None:
                     var.set("")
                 w.configure(state="disabled")
+
+    def _apply_pipe_length_lock(self) -> None:
+        """Item_Code != JN(Nipple) 이면 Length 를 비우고 잠근다. JN 이면 입력 허용."""
+        ic_var = self._vars.get("Item_Code")
+        # Item_Code 는 keep-short 라 표시값=저장값(code) 이므로 그대로 비교.
+        is_nipple = (ic_var.get() if ic_var is not None else "").strip().upper() == "JN"
+        w = self._field_widgets.get("Length")
+        if w is None:
+            return
+        if is_nipple:
+            w.configure(state="readonly" if isinstance(w, ttk.Combobox) else "normal")
+        else:
+            var = self._vars.get("Length")
+            if var is not None:
+                var.set("")
+            w.configure(state="disabled")
 
     def _refresh_dependent_code_options(self, std_field: str) -> None:
         """std 필드 변경 시 짝이 되는 code 필드의 콤보 후보를 갱신."""
