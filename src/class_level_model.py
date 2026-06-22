@@ -100,18 +100,6 @@ CLASS_DEFINE_REQUIRED_FIELDS: tuple[str, ...] = (
     "Design_Pressure_To",
 )
 
-PIPE_GROUP_REQUIRED_FIELDS: tuple[str, ...] = (
-    "Item_Code",
-    "Size_From",
-    "Size_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Manufacturing_Method",
-    "End_Type",
-    "Option_Code",
-)
-
 
 def _parse_signed_decimal(value: str | None) -> float | None:
     raw = (value or "").strip()
@@ -385,20 +373,6 @@ class ClassLevelBundle:
             missing.append("Schedule (no rows defined for this class)")
 
         return missing
-
-    def validate_component_row(
-        self, sheet_name: str, values: dict[str, str]
-    ) -> list[str]:
-        """Component sheet의 단일 행 필수 필드 검증. Empty list means OK.
-
-        현재는 Pipe_Group만 정책이 정의되어 있다 (PIPE_GROUP_REQUIRED_FIELDS).
-        """
-        if sheet_name != "Pipe_Group":
-            return []
-        return [
-            field for field in PIPE_GROUP_REQUIRED_FIELDS
-            if not (values.get(field) or "").strip()
-        ]
 
     def validate(self) -> list[str]:
         """Empty list means OK. Error strings for the wizard (English)."""

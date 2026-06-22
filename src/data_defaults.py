@@ -28,6 +28,19 @@ DEFAULT_COMPONENT_MAPPING: dict = {
                 "Item_Code",
                 "Size_From",
                 "Size_To",
+                "Matl_Category",
+                "Matl_Std",
+                "Matl_Code",
+                "Manufacturing_Method",
+                "End_Type",
+                "Option_Code",
+            ],
+            "conditional_required": [
+                {
+                    "when_field": "Item_Code",
+                    "when_values": ["JN"],
+                    "require_non_empty": ["Length"],
+                },
             ],
             "code_category_consistency": [
                 {"code_field": "Matl_Code", "category_field": "Matl_Category"},
@@ -73,6 +86,13 @@ DEFAULT_COMPONENT_MAPPING: dict = {
                 "Item_Code",
                 "Size1_From",
                 "Size1_To",
+                "Matl_Category",
+                "Matl_Std",
+                "Matl_Code",
+                "Rating",
+                "Facing",
+                "Flange_Type",
+                "Option_Code",
             ],
             "conditional_required": [
                 {

@@ -396,8 +396,8 @@ PIPE_GROUP_FIELDS: list[FieldDefinition] = [
         ],
         validation_location=(
             "형식 검증 (^\\d{3}$): wizard 컴포넌트 dialog 입력 시점 (현재 미구현)."
-            " Required 검증: class_level_model.PIPE_GROUP_REQUIRED_FIELDS 에"
-            " 'Option_Code' 포함 (등록 완료)."
+            " Required 검증: data_defaults.DEFAULT_COMPONENT_MAPPING 의"
+            " Pipe_Group.required_non_empty 에 'Option_Code' 포함 (등록 완료)."
             " (Class_Name, Option_Code) unique 검증: bundle/class 레벨에서 별도"
             " 작업 필요 (현재 미구현)."
         ),
@@ -438,7 +438,8 @@ PIPE_GROUP_FIELDS: list[FieldDefinition] = [
         validation_location=(
             "검증 없음 (자유 입력)."
             " required 아님 —"
-            " class_level_model.PIPE_GROUP_REQUIRED_FIELDS 미포함."
+            " data_defaults.DEFAULT_COMPONENT_MAPPING 의 Pipe_Group"
+            " required_non_empty 미포함."
         ),
         input_method=(
             "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)."

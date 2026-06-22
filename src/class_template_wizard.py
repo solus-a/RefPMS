@@ -3081,24 +3081,39 @@ class ClassLevelWizard(tk.Toplevel):
             messagebox.showwarning("Validation Warning", "\n".join(warns), parent=self)
         return True
 
-    def _on_save_project(self) -> None:
+    def _persist_to_disk(self) -> bool:
+        """현재 bundle 을 디스크에 기록. 성공 True / 검증 실패·경로 취소·IO 실패 False.
+        Component 버퍼 커밋은 호출 전에 끝나 있어야 한다 (여기선 bundle 만 다룸)."""
         if not self._flush_and_validate():
-            return
+            return False
         path = self._project_path
         if not path:
             chosen = file_handler.select_project_save_path(self)
             if not chosen:
-                return
+                return False
             path = chosen
         try:
             save_project(self._bundle, path)
         except (OSError, ProjectFileError) as exc:
             messagebox.showerror("Save Project", f"저장 실패:\n{exc}", parent=self)
-            return
+            return False
         self._project_path = path
         self._on_disk_snapshot = copy.deepcopy(self._bundle)
         self.title(f"RefPMS — {Path(path).name}")
-        messagebox.showinfo("Save Project", f"Saved:\n{path}", parent=self)
+        return True
+
+    def _on_save_project(self) -> None:
+        # 미커밋 Component 버퍼가 있으면 저장에 포함할지 먼저 확인 (조용한 유실 방지).
+        if self._components_buffer_dirty():
+            if not messagebox.askyesno(
+                "Save Project",
+                "저장되지 않은 Component 변경이 있습니다.\n포함해서 저장하시겠습니까?",
+                parent=self,
+            ):
+                return
+            self._on_components_save()
+        if self._persist_to_disk():
+            messagebox.showinfo("Save Project", f"Saved:\n{self._project_path}", parent=self)
 
     def _on_export_xlsx(self) -> None:
         if not self._flush_and_validate():
@@ -3122,6 +3137,20 @@ class ClassLevelWizard(tk.Toplevel):
         if idx is not None:
             self._save_class_row_at_index(idx)
         self._bundle.global_settings = copy.deepcopy(self._global_settings)
+        # 미커밋 Component 버퍼가 있으면 먼저 처리 — bundle 레벨 비교에는 안 잡히므로
+        # 여기서 막지 않으면 조용히 유실된다. '아니오'는 아래 bundle 레벨 확인으로 진행.
+        if self._components_buffer_dirty():
+            if messagebox.askyesno(
+                "Close Project",
+                "저장 안 된 Component 변경이 있습니다.\n저장하고 닫으시겠습니까?",
+                parent=self,
+            ):
+                self._on_components_save()
+                if not self._persist_to_disk():
+                    return  # 저장 실패/취소 → 닫지 않음
+                self.destroy()
+                return
+            # 아니오 → 버퍼 폐기, 아래 bundle 레벨 검사로 진행
         if self._bundle != self._on_disk_snapshot:
             if not messagebox.askyesno(
                 "Close Project",
