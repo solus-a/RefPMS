@@ -5616,3 +5616,38 @@ NEEDLE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
 ]
+
+
+# ── 그룹 레지스트리 + 도출 헬퍼 (SSOT 진입점) ─────────────────────────────────
+# 다른 모듈(template_generator.COMPONENT_GROUP_DEFS, data_defaults.DEFAULT_COMPONENT_MAPPING)
+# 은 이 레지스트리에서 헤더/필수 필드를 도출한다. 헤더·필수의 정의는 오직 여기(SSOT).
+GROUPS: dict[str, list[FieldDefinition]] = {
+    "Pipe_Group": PIPE_GROUP_FIELDS,
+    "Forged_Fitting_Group": FORGED_FITTING_GROUP_FIELDS,
+    "Wrought_Fitting_Group": WROUGHT_FITTING_GROUP_FIELDS,
+    "Flange_Group": FLANGE_GROUP_FIELDS,
+    "Gasket_Group": GASKET_GROUP_FIELDS,
+    "Bolt_Group": BOLT_GROUP_FIELDS,
+    "Gate_Valve_Group": GATE_VALVE_GROUP_FIELDS,
+    "Globe_Valve_Group": GLOBE_VALVE_GROUP_FIELDS,
+    "Check_Valve_Group": CHECK_VALVE_GROUP_FIELDS,
+    "Ball_Valve_Group": BALL_VALVE_GROUP_FIELDS,
+    "Butterfly_Valve_Group": BUTTERFLY_VALVE_GROUP_FIELDS,
+    "Plug_Valve_Group": PLUG_VALVE_GROUP_FIELDS,
+    "Needle_Valve_Group": NEEDLE_VALVE_GROUP_FIELDS,
+}
+
+
+def group_fields(sheet: str) -> list[FieldDefinition]:
+    """그룹의 FieldDefinition 목록 (컬럼 순서)."""
+    return GROUPS[sheet]
+
+
+def headers(sheet: str) -> list[str]:
+    """그룹의 헤더(컬럼명) 목록 — 컬럼 순서대로."""
+    return [fd.name for fd in GROUPS[sheet]]
+
+
+def required_fields(sheet: str) -> list[str]:
+    """required=True 인 필드명 목록 (required_non_empty 도출원)."""
+    return [fd.name for fd in GROUPS[sheet] if fd.required]

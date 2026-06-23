@@ -9,6 +9,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font
 
 import config
+import domain_schema
 from class_level_model import (
     ClassLevelBundle,
     ClassTemplateGlobalSettings,
@@ -90,238 +91,26 @@ REDUCING_TABLE_HEADERS = [
 ]
 BRANCH_TABLE_HEADERS = REDUCING_TABLE_HEADERS
 
-PIPE_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size_From",
-    "Size_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Manufacturing_Method",
-    "End_Type",
-    "Length",
-    "Option_Code",
-    "Remarks",
-]
-
-FORGED_FITTING_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size_From",
-    "Size_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Rating",
-    "End_Type",
-    "Option_Code",
-    "Remarks",
-]
-
-WROUGHT_FITTING_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size_From",
-    "Size_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Manufacturing_Method",
-    "End_Type",
-    "Option_Code",
-    "Remarks",
-]
-
-FLANGE_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size1_From",
-    "Size1_To",
-    "Size2_From",
-    "Size2_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Rating",
-    "Facing",
-    "Flange_Type",
-    "Option_Code",
-    "Remarks",
-]
-
-GASKET_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size_From",
-    "Size_To",
-    "Gasket_Type",
-    "Material_Primary",
-    "Material_Secondary",
-    "Rating",
-    "Facing",
-    "Thickness",
-    "Option_Code",
-    "Remarks",
-]
-
-BOLT_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size_From",
-    "Size_To",
-    "Bolt_Type",
-    "Bolt_Matl_Category",
-    "Bolt_Matl_Std",
-    "Bolt_Matl_Code",
-    "Nut_Type",
-    "Nut_Matl_Std",
-    "Bolt_Length_Table",
-    "Option_Code",
-    "Remarks",
-]
-
-GATE_VALVE_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size1_From",
-    "Size1_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Trim_Matl",
-    "Rating",
-    "End_Type",
-    "Bonnet_Type",
-    "Wedge_Type",
-    "Operation",
-    "Option_Code",
-    "Remarks",
-]
-
-GLOBE_VALVE_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size1_From",
-    "Size1_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Trim_Matl",
-    "Rating",
-    "End_Type",
-    "Bonnet_Type",
-    "Operation",
-    "Disc_Type",
-    "Option_Code",
-    "Remarks",
-]
-
-CHECK_VALVE_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size1_From",
-    "Size1_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Trim_Matl",
-    "Rating",
-    "End_Type",
-    "Disc_Type",
-    "Option_Code",
-    "Remarks",
-]
-
-BALL_VALVE_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size1_From",
-    "Size1_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Trim_Matl",
-    "Seat_Matl",
-    "Rating",
-    "End_Type",
-    "Bore",
-    "Entry_Type",
-    "Operation",
-    "Option_Code",
-    "Remarks",
-]
-
-BUTTERFLY_VALVE_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size1_From",
-    "Size1_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Disc_Matl",
-    "Seat_Matl",
-    "Rating",
-    "End_Type",
-    "Body_Type",
-    "Operation",
-    "Disc_Type",
-    "Option_Code",
-    "Remarks",
-]
-
-NEEDLE_VALVE_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size1_From",
-    "Size1_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Trim_Matl",
-    "Seat_Matl",
-    "Rating",
-    "End_Type",
-    "Bonnet_Type",
-    "Operation",
-    "Disc_Type",
-    "Option_Code",
-    "Remarks",
-]
-
-PLUG_VALVE_HEADERS = [
-    "Class_Name",
-    "Item_Code",
-    "Size1_From",
-    "Size1_To",
-    "Matl_Category",
-    "Matl_Std",
-    "Matl_Code",
-    "Plug_Matl",
-    "Seat_Matl",
-    "Rating",
-    "End_Type",
-    "Operation",
-    "Plug_Type",
-    "Option_Code",
-    "Remarks",
+# 컴포넌트 그룹 헤더는 domain_schema(SSOT)에서 도출한다. 여기서는 (시트명, 표시라벨)만 정의.
+_COMPONENT_GROUP_LABELS: list[tuple[str, str]] = [
+    ("Pipe_Group",            "Pipe Group"),
+    ("Forged_Fitting_Group",  "Forged Fitting Group"),
+    ("Wrought_Fitting_Group", "Wrought Fitting Group"),
+    ("Flange_Group",          "Flange Group"),
+    ("Gasket_Group",          "Gasket Group"),
+    ("Bolt_Group",            "Bolt Group"),
+    ("Gate_Valve_Group",      "Gate Valve Group"),
+    ("Globe_Valve_Group",     "Globe Valve Group"),
+    ("Check_Valve_Group",     "Check Valve Group"),
+    ("Ball_Valve_Group",      "Ball Valve Group"),
+    ("Butterfly_Valve_Group", "Butterfly Valve Group"),
+    ("Plug_Valve_Group",      "Plug Valve Group"),
+    ("Needle_Valve_Group",    "Needle Valve Group"),
 ]
 
 COMPONENT_GROUP_DEFS: list[tuple[str, str, list[str]]] = [
-    ("Pipe_Group",            "Pipe Group",           PIPE_HEADERS),
-    ("Forged_Fitting_Group",  "Forged Fitting Group", FORGED_FITTING_HEADERS),
-    ("Wrought_Fitting_Group", "Wrought Fitting Group",WROUGHT_FITTING_HEADERS),
-    ("Flange_Group",          "Flange Group",         FLANGE_HEADERS),
-    ("Gasket_Group",          "Gasket Group",         GASKET_HEADERS),
-    ("Bolt_Group",            "Bolt Group",           BOLT_HEADERS),
-    ("Gate_Valve_Group",      "Gate Valve Group",     GATE_VALVE_HEADERS),
-    ("Globe_Valve_Group",     "Globe Valve Group",    GLOBE_VALVE_HEADERS),
-    ("Check_Valve_Group",     "Check Valve Group",    CHECK_VALVE_HEADERS),
-    ("Ball_Valve_Group",      "Ball Valve Group",     BALL_VALVE_HEADERS),
-    ("Butterfly_Valve_Group", "Butterfly Valve Group",BUTTERFLY_VALVE_HEADERS),
-    ("Plug_Valve_Group",      "Plug Valve Group",     PLUG_VALVE_HEADERS),
-    ("Needle_Valve_Group",    "Needle Valve Group",   NEEDLE_VALVE_HEADERS),
+    (sheet, label, domain_schema.headers(sheet))
+    for sheet, label in _COMPONENT_GROUP_LABELS
 ]
 
 HEADER_FONT = Font(bold=True)
