@@ -9,6 +9,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.utils import get_column_letter
 
 import config
+import domain_schema
 from class_spec import (
     VALVE_SHEET_NAMES,
     ClassSpec,
@@ -81,17 +82,8 @@ def _load_shape_item_codes() -> tuple[frozenset[str], frozenset[str]]:
     각 item code 가 어떤 시트에 등록됐는지와 무관하게 통합 frozenset.
     파일 없거나 손상 시 빈 frozenset.
     """
-    import json
-    path = config.item_code_db_json_path()
-    if not path.exists():
-        return frozenset(), frozenset()
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return frozenset(), frozenset()
-    if not isinstance(data, dict):
-        return frozenset(), frozenset()
+    # 값 데이터 접근은 domain_schema(SSOT) façade 경유 — 직접 JSON 읽기 금지.
+    data = domain_schema.item_code_db()
     reducing: set[str] = set()
     branching: set[str] = set()
     for sheet_name, items in data.items():

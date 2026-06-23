@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import config
+import domain_schema
 from excel_sheet_utils import get_cell_text as _get_cell_text
 
 
@@ -39,16 +40,20 @@ def load_matl_code_category_lookup(
     옵션이 없으면 해당 키 누락. ``code_category_consistency`` rule 이 이 룩업을
     사용한다.
     """
-    p = path if path is not None else config.field_values_db_path()
-    if not p.exists():
-        return {}
-    try:
-        with open(p, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return {}
-    if not isinstance(data, dict):
-        return {}
+    # 기본은 domain_schema(SSOT) façade 경유. path 명시 시에만 직접 읽기(테스트 override).
+    if path is None:
+        data = domain_schema.field_values_db()
+    else:
+        if not path.exists():
+            return {}
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        data = {k: v for k, v in data.items() if not k.startswith("_")}
     out: dict[str, dict[str, str]] = {}
     for sheet_name, sheet in data.items():
         if sheet_name.startswith("_") or not isinstance(sheet, dict):

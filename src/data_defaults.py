@@ -1,4 +1,9 @@
-"""템플릿·데이터 보조 파일 생성용 기본 내용 (JSON 직렬화)."""
+"""템플릿·데이터 보조 파일 생성용 기본 내용 (JSON 직렬화).
+
+DEFAULT_COMPONENT_MAPPING 의 모든 행 검증 규칙(required_non_empty,
+conditional_required, conditional_empty, code_category_consistency)은
+domain_schema(SSOT)에서 도출한다. 이 파일은 규칙을 직접 정의하지 않는다.
+"""
 
 from __future__ import annotations
 
@@ -20,88 +25,25 @@ DEFAULT_CLASS_MATERIAL_MAPPING: dict = {
     },
 }
 
-# required_non_empty 는 여기서 정의하지 않는다 — domain_schema(SSOT)의 required 플래그에서
-# 아래 루프로 도출한다. 이 dict 에는 도출 불가한 규칙(조건부/일관성)만 직접 정의한다.
 DEFAULT_COMPONENT_MAPPING: dict = {
     "version": 1,
     "description": (
         "부품군(시트)별 템플릿 행 검증 규칙. 컬럼이 시트에 없으면 해당 규칙은 건너뜀. "
-        "required_non_empty 는 domain_schema(SSOT)의 required 플래그에서 도출 (이중정의 방지)."
+        "모든 규칙은 domain_schema(SSOT)에서 도출 — 여기서 직접 정의하지 않는다."
     ),
-    "sheets": {
-        "Pipe_Group": {
-            "conditional_required": [
-                {"when_field": "Item_Code", "when_values": ["JN"], "require_non_empty": ["Length"]},
-            ],
-            "code_category_consistency": [
-                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
-            ],
-        },
-        "Forged_Fitting_Group": {
-            "code_category_consistency": [
-                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
-            ],
-        },
-        "Wrought_Fitting_Group": {
-            "code_category_consistency": [
-                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
-            ],
-        },
-        "Flange_Group": {
-            "conditional_required": [
-                {"when_field": "Item_Code", "when_values": ["FR"], "require_non_empty": ["Size2_From", "Size2_To"]},
-            ],
-            "conditional_empty": [
-                {"when_field": "Item_Code", "when_values": ["F", "FB", "F8", "FBS"], "require_empty": ["Size2_From", "Size2_To"]},
-            ],
-            "code_category_consistency": [
-                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
-            ],
-        },
-        "Gate_Valve_Group": {
-            "code_category_consistency": [
-                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
-            ],
-        },
-        "Globe_Valve_Group": {
-            "code_category_consistency": [
-                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
-            ],
-        },
-        "Check_Valve_Group": {
-            "code_category_consistency": [
-                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
-            ],
-        },
-        "Ball_Valve_Group": {
-            "code_category_consistency": [
-                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
-            ],
-        },
-        "Butterfly_Valve_Group": {
-            "code_category_consistency": [
-                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
-            ],
-        },
-        "Plug_Valve_Group": {
-            "code_category_consistency": [
-                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
-            ],
-        },
-        "Needle_Valve_Group": {
-            "code_category_consistency": [
-                {"code_field": "Matl_Code", "category_field": "Matl_Category"},
-            ],
-        },
-        "Gasket_Group": {
-            "conditional_required": [
-                {"when_field": "Gasket_Type", "when_values": ["SW"], "require_non_empty": ["Material_Secondary"]},
-            ],
-        },
-        "Bolt_Group": {},
-    },
+    "sheets": {},
 }
 
-# required_non_empty 도출 — domain_schema(SSOT)가 헤더·필수의 단일 정의처.
-for _sheet, _rules in DEFAULT_COMPONENT_MAPPING["sheets"].items():
-    _rules["required_non_empty"] = _domain_schema.required_fields(_sheet)
+# 전 규칙을 domain_schema(SSOT)에서 도출. 빈 규칙은 키를 생략(기존 구조 유지).
+for _sheet in _domain_schema.GROUPS:
+    _rules: dict = {"required_non_empty": _domain_schema.required_fields(_sheet)}
+    _cr = _domain_schema.conditional_required(_sheet)
+    if _cr:
+        _rules["conditional_required"] = _cr
+    _ce = _domain_schema.conditional_empty(_sheet)
+    if _ce:
+        _rules["conditional_empty"] = _ce
+    _cc = _domain_schema.code_category_consistency(_sheet)
+    if _cc:
+        _rules["code_category_consistency"] = _cc
+    DEFAULT_COMPONENT_MAPPING["sheets"][_sheet] = _rules

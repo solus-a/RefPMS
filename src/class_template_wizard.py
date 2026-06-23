@@ -12,6 +12,7 @@ from tkinter import messagebox, simpledialog, ttk
 from typing import Callable, Literal
 
 import config
+import domain_schema
 from class_level_model import (
     ClassLevelBundle,
     ClassTemplateGlobalSettings,
@@ -559,24 +560,13 @@ def _normalize_decimal_string(raw: str | None) -> str:
 
 # ── Component field-value DB (per-group dropdown sources) ──────────────────────
 
-@lru_cache(maxsize=1)
 def _field_values_db() -> dict[str, dict[str, list[dict[str, str]]]]:
-    path = config.field_values_db_path()
-    if not path.exists():
-        return {}
-    with open(path, "r", encoding="utf-8") as f:
-        raw = json.load(f) or {}
-    return {k: v for k, v in raw.items() if not k.startswith("_")}
+    # 값 데이터 접근은 domain_schema(SSOT) façade 경유 — 직접 JSON 읽기 금지.
+    return domain_schema.field_values_db()
 
 
-@lru_cache(maxsize=1)
 def _item_code_db_json() -> dict[str, list[dict[str, str]]]:
-    path = config.item_code_db_json_path()
-    if not path.exists():
-        return {}
-    with open(path, "r", encoding="utf-8") as f:
-        raw = json.load(f) or {}
-    return {k: v for k, v in raw.items() if not k.startswith("_")}
+    return domain_schema.item_code_db()
 
 
 # 약어를 풀어쓰지 않고 그대로(short) 표시할 필드 — 규격/등급/코드/재질 designation/길이.

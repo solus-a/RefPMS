@@ -22,8 +22,12 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Optional
+
+import config
 
 
 @dataclass(frozen=True)
@@ -40,6 +44,10 @@ class FieldDefinition:
     validation_location: Optional[str] = None
     input_method: Optional[str] = None
     unit: Optional[str] = None
+    # 구조화된 교차필드 제약 — data_defaults.DEFAULT_COMPONENT_MAPPING 이 도출.
+    # prose 설명은 relations/format_constraint 에도 함께 기술한다.
+    conditional_required_when: Optional[dict] = None  # {"field": <sibling>, "values": [...]}
+    conditional_empty_when: Optional[dict] = None      # {"field": <sibling>, "values": [...]}
 
 
 # ── Pipe_Group ─────────────────────────────────────────────────────────────────
@@ -357,6 +365,7 @@ PIPE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=(
             "mm (실제 길이 — Pipe Size 시스템 NPS/DN 과 무관하게 mm 일관)"
         ),
+        conditional_required_when={"field": "Item_Code", "values": ["JN"]},
     ),
     FieldDefinition(
         name="Option_Code",
@@ -1307,6 +1316,8 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
             " Item_Code=FR 일 때만 활성화."
         ),
         unit=None,
+        conditional_required_when={"field": "Item_Code", "values": ["FR"]},
+        conditional_empty_when={"field": "Item_Code", "values": ["F", "FB", "F8", "FBS"]},
     ),
     FieldDefinition(
         name="Size2_To",
@@ -1332,6 +1343,8 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
             "wizard 컴포넌트 dialog 의 콤보박스. Item_Code=FR 일 때만 활성화."
         ),
         unit=None,
+        conditional_required_when={"field": "Item_Code", "values": ["FR"]},
+        conditional_empty_when={"field": "Item_Code", "values": ["F", "FB", "F8", "FBS"]},
     ),
     FieldDefinition(
         name="Matl_Category",
@@ -1811,6 +1824,7 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
             " Gasket_Type=SW 일 때만 활성화."
         ),
         unit=None,
+        conditional_required_when={"field": "Gasket_Type", "values": ["SW"]},
     ),
     FieldDefinition(
         name="Rating",
@@ -5651,3 +5665,75 @@ def headers(sheet: str) -> list[str]:
 def required_fields(sheet: str) -> list[str]:
     """required=True 인 필드명 목록 (required_non_empty 도출원)."""
     return [fd.name for fd in GROUPS[sheet] if fd.required]
+
+
+def _grouped_conditional(sheet: str, attr: str, require_key: str) -> list[dict]:
+    """attr(conditional_*_when) 를 (when_field, when_values) 별로 묶어 mapping 항목 생성.
+    같은 조건을 공유하는 필드들은 한 항목의 require 리스트로 모은다."""
+    acc: dict[tuple, list[str]] = {}
+    order: list[tuple] = []
+    for fd in GROUPS[sheet]:
+        spec = getattr(fd, attr)
+        if not spec:
+            continue
+        key = (spec["field"], tuple(spec["values"]))
+        if key not in acc:
+            acc[key] = []
+            order.append(key)
+        acc[key].append(fd.name)
+    out: list[dict] = []
+    for (wfield, wvalues) in order:
+        out.append({"when_field": wfield, "when_values": list(wvalues), require_key: acc[(wfield, wvalues)]})
+    return out
+
+
+def conditional_required(sheet: str) -> list[dict]:
+    """conditional_required_when 도출 — DEFAULT_COMPONENT_MAPPING.conditional_required."""
+    return _grouped_conditional(sheet, "conditional_required_when", "require_non_empty")
+
+
+def conditional_empty(sheet: str) -> list[dict]:
+    """conditional_empty_when 도출 — DEFAULT_COMPONENT_MAPPING.conditional_empty."""
+    return _grouped_conditional(sheet, "conditional_empty_when", "require_empty")
+
+
+def code_category_consistency(sheet: str) -> list[dict]:
+    """Matl_Code 와 Matl_Category 가 모두 있으면 일관성 규칙 도출."""
+    names = {fd.name for fd in GROUPS[sheet]}
+    if "Matl_Code" in names and "Matl_Category" in names:
+        return [{"code_field": "Matl_Code", "category_field": "Matl_Category"}]
+    return []
+
+
+# ── 값(드롭다운) 데이터 접근 façade ────────────────────────────────────────────
+# 값 자체는 데이터 파일(field_values.json / item_code_db.json)에 두되, 그 파일을
+# 직접 읽는 런타임 코드는 여기 하나뿐이다. 다른 모듈은 이 함수들로만 값을 얻는다
+# ("다른 모듈은 이 스키마만 참조한다"). '_' 접두 키(_meta 등)는 제외.
+@lru_cache(maxsize=1)
+def field_values_db() -> dict[str, dict[str, list[dict[str, str]]]]:
+    path = config.field_values_db_path()
+    if not path.exists():
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        raw = json.load(f) or {}
+    return {k: v for k, v in raw.items() if not k.startswith("_")}
+
+
+@lru_cache(maxsize=1)
+def item_code_db() -> dict[str, list[dict[str, str]]]:
+    path = config.item_code_db_json_path()
+    if not path.exists():
+        return {}
+    with open(path, "r", encoding="utf-8") as f:
+        raw = json.load(f) or {}
+    return {k: v for k, v in raw.items() if not k.startswith("_")}
+
+
+def field_value_options(sheet: str, field_name: str) -> list[dict[str, str]]:
+    """그룹·필드의 드롭다운 옵션 목록 (short/long/std/category 등 raw dict)."""
+    return (field_values_db().get(sheet) or {}).get(field_name) or []
+
+
+def item_code_entries(sheet: str) -> list[dict[str, str]]:
+    """그룹의 Item_Code 항목 목록 (code/code_name/shape)."""
+    return item_code_db().get(sheet) or []
