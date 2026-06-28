@@ -2735,15 +2735,15 @@
         "long": "(unspecified)"
       },
       {
-        "short": "Top",
+        "short": "Top Entry",
         "long": "Top Entry"
       },
       {
-        "short": "Side",
+        "short": "Side Entry",
         "long": "Side Entry"
       },
       {
-        "short": "End",
+        "short": "End Entry",
         "long": "End Entry"
       }
     ],
@@ -3032,11 +3032,11 @@
         "long": "Concentric Disc"
       },
       {
-        "short": "DoubleOffset",
+        "short": "Double Offset",
         "long": "Double Offset Disc"
       },
       {
-        "short": "TripleOffset",
+        "short": "Triple Offset",
         "long": "Triple Offset Disc"
       }
     ],

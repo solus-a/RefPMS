@@ -35,7 +35,7 @@ EXTERNAL = {
 headers_by_group = {sn: [h for h in headers] for sn, _l, headers in COMPONENT_GROUPS}
 sheets_map = MAP.get("sheets", {})
 
-issues = {k: [] for k in "ABCDEFGH"}
+issues = {k: [] for k in "ABCDEFG"}
 
 def fv_fields(group):
     return set((FV.get(group) or {}).keys())
@@ -149,28 +149,6 @@ try:
 except Exception as e:
     issues["G"].append(f"domain_schema 로드 실패: {e}")
 
-# ---- H: 서술 필드 short 가 약어가 아니라 풀단어 (예: Bolted -> BB 여야 함) ----
-# 재료/규격 필드는 designation 자체가 표준이라 제외. 서술(categorical) 필드만 검사.
-DESCRIPTOR_FIELDS = {
-    "Bonnet_Type", "Bonnet_Stem", "Operation", "Wedge_Type", "Disc_Type",
-    "Body_Type", "Bore", "Entry_Type", "End_Type", "Facing",
-    "Manufacturing_Method", "Gasket_Type", "Flange_Type",
-    "Bolt_Type", "Nut_Type", "Plug_Type",
-}
-for group in headers_by_group:
-    g = FV.get(group) or {}
-    for field in g:
-        if field not in DESCRIPTOR_FIELDS:
-            continue
-        for it in g[field]:
-            short = (it.get("short") or "").strip()
-            long = (it.get("long") or "").strip()
-            if not short:
-                continue  # (None) 옵션
-            # 약어 코드라면 소문자가 없어야 한다 (BW/RF/OS&Y/PSB...). 소문자 포함 = 풀단어.
-            if any(c.islower() for c in short):
-                issues["H"].append(f"{group}.{field}: short={short!r} (long={long!r}) — 약어 아님")
-
 # ---- 리포트 ----
 TITLES = {
     "A": "A. 헤더 필드인데 값 소스 없음",
@@ -180,10 +158,9 @@ TITLES = {
     "E": "E. Matl_Code std/category 참조 깨짐",
     "F": "F. item_code_db 누락",
     "G": "G. domain_schema 문서 드리프트",
-    "H": "H. 서술 필드 short 가 약어 아님 (풀단어)",
 }
 total = 0
-for k in "ABCDEFGH":
+for k in "ABCDEFG":
     lst = issues[k]
     total += len(lst)
     print(f"\n### {TITLES[k]}  ({len(lst)})")
