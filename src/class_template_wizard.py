@@ -630,7 +630,7 @@ def _options_for(sheet_name: str, field: str) -> list[tuple[str, str]] | None:
 #   "category": (category_field, mode)  — mode="exact" 정확 일치, "family" 큰 분류 일치.
 # Matl_Code 는 category=None — 기존 동작(std 만) 유지. category 필터 도입은 별도 단계.
 _CODE_FILTER_SPECS: dict[str, dict] = {
-    "Matl_Code": {"std": "Matl_Std", "category": None},
+    "Matl_Code": {"std": "Matl_Std", "category": ("Matl_Category", "exact")},
     "Bolt_Matl_Code": {"std": "Bolt_Matl_Std", "category": ("Bolt_Matl_Category", "exact")},
     "Nut_Matl_Code": {"std": "Nut_Matl_Std", "category": ("Bolt_Matl_Category", "family")},
 }
