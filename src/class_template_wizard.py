@@ -629,6 +629,7 @@ def _options_for(sheet_name: str, field: str) -> list[tuple[str, str]] | None:
 _STD_FILTER_PAIRS: dict[str, str] = {
     "Matl_Code": "Matl_Std",
     "Bolt_Matl_Code": "Bolt_Matl_Std",
+    "Nut_Matl_Code": "Nut_Matl_Std",
 }
 
 

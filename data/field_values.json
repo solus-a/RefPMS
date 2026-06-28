@@ -1149,46 +1149,37 @@
       {
         "short": "A307-B",
         "std": "ASTM",
+        "category": "CS",
         "long": "ASTM A307 Gr.B"
       },
       {
         "short": "A193-B7",
         "std": "ASTM",
+        "category": "AS",
         "long": "ASTM A193 B7"
-      },
-      {
-        "short": "A193-B7M",
-        "std": "ASTM",
-        "long": "ASTM A193 B7M"
       },
       {
         "short": "A193-B16",
         "std": "ASTM",
+        "category": "AS",
         "long": "ASTM A193 B16"
       },
       {
         "short": "A320-L7",
         "std": "ASTM",
+        "category": "LTCS",
         "long": "ASTM A320 L7"
-      },
-      {
-        "short": "A320-L7M",
-        "std": "ASTM",
-        "long": "ASTM A320 L7M"
       },
       {
         "short": "A193-B8",
         "std": "ASTM",
+        "category": "SS",
         "long": "ASTM A193 B8"
-      },
-      {
-        "short": "A193-B8M",
-        "std": "ASTM",
-        "long": "ASTM A193 B8M"
       },
       {
         "short": "SCM435",
         "std": "JIS",
+        "category": "AS",
         "long": "JIS SCM435"
       }
     ],
@@ -1214,6 +1205,26 @@
       {
         "short": "KS",
         "long": "KS"
+      }
+    ],
+    "Nut_Matl_Code": [
+      {
+        "short": "A194-2H",
+        "std": "ASTM",
+        "category": "CS",
+        "long": "ASTM A194 Gr.2H"
+      },
+      {
+        "short": "A194-7",
+        "std": "ASTM",
+        "category": "LTCS",
+        "long": "ASTM A194 Gr.7"
+      },
+      {
+        "short": "A194-8",
+        "std": "ASTM",
+        "category": "SS",
+        "long": "ASTM A194 Gr.8"
       }
     ],
     "Option_Code": [

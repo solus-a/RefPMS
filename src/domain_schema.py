@@ -1979,8 +1979,8 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
 #
 # 다른 시트와 비교한 주요 특성:
 #   - Bolt 재질: Bolt_Matl_Category/Std/Code 3컬럼. Nut 는 Nut_Type + Nut_Matl_Std
-#     만 받고, Nut 의 category/code 는 Bolt 를 추종 (전용 입력 컬럼 폐지 — 생성 시
-#     Nut_Matl_Code = Bolt_Matl_Code).
+#     + Nut_Matl_Code. Nut designation 은 Bolt 와 다르며(B7↔2H) 독립 지정;
+#     카테고리(탄소강계/SS계)만 Bolt 를 추종 — 큰 분류 일치 검증은 Phase 2-b.
 #   - Bolt_Length_Table: size 별 bolt 길이를 별도 시트에 두고 키로 참조
 #     · 옵션 풀은 닫힌 집합이 아니라 사용자 자유 — _meta.external_dropdown_sources
 #       에 "TBD: separate length table file" 로 표기되어 있음.
@@ -2205,27 +2205,30 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
         name="Bolt_Matl_Code",
         meaning=(
             "Bolt 의 구체 재질 규격 코드. std-aware 필드 — 표준별 옵션이 다름."
-            " ASTM (8개): A307-B (CS), A193-B7/B7M/B16 (Cr-Mo Stud, std/low-hardness/high-temp),"
-            " A320-L7/L7M (LTCS Stud), A193-B8/B8M (SS304/SS316 Stud)."
-            " JIS (1개): SCM435 (Cr-Mo Bolt). KS 항목은 추후 추가."
-            " 'B7M' / 'L7M' 등 'M' suffix 는 low-hardness 변종 (sour service 용)."
+            " ASTM (5개): A307-B (CS), A193-B7/B16 (Cr-Mo alloy steel Stud),"
+            " A320-L7 (저온 Stud, LTCS 로 분류), A193-B8 (SS304 Stud)."
+            " JIS (1개): SCM435 (Cr-Mo, AS)."
+            " 'M' suffix 변종(B7M/L7M/B8M)은 도메인 합의로 제외. KS/EN 추후 추가."
         ),
         data_type="string (short code; e.g. A193-B7 / SCM435)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Bolt_Group.Bolt_Matl_Code 옵션"
-            " (closed set, 9개). KS/EN 항목은 추후 추가."
+            " (closed set, 6개). KS/EN 항목은 추후 추가."
         ),
         unique=None,
         relations=[
-            "Bolt_Matl_Std (FK), Bolt_Matl_Category (의미적 정합) 와 함께 필터링",
+            "Bolt_Matl_Std (FK, std 필터) 와 Bolt_Matl_Category (code_category"
+            "_consistency 검증) 에 종속 — Pipe_Group.Matl_Code 와 동일 패턴",
             "Bolt_Type 과 호환 관행: Stud-grade (B7 등) 와 Machine-grade (A307 등)"
             " 구분 — 강제 검증 없음",
-            "Nut 재질은 이 Bolt_Matl_Code 를 추종 (생성 시 동일 값 사용)",
+            "Nut 는 Nut_Matl_Code 로 독립 지정 — 카테고리(탄소강계/SS계)는 Bolt 를"
+            " 추종하나 designation 은 다름 (예: B7 ↔ 2H). 큰 분류 일치 검증은 별도",
             "PMS description 에 합성",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터);"
+            " 저장 시 Bolt_Matl_Code↔Bolt_Matl_Category 일관성 검증."
         ),
         input_method=(
             "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중"
@@ -2264,10 +2267,7 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
         name="Nut_Matl_Std",
         meaning=(
             "Nut 재질 표준 발행 기관. Bolt_Matl_Std 와 옵션 풀 동일 (3개:"
-            " ASTM/JIS/KS)."
-            " 참고: Nut_Matl_Category / Nut_Matl_Code 전용 필드는 폐지되었다 —"
-            " Nut 재질은 Bolt 를 따라가며(생성 시 Nut_Matl_Code = Bolt_Matl_Code),"
-            " 입력은 Std 만 별도로 받는다."
+            " ASTM/JIS/KS). Nut_Matl_Code 를 std 로 필터링한다."
         ),
         data_type="string (short code)",
         required=True,
@@ -2277,13 +2277,45 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Nut 의 category/code 는 Bolt 를 추종 (전용 입력 필드 없음)",
+            "Nut_Matl_Code 와 종속 (std 키 일치 필터 — Bolt_Matl_Std 패턴 동일)",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
         ),
         input_method=(
             "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Nut_Matl_Code",
+        meaning=(
+            "Nut 의 구체 재질 규격 코드 (designation). Bolt 와 독립 지정 —"
+            " 카테고리(탄소강계/SS계)는 Bolt 를 추종하나 designation 은 다르다"
+            " (표준 짝: A193-B7 ↔ A194-2H, A320-L7 ↔ A194-7, A193-B8 ↔ A194-8)."
+            " ASTM (3개): A194-2H (CS, B7/B16 짝), A194-7 (LTCS, L7 짝),"
+            " A194-8 (SS304, B8 짝). 'M' 변종(2HM/8M)은 도메인 합의로 제외."
+            " PMS description 에 Bolt_Matl_Code 와 '/' 로 병기 (예: 'B7 / 2H')."
+        ),
+        data_type="string (short code; e.g. A194-2H)",
+        required=True,
+        format_constraint=(
+            "data/field_values.json 의 Bolt_Group.Nut_Matl_Code 옵션"
+            " (closed set, 3개). std 키로 Nut_Matl_Std 필터. KS/EN 추후 추가."
+        ),
+        unique=None,
+        relations=[
+            "Nut_Matl_Std (FK, std 필터) 에 종속 — Bolt_Matl_Code 와 동일 패턴",
+            "카테고리는 Bolt 추종 (탄소강계 볼트엔 탄소강계 너트, SS 엔 SS) —"
+            " 큰 분류 일치 검증은 별도 작업(Phase 2-b)",
+            "PMS description 에 Bolt_Matl_Code 와 병기",
+        ],
+        validation_location=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + Nut_Matl_Std 필터)."
+        ),
+        input_method=(
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중"
+            " Nut_Matl_Std 와 일치하는 항목만)"
         ),
         unit=None,
     ),
@@ -5708,11 +5740,18 @@ def conditional_empty(sheet: str) -> list[dict]:
 
 
 def code_category_consistency(sheet: str) -> list[dict]:
-    """Matl_Code 와 Matl_Category 가 모두 있으면 일관성 규칙 도출."""
+    """(code_field, category_field) 짝이 둘 다 존재하면 일관성 규칙 도출.
+    Matl_Code↔Matl_Category 외에 Bolt_Matl_Code↔Bolt_Matl_Category 도 포함."""
     names = {fd.name for fd in GROUPS[sheet]}
-    if "Matl_Code" in names and "Matl_Category" in names:
-        return [{"code_field": "Matl_Code", "category_field": "Matl_Category"}]
-    return []
+    pairs = [
+        ("Matl_Code", "Matl_Category"),
+        ("Bolt_Matl_Code", "Bolt_Matl_Category"),
+    ]
+    return [
+        {"code_field": c, "category_field": cat}
+        for c, cat in pairs
+        if c in names and cat in names
+    ]
 
 
 # ── 값(드롭다운) 데이터 접근 façade ────────────────────────────────────────────
