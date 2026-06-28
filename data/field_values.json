@@ -1573,22 +1573,34 @@
         "long": "Flanged"
       }
     ],
-    "Bonnet_Type": [
+    "Bonnet_Stem": [
       {
-        "short": "Bolted",
-        "long": "Bolted Bonnet"
+        "short": "BB OS&Y",
+        "long": "Bolted Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "PSB",
-        "long": "Pressure-Sealed Bonnet"
+        "short": "BB NRS",
+        "long": "Bolted Bonnet, Non-Rising Stem"
       },
       {
-        "short": "Welded",
-        "long": "Welded Bonnet"
+        "short": "BB ISRS",
+        "long": "Bolted Bonnet, Inside Screw Rising Stem"
       },
       {
-        "short": "Screwed",
-        "long": "Screwed Bonnet"
+        "short": "WB OS&Y",
+        "long": "Welded Bonnet, Outside Screw & Yoke"
+      },
+      {
+        "short": "PSB OS&Y",
+        "long": "Pressure-Sealed Bonnet, Outside Screw & Yoke"
+      },
+      {
+        "short": "SB ISRS",
+        "long": "Screwed Bonnet, Inside Screw Rising Stem"
+      },
+      {
+        "short": "SB NRS",
+        "long": "Screwed Bonnet, Non-Rising Stem"
       }
     ],
     "Wedge_Type": [
@@ -1992,22 +2004,34 @@
         "long": "Flanged"
       }
     ],
-    "Bonnet_Type": [
+    "Bonnet_Stem": [
       {
-        "short": "Bolted",
-        "long": "Bolted Bonnet"
+        "short": "BB OS&Y",
+        "long": "Bolted Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "PSB",
-        "long": "Pressure-Sealed Bonnet"
+        "short": "BB NRS",
+        "long": "Bolted Bonnet, Non-Rising Stem"
       },
       {
-        "short": "Welded",
-        "long": "Welded Bonnet"
+        "short": "BB ISRS",
+        "long": "Bolted Bonnet, Inside Screw Rising Stem"
       },
       {
-        "short": "Screwed",
-        "long": "Screwed Bonnet"
+        "short": "WB OS&Y",
+        "long": "Welded Bonnet, Outside Screw & Yoke"
+      },
+      {
+        "short": "PSB OS&Y",
+        "long": "Pressure-Sealed Bonnet, Outside Screw & Yoke"
+      },
+      {
+        "short": "SB ISRS",
+        "long": "Screwed Bonnet, Inside Screw Rising Stem"
+      },
+      {
+        "short": "SB NRS",
+        "long": "Screwed Bonnet, Non-Rising Stem"
       }
     ],
     "Operation": [
@@ -3612,22 +3636,34 @@
         "long": "Flanged"
       }
     ],
-    "Bonnet_Type": [
+    "Bonnet_Stem": [
       {
-        "short": "Bolted",
-        "long": "Bolted Bonnet"
+        "short": "BB OS&Y",
+        "long": "Bolted Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "PSB",
-        "long": "Pressure-Sealed Bonnet"
+        "short": "BB NRS",
+        "long": "Bolted Bonnet, Non-Rising Stem"
       },
       {
-        "short": "Welded",
-        "long": "Welded Bonnet"
+        "short": "BB ISRS",
+        "long": "Bolted Bonnet, Inside Screw Rising Stem"
       },
       {
-        "short": "Screwed",
-        "long": "Screwed Bonnet"
+        "short": "WB OS&Y",
+        "long": "Welded Bonnet, Outside Screw & Yoke"
+      },
+      {
+        "short": "PSB OS&Y",
+        "long": "Pressure-Sealed Bonnet, Outside Screw & Yoke"
+      },
+      {
+        "short": "SB ISRS",
+        "long": "Screwed Bonnet, Inside Screw Rising Stem"
+      },
+      {
+        "short": "SB NRS",
+        "long": "Screwed Bonnet, Non-Rising Stem"
       }
     ],
     "Operation": [

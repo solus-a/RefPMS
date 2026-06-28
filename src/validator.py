@@ -12,15 +12,19 @@ from excel_sheet_utils import get_cell_text as _get_cell_text
 
 
 def load_component_mapping(path: Path | None = None) -> dict[str, Any]:
+    """행 검증 규칙(component mapping) 로드.
+
+    기본은 SSOT(domain_schema 도출) data_defaults.DEFAULT_COMPONENT_MAPPING 사용 —
+    디스크 캐시가 stale 해질 여지를 없앤다. path 명시 시에만 그 파일을 직접 읽는다
+    (테스트/override). 파일 오류 시 빈 rules.
     """
-    data/component_mapping.json 로드.
-    파일이 없거나 오류 시 빈 rules로 진행할 수 있게 최소 dict 반환.
-    """
-    p = path if path is not None else config.component_mapping_path()
-    if not p.exists():
+    if path is None:
+        from data_defaults import DEFAULT_COMPONENT_MAPPING
+        return DEFAULT_COMPONENT_MAPPING
+    if not path.exists():
         return {"version": 0, "sheets": {}}
     try:
-        with open(p, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         if not isinstance(data, dict):
             return {"version": 0, "sheets": {}}

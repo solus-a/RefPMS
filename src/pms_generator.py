@@ -891,7 +891,7 @@ def _build_item_description_by_rule(
         rating = _get_cell_text(ws, row_idx, header_to_col, "Rating")
         end_type = _get_cell_text(ws, row_idx, header_to_col, "End_Type")
         operation = _get_cell_text(ws, row_idx, header_to_col, "Operation")
-        bonnet_type = _get_cell_text(ws, row_idx, header_to_col, "Bonnet_Type")
+        bonnet_type = _get_cell_text(ws, row_idx, header_to_col, "Bonnet_Stem")
 
         if sheet_name == "Butterfly_Valve_Group":
             trim_mat = _get_cell_text(ws, row_idx, header_to_col, "Disc_Matl")

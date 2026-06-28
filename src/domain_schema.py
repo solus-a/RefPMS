@@ -2397,14 +2397,15 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
 #     Flexible/Split/TC).
 #   - Bore (FB/RB) 컬럼 제거 — Gate Valve 는 거의 Full Bore 가 표준. 특수한 RB
 #     Gate 는 별도 명시 필요 시 Remarks 로 우회.
-#   - Stem_Type (OS&Y/NRS/Rising Stem) 컬럼 없음 — Bonnet_Type / Operation 으로
+#   - Stem_Type (OS&Y/NRS/Rising Stem) 컬럼 없음 — Bonnet_Stem / Operation 으로
 #     대부분의 구조 정보가 표현됨.
 #   - Size 시스템: Size1_From / Size1_To 한 짝 (Flange Size1 패턴; Valve 는
 #     Reducing 없음).
 #   - Rating: std-aware (ASTM 7 + JIS 7 + KS 7 = 21개; ASTM 에 800# 추가) —
 #     ASTM 기준 표준은 ASME B16.5 (Flange) 가 아닌 ASME B16.34 (Valve).
 #   - End_Type: BW/SW/TH/FLG 4종.
-#   - Bonnet_Type: Bolted / PSB (Pressure-Sealed) / Welded / Screwed 4종.
+#   - Bonnet_Stem: BB OS&Y / BB NRS / BB ISRS / WB OS&Y / PSB OS&Y / SB ISRS /
+#     SB NRS 7조합 (bonnet + stem 통합).
 #   - Operation: Manual (Handwheel) / Lever / Wrench / Gear / Chain 5종 — Motor
 #     / Pneumatic / Hydraulic 등 actuator 류는 현재 미고려 (별도 actuator 시트
 #     로 분리 검토).
@@ -2421,7 +2422,7 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
 #   - 15 필드 (현재 Gate; Seat_Matl 폐지). 다른 Valve (Globe/Check 등) 는 valve
 #     별 고유 컬럼 (Disc_Type / Plug_Type 등) 으로 비슷한 길이.
 #   - Class_Name → Item_Code → Size1 → Body Matl → Trim → Rating →
-#     End_Type → Bonnet_Type → (valve 고유: Wedge_Type) → Operation →
+#     End_Type → Bonnet_Stem → (valve 고유: Wedge_Type) → Operation →
 #     Option_Code → Remarks 순서.
 
 GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
@@ -2687,18 +2688,21 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
     FieldDefinition(
-        name="Bonnet_Type",
+        name="Bonnet_Stem",
         meaning=(
-            "Valve bonnet (body 상단의 덮개) 형식. 4종:"
-            " Bolted (Bolted Bonnet — 가장 흔함),"
-            " PSB (Pressure-Sealed Bonnet — 고압용),"
-            " Welded (Welded Bonnet — 영구), Screwed (Screwed Bonnet — 소구경)."
+            "Valve bonnet (body 상단 덮개) 형식과 stem 구동 방식의 통합 분류."
+            " 현실 조합 7개: BB OS&Y / BB NRS / BB ISRS / WB OS&Y / PSB OS&Y /"
+            " SB ISRS / SB NRS."
+            " 본넷 BB=Bolted · WB=Welded · PSB=Pressure-Sealed · SB=Screwed;"
+            " stem OS&Y=Outside Screw & Yoke · NRS=Non-Rising Stem ·"
+            " ISRS=Inside Screw Rising Stem."
+            " 비현실 조합(WB/PSB 의 비-OS&Y 등)은 제외."
         ),
         data_type="string (short code)",
         required=True,
         format_constraint=(
-            "data/field_values.json 의 Gate_Valve_Group.Bonnet_Type 옵션"
-            " (closed set, 4개)."
+            "data/field_values.json 의 Gate_Valve_Group.Bonnet_Stem 옵션"
+            " (closed set, 7개)."
         ),
         unique=None,
         relations=[
@@ -2842,7 +2846,7 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #
 # Gate 와의 주요 차이:
 #   - 고유 컬럼: Wedge_Type → Disc_Type (Plug / Conventional / Composition 3종
-#     + 빈 값 허용). 헤더 위치도 다름 — Gate 는 Bonnet_Type 뒤, Globe 는
+#     + 빈 값 허용). 헤더 위치도 다름 — Gate 는 Bonnet_Stem 뒤, Globe 는
 #     Operation 뒤 (Option_Code 직전). 의미적으로 Operation 결정 후 disc 결정이
 #     실무 흐름.
 #   - Disc 옵션 풀 (도메인 표준 + 사용자 결정):
@@ -2866,7 +2870,7 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #   - Size 시스템: Size1_From / Size1_To 한 짝 (Reducing 없음).
 #   - Rating: std-aware (ASTM 7 + JIS 7 + KS 7 = 21개; 800# 포함) — Gate 와
 #     동일 옵션 풀 + std 키 부여. ASTM 기준 표준은 ASME B16.34.
-#   - End_Type 4종, Bonnet_Type 4종, Operation 5종.
+#   - End_Type 4종, Bonnet_Stem 4종, Operation 5종.
 #   - Stem_Type / Bore / Actuator 종류 컬럼 미고려 (Gate 와 동일 정책).
 #
 # 미고려 항목 (추후 도메인 합의 시 확장):
@@ -2880,7 +2884,7 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #   - 15 필드 (Gate 와 동일 길이; Seat_Matl 폐지). Disc_Type / Wedge_Type 같은
 #     valve 고유 컬럼 자리가 시트별 1 ~ 2 개로 변경되는 패턴.
 #   - Class_Name → Item_Code → Size1 → Body Matl → Trim → Rating →
-#     End_Type → Bonnet_Type → Operation → (Globe 고유: Disc_Type) →
+#     End_Type → Bonnet_Stem → Operation → (Globe 고유: Disc_Type) →
 #     Option_Code → Remarks 순서.
 
 GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
@@ -3145,18 +3149,21 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
     FieldDefinition(
-        name="Bonnet_Type",
+        name="Bonnet_Stem",
         meaning=(
-            "Valve bonnet (body 상단의 덮개) 형식. 4종:"
-            " Bolted (Bolted Bonnet — 가장 흔함),"
-            " PSB (Pressure-Sealed Bonnet — 고압용),"
-            " Welded (Welded Bonnet — 영구), Screwed (Screwed Bonnet — 소구경)."
+            "Valve bonnet (body 상단 덮개) 형식과 stem 구동 방식의 통합 분류."
+            " 현실 조합 7개: BB OS&Y / BB NRS / BB ISRS / WB OS&Y / PSB OS&Y /"
+            " SB ISRS / SB NRS."
+            " 본넷 BB=Bolted · WB=Welded · PSB=Pressure-Sealed · SB=Screwed;"
+            " stem OS&Y=Outside Screw & Yoke · NRS=Non-Rising Stem ·"
+            " ISRS=Inside Screw Rising Stem."
+            " 비현실 조합(WB/PSB 의 비-OS&Y 등)은 제외."
         ),
         data_type="string (short code)",
         required=True,
         format_constraint=(
-            "data/field_values.json 의 Globe_Valve_Group.Bonnet_Type 옵션"
-            " (closed set, 4개)."
+            "data/field_values.json 의 Globe_Valve_Group.Bonnet_Stem 옵션"
+            " (closed set, 7개)."
         ),
         unique=None,
         relations=[
@@ -3297,11 +3304,11 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #
 # Check Valve (역류 방지 valve) — Valve 6종 중 세 번째 시트.
 # **자동 동작** (역류 압력으로 disc 가 seat 에 안착) 이라는 점이 Gate/Globe 와의
-# 본질적 차이. 결과적으로 Bonnet_Type / Operation 컬럼이 **없음** — 헤더 14개로
+# 본질적 차이. 결과적으로 Bonnet_Stem / Operation 컬럼이 **없음** — 헤더 14개로
 # Gate/Globe (16개) 보다 2개 적음.
 #
 # Gate/Globe 와의 주요 차이:
-#   - 자동 동작: Bonnet_Type 없음 (Check valve 는 통상 cover/bonnet 구분 약함),
+#   - 자동 동작: Bonnet_Stem 없음 (Check valve 는 통상 cover/bonnet 구분 약함),
 #     Operation 없음 (handwheel/lever 등 조작부 없음 — 역류 시 자동 닫힘).
 #   - 헤더 길이: 13 필드 (Class/Item/Size1 짝/Body Matl/Trim/Rating/End/
 #     Disc_Type/Option/Remarks; Seat_Matl 폐지).
@@ -3336,7 +3343,7 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #   - Item_Code 분리: Cast vs Forged (VC / VCF) 등 — 현재 VC 하나로 유지
 #
 # 다른 Valve 시트와의 공통 구조:
-#   - 13 필드 (Gate/Globe 15개 - Bonnet_Type/Operation 2개 = 13).
+#   - 13 필드 (Gate/Globe 15개 - Bonnet_Stem/Operation 2개 = 13).
 #   - Class_Name → Item_Code → Size1 → Body Matl → Trim → Rating →
 #     End_Type → (Check 고유: Disc_Type) → Option_Code → Remarks 순서.
 
@@ -3696,13 +3703,13 @@ CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 # ── Ball_Valve_Group ───────────────────────────────────────────────────────────
 #
 # Ball Valve (회전 ball 로 차단하는 valve) — Valve 6종 중 네 번째 시트.
-# Gate/Globe/Check 와 달리 Bonnet_Type 컬럼 없음 (Ball valve 의 cover 구조는
+# Gate/Globe/Check 와 달리 Bonnet_Stem 컬럼 없음 (Ball valve 의 cover 구조는
 # Entry_Type 으로 표현). 대신 Ball valve 고유의 두 컬럼이 추가:
 #   - Bore (FB / RB): full bore 와 reduced bore 의 구분이 핵심.
 #   - Entry_Type (Top / Side / End): body 분리 방식 (cover 형태).
 #
 # Gate/Globe/Check 와의 주요 차이:
-#   - Bonnet_Type 없음 — Ball valve 는 bonnet 대신 body cover (top / side / end
+#   - Bonnet_Stem 없음 — Ball valve 는 bonnet 대신 body cover (top / side / end
 #     entry) 로 분리되며 그 구분이 Entry_Type 컬럼.
 #   - Bore (FB / RB) 컬럼이 **required + 빈 값 불허** — Ball valve 는 FB/RB
 #     구분이 도메인 핵심. Procurement Description 에 관행상 항상 포함.
@@ -3737,7 +3744,7 @@ CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #   - Item_Code 분리: Cast vs Forged (VL / VLF) 등 — 현재 VL 하나로 유지
 #
 # 다른 Valve 시트와의 공통 구조:
-#   - 16 필드 (Gate/Globe 와 동일 길이; Bonnet_Type 자리에 Bore + Entry_Type
+#   - 16 필드 (Gate/Globe 와 동일 길이; Bonnet_Stem 자리에 Bore + Entry_Type
 #     두 컬럼이 차지).
 #   - Class_Name → Item_Code → Size1 → Body Matl → Trim/Seat → Rating →
 #     End_Type → (Ball 고유: Bore → Entry_Type) → Operation → Option_Code →
@@ -4202,7 +4209,7 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #     600# 만 (900# 이상 없음). JIS/KS: 5K ~ 20K 만 (30K 이상 없음).
 #   - **End_Type 2종만** (BW / FLG) — SW / TH 없음. Butterfly 는 face-to-face
 #     short body 가 표준 (flange 사이 wafer/lug 또는 double-flange).
-#   - **Bonnet_Type / Bore 없음** — Butterfly 는 bonnet 개념 약하고 (top cover
+#   - **Bonnet_Stem / Bore 없음** — Butterfly 는 bonnet 개념 약하고 (top cover
 #     로 stem 만), bore 는 항상 line size 와 거의 동일.
 #   - **Disc_Type 컬럼 신설 (Butterfly 고유)** — disc geometry 가 도메인 분류의
 #     핵심. 3종 + 빈 값:
@@ -4727,7 +4734,7 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #     과 동일 옵션 풀 + std 키 부여. ASTM 기준 표준은 ASME B16.34.
 #   - End_Type 4종 (BW/SW/TH/FLG).
 #   - Operation 5종 (Manual/Lever/Wrench/Gear/Chain).
-#   - Bonnet_Type 없음 — Plug valve 는 bonnet 대신 top cover (stem 만 외부로"
+#   - Bonnet_Stem 없음 — Plug valve 는 bonnet 대신 top cover (stem 만 외부로"
 #     노출).
 #
 # 미고려 항목 (추후 도메인 합의 시 확장):
@@ -4740,7 +4747,7 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #     유지, 구분은 Plug_Type 컬럼.
 #
 # 다른 Valve 시트와의 공통 구조:
-#   - 15 필드 (Gate/Globe/Ball 16개 - Bonnet_Type 1개 = 15; Butterfly 와 동일"
+#   - 15 필드 (Gate/Globe/Ball 16개 - Bonnet_Stem 1개 = 15; Butterfly 와 동일"
 #     길이).
 #   - Class_Name → Item_Code → Size1 → Body Matl → Plug_Matl/Seat_Matl →"
 #     Rating → End_Type → Operation → (Plug 고유: Plug_Type) → Option_Code →"
@@ -5175,14 +5182,14 @@ PLUG_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #
 # Globe_Valve_Group 과 동일한 부분:
 #   - 16 필드 구조 그대로 (Class_Name → Item_Code → Size1 → Body Matl →
-#     Trim_Matl/Seat_Matl → Rating → End_Type → Bonnet_Type → Operation →
+#     Trim_Matl/Seat_Matl → Rating → End_Type → Bonnet_Stem → Operation →
 #     Disc_Type → Option_Code → Remarks).
 #   - Matl_Category 7종 (CS/LTCS/AS/SS/DSS/SDSS/Ni-Alloy).
 #   - Trim_Matl 5종, Seat_Matl 4종 (PTFE/Viton/F316/Stellite-6 — PTFE seat 가
 #     needle valve 에 흔함).
 #   - Rating std-aware 20종 (ASTM 6 + JIS 7 + KS 7) — Globe 와 동일.
 #   - End_Type 4종 (BW/SW/TH/FLG — TH 가 instrumentation 표준 흔함).
-#   - Bonnet_Type 4종 (Bolted/PSB/Welded/Screwed) — Globe 와 동일.
+#   - Bonnet_Stem 7조합 (BB/WB/PSB/SB × OS&Y/NRS/ISRS 현실 조합) — Gate/Globe 동일.
 #   - Operation 5종 (Manual/Lever/Wrench/Gear/Chain) — 일반적으로 소구경 Manual
 #     이지만 옵션 풀은 일관성 유지.
 #
@@ -5494,24 +5501,27 @@ NEEDLE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
     FieldDefinition(
-        name="Bonnet_Type",
+        name="Bonnet_Stem",
         meaning=(
-            "Valve bonnet 형식. 4종 (Globe 와 동일): Bolted (표준), PSB"
-            " (Pressure-Sealed Bonnet — 고압 1500# 이상), Welded (소형/severe"
-            " service), Screwed (Threaded bonnet — instrumentation 흔함)."
+            "Valve bonnet 형식과 stem 구동 방식의 통합 분류 (Gate/Globe 와 동일"
+            " 7조합): BB OS&Y / BB NRS / BB ISRS / WB OS&Y / PSB OS&Y / SB ISRS /"
+            " SB NRS."
+            " 본넷 BB=Bolted · WB=Welded · PSB=Pressure-Sealed · SB=Screwed;"
+            " stem OS&Y=Outside Screw & Yoke · NRS=Non-Rising Stem ·"
+            " ISRS=Inside Screw Rising Stem."
             " Needle valve 고유 분류 (Integral / Union / Locked-Bonnet) 는"
-            " 별도 도메인 합의 후 등록 (현재 Globe 분류 공용)."
+            " 별도 도메인 합의 후 등록."
         ),
         data_type="string (short code)",
         required=True,
         format_constraint=(
-            "data/field_values.json 의 Needle_Valve_Group.Bonnet_Type 옵션"
-            " (closed set, 4개)."
+            "data/field_values.json 의 Needle_Valve_Group.Bonnet_Stem 옵션"
+            " (closed set, 7개)."
         ),
         unique=None,
         relations=[
-            "Bonnet_Type=PSB 일 때 Rating 고압 (1500# 이상) 흔함 — 강제 검증"
-            " 없음",
+            "Bonnet_Stem=PSB OS&Y 일 때 Rating 고압 (1500# 이상) 흔함 — 강제"
+            " 검증 없음",
             "PMS description 에 합성",
         ],
         validation_location=(

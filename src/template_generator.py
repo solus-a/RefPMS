@@ -30,7 +30,7 @@ from units_notation_headers import (
     class_define_storage_headers,
     class_define_storage_to_display_row,
 )
-from data_defaults import DEFAULT_CLASS_MATERIAL_MAPPING, DEFAULT_COMPONENT_MAPPING
+from data_defaults import DEFAULT_CLASS_MATERIAL_MAPPING
 from excel_sheet_utils import build_header_index, detect_header_row, to_text as _cell_to_text
 
 
@@ -169,9 +169,12 @@ def _ensure_json_file(path: Path, default_obj: dict) -> None:
 
 
 def ensure_program_json_sidecars() -> None:
-    """data/ 아래 JSON 보조 파일이 없으면 기본 내용으로 생성합니다(기존 파일은 유지)."""
+    """data/ 아래 JSON 보조 파일이 없으면 기본 내용으로 생성합니다(기존 파일은 유지).
+
+    component_mapping 은 더 이상 디스크 사이드카로 두지 않는다 — SSOT(domain_schema)
+    에서 도출하며 validator.load_component_mapping 이 메모리 도출값을 직접 사용한다.
+    """
     _ensure_json_file(config.class_material_mapping_path(), DEFAULT_CLASS_MATERIAL_MAPPING)
-    _ensure_json_file(config.component_mapping_path(), DEFAULT_COMPONENT_MAPPING)
 
 
 def _detect_item_code_db_header_row(ws) -> int:
