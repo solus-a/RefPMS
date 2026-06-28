@@ -5762,3 +5762,26 @@ def field_value_options(sheet: str, field_name: str) -> list[dict[str, str]]:
 def item_code_entries(sheet: str) -> list[dict[str, str]]:
     """그룹의 Item_Code 항목 목록 (code/code_name/shape)."""
     return item_code_db().get(sheet) or []
+
+
+# ── 재질 카테고리 family (큰 분류) ─────────────────────────────────────────────
+# 볼트↔너트처럼 "designation 은 달라도 큰 분류는 같아야" 하는 검증/필터에 사용.
+# 예: B7(AS) 볼트 ↔ 2H(CS) 너트 — 둘 다 ferrous-carbon family 라 호환.
+_CATEGORY_FAMILY: dict[str, str] = {
+    "CS": "ferrous-carbon",
+    "LTCS": "ferrous-carbon",
+    "AS": "ferrous-carbon",
+    "SS": "stainless",
+    "DSS": "stainless",
+    "SDSS": "stainless",
+    "Ni-Alloy": "ni-alloy",
+    "Cu-Alloy": "cu-alloy",
+    "GI": "galvanized",
+    "CI": "cast-iron",
+}
+
+
+def category_family(category: str) -> str:
+    """카테고리 short → 큰 분류 family. 미등록은 자기 자신(보수적)."""
+    c = (category or "").strip()
+    return _CATEGORY_FAMILY.get(c, c)

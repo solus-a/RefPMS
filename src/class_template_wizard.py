@@ -626,23 +626,49 @@ def _options_for(sheet_name: str, field: str) -> list[tuple[str, str]] | None:
     return [(it.get("short", ""), _field_display_label(field, it)) for it in items]
 
 
-_STD_FILTER_PAIRS: dict[str, str] = {
-    "Matl_Code": "Matl_Std",
-    "Bolt_Matl_Code": "Bolt_Matl_Std",
-    "Nut_Matl_Code": "Nut_Matl_Std",
+# code 필드별 필터 사양: std 짝 + (선택) category 짝.
+#   "category": (category_field, mode)  — mode="exact" 정확 일치, "family" 큰 분류 일치.
+# Matl_Code 는 category=None — 기존 동작(std 만) 유지. category 필터 도입은 별도 단계.
+_CODE_FILTER_SPECS: dict[str, dict] = {
+    "Matl_Code": {"std": "Matl_Std", "category": None},
+    "Bolt_Matl_Code": {"std": "Bolt_Matl_Std", "category": ("Bolt_Matl_Category", "exact")},
+    "Nut_Matl_Code": {"std": "Nut_Matl_Std", "category": ("Bolt_Matl_Category", "family")},
 }
 
 
-def _std_filtered_options_for(
-    sheet_name: str, code_field: str, current_std: str
+def _code_filter_dependencies(code_field: str) -> list[str]:
+    """code_field 옵션에 영향을 주는 필드(들) — std 와 (있으면) category 필드."""
+    spec = _CODE_FILTER_SPECS.get(code_field)
+    if not spec:
+        return []
+    deps = [spec["std"]]
+    if spec.get("category"):
+        deps.append(spec["category"][0])
+    return deps
+
+
+def _filtered_code_options(
+    sheet_name: str, code_field: str, current_std: str, current_category: str
 ) -> list[tuple[str, str]] | None:
-    """code_field 옵션 — 짝 std 가 정해지면 std 일치 항목만, 비면 전부."""
+    """code_field 옵션 — std 일치 + (사양에 따라) category exact/family 일치 항목만.
+    각 조건은 해당 값이 정해졌을 때만 적용(비면 그 조건 통과)."""
     items = (_field_values_db().get(sheet_name) or {}).get(code_field) or []
     if not items:
         return None
+    spec = _CODE_FILTER_SPECS.get(code_field) or {}
     std = (current_std or "").strip()
     if std:
         items = [it for it in items if (it.get("std") or "").strip() == std]
+    cat_spec = spec.get("category")
+    cat = (current_category or "").strip()
+    if cat_spec and cat:
+        _, mode = cat_spec
+        if mode == "family":
+            fam = domain_schema.category_family(cat)
+            items = [it for it in items
+                     if domain_schema.category_family((it.get("category") or "").strip()) == fam]
+        else:  # exact
+            items = [it for it in items if (it.get("category") or "").strip() == cat]
     if not items:
         return None
     return [(it.get("short", ""), _field_display_label(code_field, it)) for it in items]
@@ -681,7 +707,11 @@ class _ComponentRowEditDialog(tk.Toplevel):
         self._field_widgets: dict[str, tk.Widget] = {}
 
         size_options: list[tuple[str, str]] = [(s, s) for s in active_sizes]
-        std_field_set = set(_STD_FILTER_PAIRS.values())
+        # 의존필드(std/category) → 영향받는 code 필드 역맵 (콤보 변경 시 재필터용).
+        self._dep_to_codes: dict[str, list[str]] = {}
+        for _cf in _CODE_FILTER_SPECS:
+            for _dep in _code_filter_dependencies(_cf):
+                self._dep_to_codes.setdefault(_dep, []).append(_cf)
         self._required_fields = component_row_required_fields(sheet_name)
 
         for i, h in enumerate(headers):
@@ -691,10 +721,13 @@ class _ComponentRowEditDialog(tk.Toplevel):
 
             if h in _SIZE_FIELDS:
                 options: list[tuple[str, str]] | None = size_options or None
-            elif h in _STD_FILTER_PAIRS:
-                std_field = _STD_FILTER_PAIRS[h]
-                initial_std = ((initial or {}).get(std_field, "") or "").strip()
-                options = _std_filtered_options_for(sheet_name, h, initial_std)
+            elif h in _CODE_FILTER_SPECS:
+                spec = _CODE_FILTER_SPECS[h]
+                init_std = ((initial or {}).get(spec["std"], "") or "").strip()
+                init_cat = ""
+                if spec.get("category"):
+                    init_cat = ((initial or {}).get(spec["category"][0], "") or "").strip()
+                options = _filtered_code_options(sheet_name, h, init_std, init_cat)
             else:
                 options = _options_for(sheet_name, h)
 
@@ -714,10 +747,10 @@ class _ComponentRowEditDialog(tk.Toplevel):
                 cb.grid(row=i, column=1, pady=2, sticky="ew")
                 self._combo_widgets[h] = cb
                 self._field_widgets[h] = cb
-                if h in std_field_set:
+                if h in self._dep_to_codes:
                     cb.bind(
                         "<<ComboboxSelected>>",
-                        lambda _e, sf=h: self._refresh_dependent_code_options(sf),
+                        lambda _e, df=h: self._refresh_dependent_code_options(df),
                     )
             else:
                 var = tk.StringVar(value=initial_storage)
@@ -804,26 +837,36 @@ class _ComponentRowEditDialog(tk.Toplevel):
                 var.set("")
             w.configure(state="disabled")
 
-    def _refresh_dependent_code_options(self, std_field: str) -> None:
-        """std 필드 변경 시 짝이 되는 code 필드의 콤보 후보를 갱신."""
-        code_field: str | None = None
-        for cf, sf in _STD_FILTER_PAIRS.items():
-            if sf == std_field:
-                code_field = cf
-                break
-        if code_field is None or code_field not in self._combo_widgets:
-            return
-        std_var = self._vars.get(std_field)
-        new_std = (std_var.get() if std_var is not None else "").strip()
-        new_options = self._with_none_option(
-            code_field, _std_filtered_options_for(self._sheet_name, code_field, new_std)
-        ) or []
-        new_display = [d for _, d in new_options]
-        self._reverse_maps[code_field] = {d: s for s, d in new_options}
-        self._combo_widgets[code_field].config(values=new_display)
-        code_var = self._vars.get(code_field)
-        if code_var is not None and code_var.get() not in new_display:
-            code_var.set("")
+    def _current_storage_value(self, field: str) -> str:
+        """폼의 현재 저장값(short). 표시 라벨을 reverse_map 으로 되돌린다."""
+        var = self._vars.get(field)
+        if var is None:
+            return ""
+        raw = (var.get() or "").strip()
+        if field in self._reverse_maps:
+            return self._reverse_maps[field].get(raw, "")
+        return raw
+
+    def _refresh_dependent_code_options(self, dep_field: str) -> None:
+        """의존필드(std/category) 변경 시, 영향받는 code 필드들의 콤보 후보를 갱신."""
+        for code_field in self._dep_to_codes.get(dep_field, []):
+            if code_field not in self._combo_widgets:
+                continue
+            spec = _CODE_FILTER_SPECS[code_field]
+            cur_std = self._current_storage_value(spec["std"])
+            cur_cat = ""
+            if spec.get("category"):
+                cur_cat = self._current_storage_value(spec["category"][0])
+            new_options = self._with_none_option(
+                code_field,
+                _filtered_code_options(self._sheet_name, code_field, cur_std, cur_cat),
+            ) or []
+            new_display = [d for _, d in new_options]
+            self._reverse_maps[code_field] = {d: s for s, d in new_options}
+            self._combo_widgets[code_field].config(values=new_display)
+            code_var = self._vars.get(code_field)
+            if code_var is not None and code_var.get() not in new_display:
+                code_var.set("")
 
     def _ok(self) -> None:
         out: dict[str, str] = {}
