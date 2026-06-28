@@ -472,33 +472,100 @@ _SIZE_FIELDS: frozenset[str] = frozenset({
 })
 
 
-def _combined_component_name(sheet_name: str, row: dict[str, str]) -> str:
-    """Item_Description preview. Group별 결합 규칙이 정의된 시트는 전용 빌더, 그 외는 placeholder."""
-    if sheet_name == "Pipe_Group":
-        return _build_pipe_description(row)
-    return " ".join(v.strip() for k, v in row.items() if k not in _STRUCTURAL_FIELDS and v.strip())
+# Item_Description 합성 사양 (그룹별 토큰 순서).
+#   {"item_name": True}            — Item_Code 의 code_name (PIPE/NIPPLE/ELBOW…)
+#   {"field": "<col>"}             — 그 컬럼의 저장값(short). 빈 값이면 토큰 생략
+#   "sep": " / "                   — 앞 토큰과의 구분자 (기본 공백 한 칸)
+# 빈 토큰은 통째로 생략. Schedule 등 Class 연동 토큰은 미리보기에서 제외.
+_DESCRIPTION_SPECS: dict[str, list[dict]] = {
+    "Pipe_Group": [
+        {"item_name": True},
+        {"field": "Matl_Code"},
+        {"field": "Manufacturing_Method"},
+        {"field": "End_Type"},
+        {"field": "Length"},
+        {"field": "Remarks"},
+    ],
+    "Forged_Fitting_Group": [
+        {"item_name": True},
+        {"field": "Matl_Code"},
+        {"field": "End_Type"},
+        {"field": "Rating"},
+        {"field": "Remarks"},
+    ],
+    "Flange_Group": [
+        {"item_name": True},
+        {"field": "Matl_Code"},
+        {"field": "Flange_Type"},
+        {"field": "Rating"},
+        {"field": "Facing"},
+        {"field": "Remarks"},
+    ],
+    "Gate_Valve_Group": [
+        {"item_name": True},
+        {"field": "Matl_Code"},
+        {"field": "Trim_Matl", "sep": " / "},
+        {"field": "Rating"},
+        {"field": "End_Type"},
+        {"field": "Bonnet_Stem"},
+        {"field": "Operation"},
+        {"field": "Remarks"},
+    ],
+    "Globe_Valve_Group": [
+        {"item_name": True},
+        {"field": "Matl_Code"},
+        {"field": "Trim_Matl", "sep": " / "},
+        {"field": "Rating"},
+        {"field": "End_Type"},
+        {"field": "Bonnet_Stem"},
+        {"field": "Operation"},
+        {"field": "Remarks"},
+    ],
+    "Check_Valve_Group": [
+        {"item_name": True},
+        {"field": "Matl_Code"},
+        {"field": "Trim_Matl", "sep": " / "},
+        {"field": "Rating"},
+        {"field": "End_Type"},
+        {"field": "Cover_Disc"},
+        {"field": "Remarks"},
+    ],
+}
 
 
-def _build_pipe_description(row: dict[str, str]) -> str:
-    """Pipe_Group: <PREFIX> <Matl_Code> <Manufacturing_Method> <End_Type> [<Length>] [<Remarks>].
-    PREFIX 는 Item_Code → item_code_db.json 의 code_name (P→PIPE, JN→NIPPLE).
-    Schedule 은 Class 의 Size→Schedule 매핑에서 결정되므로 미리보기에서는 토큰 생략.
-    빈 토큰은 통째로 생략, 구분자는 공백 한 칸."""
-    code = (row.get("Item_Code") or "").strip().upper()
-    prefix = ""
-    for entry in _item_code_db_json().get("Pipe_Group", []) or []:
+def _item_name_for(sheet_name: str, item_code: str) -> str:
+    """Item_Code → item_code_db.json 의 code_name (P→PIPE, JN→NIPPLE 등)."""
+    code = (item_code or "").strip().upper()
+    for entry in domain_schema.item_code_entries(sheet_name):
         if (entry.get("code") or "").strip().upper() == code:
-            prefix = (entry.get("code_name") or "").strip()
-            break
-    tokens = [
-        prefix,
-        (row.get("Matl_Code") or "").strip(),
-        (row.get("Manufacturing_Method") or "").strip(),
-        (row.get("End_Type") or "").strip(),
-        (row.get("Length") or "").strip(),
-        (row.get("Remarks") or "").strip(),
-    ]
-    return " ".join(t for t in tokens if t)
+            return (entry.get("code_name") or "").strip()
+    return ""
+
+
+def _build_description_from_spec(
+    sheet_name: str, row: dict[str, str], spec: list[dict]
+) -> str:
+    """spec 토큰 순서대로 description 합성. 빈 토큰 생략, sep 으로 구분."""
+    parts: list[str] = []
+    for tok in spec:
+        if tok.get("item_name"):
+            val = _item_name_for(sheet_name, row.get("Item_Code", ""))
+        else:
+            val = (row.get(tok.get("field", "")) or "").strip()
+        if not val:
+            continue
+        if parts:
+            parts.append(tok.get("sep", " "))
+        parts.append(val)
+    return "".join(parts)
+
+
+def _combined_component_name(sheet_name: str, row: dict[str, str]) -> str:
+    """Item_Description preview. spec 이 정의된 시트는 spec 빌더, 그 외는 fallback(필드 나열)."""
+    spec = _DESCRIPTION_SPECS.get(sheet_name)
+    if spec is not None:
+        return _build_description_from_spec(sheet_name, row, spec)
+    return " ".join(v.strip() for k, v in row.items() if k not in _STRUCTURAL_FIELDS and v.strip())
 
 
 # ── Numeric input validators ───────────────────────────────────────────────────

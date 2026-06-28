@@ -3644,31 +3644,31 @@ CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
     FieldDefinition(
-        name="Disc_Type",
+        name="Cover_Disc",
         meaning=(
-            "Check Valve 의 disc (역류 차단부) 형식. **Check Valve 고유 컬럼** —"
-            " Gate 의 Wedge_Type, Globe 의 Disc_Type 자리에 대응. 5종:"
-            " Swing (hinge 회전, 2\"+ 대구경 표준; API 6D),"
-            " Lift (수직 lift, gravity/압력 의존 — Piston 변종 포함),"
-            " Tilting (대구경 빠른 응답, water hammer 방지),"
-            " Dual (Dual Plate, wafer/lug body 의 spring-loaded 2-disc; API 594),"
-            " Ball (소구경 ball disc, 점성 유체)."
+            "Check Valve 의 cover 체결 방식 + disc(역류 차단부) 형식의 통합 분류."
+            " **Check Valve 고유 컬럼** — Gate 의 Bonnet_Stem 과 동일 패턴 (cover 와"
+            " disc 를 한 토큰으로 결합, 예: 'BC SWING'). 현실 조합 9개:"
+            " BC SWING / BC LIFT / BC TILTING / PSC SWING / PSC TILTING /"
+            " SC SWING / SC LIFT / DUAL PLATE / BALL."
+            " cover BC=Bolted Cover · PSC=Pressure-Sealed Cover · SC=Screwed Cap;"
+            " disc Swing(hinge 회전, API 6D) · Lift(수직, 소구경) · Tilting(대구경"
+            " water hammer 방지). DUAL PLATE(wafer/lug, API 594) 와 BALL(소구경"
+            " 점성)은 cover 개념이 약해 단독."
             " 빈 값 허용 — Procurement description 에 명시 안 하는 관행."
-            " 도메인 노트: 'Wafer' 는 disc type 이 아니라 body type (옵션 풀에서"
-            " 제외). 'Single Plate' 는 Swing + Wafer body 의 약칭으로 별도"
-            " disc type 아님 (옵션 풀에서 제외)."
         ),
         data_type="string (short code; 빈 값 허용)",
         required=False,
         format_constraint=(
-            "data/field_values.json 의 Check_Valve_Group.Disc_Type 옵션"
-            " (closed set, 5개 + 빈 값)."
+            "data/field_values.json 의 Check_Valve_Group.Cover_Disc 옵션"
+            " (closed set, 9개 + 빈 값)."
         ),
         unique=None,
         relations=[
             "Size1 과 호환 관행: 2\"+ Swing, 소구경 Lift/Ball, 대구경 Tilting/"
             "Dual 이 통상 — 강제 검증 없음",
-            "PMS description 에 합성 (빈 값이면 토큰 생략)",
+            "PMS description 에 합성 (빈 값이면 토큰 생략). Gate 의 Bonnet_Stem"
+            " 자리에 대응 — Operation 은 없음(자동 밸브)",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set, 빈 값 허용)."

@@ -1646,23 +1646,23 @@
     ],
     "Operation": [
       {
-        "short": "Manual",
-        "long": "Manual"
+        "short": "HW",
+        "long": "Handwheel (Manual)"
       },
       {
-        "short": "Lever",
+        "short": "LO",
         "long": "Lever Operated"
       },
       {
-        "short": "Wrench",
+        "short": "WO",
         "long": "Wrench Operated"
       },
       {
-        "short": "Gear",
+        "short": "GO",
         "long": "Gear Operated"
       },
       {
-        "short": "Chain",
+        "short": "CO",
         "long": "Chain Operated"
       }
     ],
@@ -2063,23 +2063,23 @@
     ],
     "Operation": [
       {
-        "short": "Manual",
-        "long": "Manual"
+        "short": "HW",
+        "long": "Handwheel (Manual)"
       },
       {
-        "short": "Lever",
+        "short": "LO",
         "long": "Lever Operated"
       },
       {
-        "short": "Wrench",
+        "short": "WO",
         "long": "Wrench Operated"
       },
       {
-        "short": "Gear",
+        "short": "GO",
         "long": "Gear Operated"
       },
       {
-        "short": "Chain",
+        "short": "CO",
         "long": "Chain Operated"
       }
     ],
@@ -2466,30 +2466,46 @@
         "long": "Flanged, Ring Type Joint"
       }
     ],
-    "Disc_Type": [
+    "Cover_Disc": [
       {
         "short": "",
         "long": "(unspecified)"
       },
       {
-        "short": "Swing",
-        "long": "Swing Disc"
+        "short": "BC SWING",
+        "long": "Bolted Cover, Swing Disc"
       },
       {
-        "short": "Lift",
-        "long": "Lift Disc"
+        "short": "BC LIFT",
+        "long": "Bolted Cover, Lift Disc"
       },
       {
-        "short": "Tilting",
-        "long": "Tilting Disc"
+        "short": "BC TILTING",
+        "long": "Bolted Cover, Tilting Disc"
       },
       {
-        "short": "Dual",
-        "long": "Dual Plate"
+        "short": "PSC SWING",
+        "long": "Pressure-Sealed Cover, Swing Disc"
       },
       {
-        "short": "Ball",
-        "long": "Ball Disc"
+        "short": "PSC TILTING",
+        "long": "Pressure-Sealed Cover, Tilting Disc"
+      },
+      {
+        "short": "SC SWING",
+        "long": "Screwed Cap, Swing Disc"
+      },
+      {
+        "short": "SC LIFT",
+        "long": "Screwed Cap, Lift Disc"
+      },
+      {
+        "short": "DUAL PLATE",
+        "long": "Dual Plate (Wafer)"
+      },
+      {
+        "short": "BALL",
+        "long": "Ball Check"
       }
     ],
     "Option_Code": [
@@ -2816,23 +2832,23 @@
     ],
     "Operation": [
       {
-        "short": "Manual",
-        "long": "Manual"
+        "short": "HW",
+        "long": "Handwheel (Manual)"
       },
       {
-        "short": "Lever",
+        "short": "LO",
         "long": "Lever Operated"
       },
       {
-        "short": "Wrench",
+        "short": "WO",
         "long": "Wrench Operated"
       },
       {
-        "short": "Gear",
+        "short": "GO",
         "long": "Gear Operated"
       },
       {
-        "short": "Chain",
+        "short": "CO",
         "long": "Chain Operated"
       }
     ],
@@ -3063,23 +3079,23 @@
     ],
     "Operation": [
       {
-        "short": "Manual",
-        "long": "Manual"
+        "short": "HW",
+        "long": "Handwheel (Manual)"
       },
       {
-        "short": "Lever",
+        "short": "LO",
         "long": "Lever Operated"
       },
       {
-        "short": "Wrench",
+        "short": "WO",
         "long": "Wrench Operated"
       },
       {
-        "short": "Gear",
+        "short": "GO",
         "long": "Gear Operated"
       },
       {
-        "short": "Chain",
+        "short": "CO",
         "long": "Chain Operated"
       }
     ],
@@ -3367,23 +3383,23 @@
     ],
     "Operation": [
       {
-        "short": "Manual",
-        "long": "Manual"
+        "short": "HW",
+        "long": "Handwheel (Manual)"
       },
       {
-        "short": "Lever",
+        "short": "LO",
         "long": "Lever Operated"
       },
       {
-        "short": "Wrench",
+        "short": "WO",
         "long": "Wrench Operated"
       },
       {
-        "short": "Gear",
+        "short": "GO",
         "long": "Gear Operated"
       },
       {
-        "short": "Chain",
+        "short": "CO",
         "long": "Chain Operated"
       }
     ],
@@ -3721,23 +3737,23 @@
     ],
     "Operation": [
       {
-        "short": "Manual",
-        "long": "Manual"
+        "short": "HW",
+        "long": "Handwheel (Manual)"
       },
       {
-        "short": "Lever",
+        "short": "LO",
         "long": "Lever Operated"
       },
       {
-        "short": "Wrench",
+        "short": "WO",
         "long": "Wrench Operated"
       },
       {
-        "short": "Gear",
+        "short": "GO",
         "long": "Gear Operated"
       },
       {
-        "short": "Chain",
+        "short": "CO",
         "long": "Chain Operated"
       }
     ],
