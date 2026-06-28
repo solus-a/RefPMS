@@ -1580,8 +1580,16 @@
         "long": "Threaded"
       },
       {
-        "short": "FLG",
-        "long": "Flanged"
+        "short": "FLGD RF",
+        "long": "Flanged, Raised Face"
+      },
+      {
+        "short": "FLGD FF",
+        "long": "Flanged, Flat Face"
+      },
+      {
+        "short": "FLGD RTJ",
+        "long": "Flanged, Ring Type Joint"
       }
     ],
     "Bonnet_Stem": [
@@ -2011,8 +2019,16 @@
         "long": "Threaded"
       },
       {
-        "short": "FLG",
-        "long": "Flanged"
+        "short": "FLGD RF",
+        "long": "Flanged, Raised Face"
+      },
+      {
+        "short": "FLGD FF",
+        "long": "Flanged, Flat Face"
+      },
+      {
+        "short": "FLGD RTJ",
+        "long": "Flanged, Ring Type Joint"
       }
     ],
     "Bonnet_Stem": [
@@ -2438,8 +2454,16 @@
         "long": "Threaded"
       },
       {
-        "short": "FLG",
-        "long": "Flanged"
+        "short": "FLGD RF",
+        "long": "Flanged, Raised Face"
+      },
+      {
+        "short": "FLGD FF",
+        "long": "Flanged, Flat Face"
+      },
+      {
+        "short": "FLGD RTJ",
+        "long": "Flanged, Ring Type Joint"
       }
     ],
     "Disc_Type": [
@@ -2750,8 +2774,16 @@
         "long": "Threaded"
       },
       {
-        "short": "FLG",
-        "long": "Flanged"
+        "short": "FLGD RF",
+        "long": "Flanged, Raised Face"
+      },
+      {
+        "short": "FLGD FF",
+        "long": "Flanged, Flat Face"
+      },
+      {
+        "short": "FLGD RTJ",
+        "long": "Flanged, Ring Type Joint"
       }
     ],
     "Bore": [
@@ -3011,16 +3043,6 @@
         "long": "KS 20K"
       }
     ],
-    "End_Type": [
-      {
-        "short": "BW",
-        "long": "Butt Weld"
-      },
-      {
-        "short": "FLG",
-        "long": "Flanged"
-      }
-    ],
     "Body_Type": [
       {
         "short": "Wafer",
@@ -3033,6 +3055,10 @@
       {
         "short": "Double-Flanged",
         "long": "Double-Flanged Body"
+      },
+      {
+        "short": "Butt-Weld",
+        "long": "Butt-Weld Body"
       }
     ],
     "Operation": [
@@ -3327,8 +3353,16 @@
         "long": "Threaded"
       },
       {
-        "short": "FLG",
-        "long": "Flanged"
+        "short": "FLGD RF",
+        "long": "Flanged, Raised Face"
+      },
+      {
+        "short": "FLGD FF",
+        "long": "Flanged, Flat Face"
+      },
+      {
+        "short": "FLGD RTJ",
+        "long": "Flanged, Ring Type Joint"
       }
     ],
     "Operation": [
@@ -3643,8 +3677,16 @@
         "long": "Threaded"
       },
       {
-        "short": "FLG",
-        "long": "Flanged"
+        "short": "FLGD RF",
+        "long": "Flanged, Raised Face"
+      },
+      {
+        "short": "FLGD FF",
+        "long": "Flanged, Flat Face"
+      },
+      {
+        "short": "FLGD RTJ",
+        "long": "Flanged, Ring Type Joint"
       }
     ],
     "Bonnet_Stem": [

@@ -2694,21 +2694,23 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="End_Type",
         meaning=(
-            "Valve 단부 (end connection) 형식. 4종:"
-            " BW (Butt Weld — 용접), SW (Socket Weld), TH (Threaded — 나사),"
-            " FLG (Flanged — 플랜지)."
-            " Mechanical joint / Grooved 등은 현재 미고려."
+            "Valve 단부 (end connection) 형식. 6종:"
+            " BW (Butt Weld), SW (Socket Weld), TH (Threaded),"
+            " FLGD RF / FLGD FF / FLGD RTJ (Flanged — facing 별: Raised Face /"
+            " Flat Face / Ring Type Joint)."
+            " Flange facing 을 End_Type 토큰에 포함한다. Mechanical joint /"
+            " Grooved 등은 현재 미고려."
         ),
         data_type="string (short code)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Gate_Valve_Group.End_Type 옵션"
-            " (closed set, 4개)."
+            " (closed set, 6개)."
         ),
         unique=None,
         relations=[
-            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
-            " (별도 검증 영역)",
+            "End_Type 이 FLGD* 일 때 Rating 이 상대 flange 와 짝이 되어야 정합"
+            " (facing 은 End_Type 토큰에 포함). (별도 검증 영역)",
             "PMS description 에 합성",
         ],
         validation_location=(
@@ -3155,21 +3157,23 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="End_Type",
         meaning=(
-            "Valve 단부 (end connection) 형식. 4종:"
-            " BW (Butt Weld — 용접), SW (Socket Weld), TH (Threaded — 나사),"
-            " FLG (Flanged — 플랜지)."
-            " Mechanical joint / Grooved 등은 현재 미고려."
+            "Valve 단부 (end connection) 형식. 6종:"
+            " BW (Butt Weld), SW (Socket Weld), TH (Threaded),"
+            " FLGD RF / FLGD FF / FLGD RTJ (Flanged — facing 별: Raised Face /"
+            " Flat Face / Ring Type Joint)."
+            " Flange facing 을 End_Type 토큰에 포함한다. Mechanical joint /"
+            " Grooved 등은 현재 미고려."
         ),
         data_type="string (short code)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Globe_Valve_Group.End_Type 옵션"
-            " (closed set, 4개)."
+            " (closed set, 6개)."
         ),
         unique=None,
         relations=[
-            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
-            " (별도 검증 영역)",
+            "End_Type 이 FLGD* 일 때 Rating 이 상대 flange 와 짝이 되어야 정합"
+            " (facing 은 End_Type 토큰에 포함). (별도 검증 영역)",
             "PMS description 에 합성",
         ],
         validation_location=(
@@ -3623,12 +3627,12 @@ CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         required=True,
         format_constraint=(
             "data/field_values.json 의 Check_Valve_Group.End_Type 옵션"
-            " (closed set, 4개)."
+            " (closed set, 6개)."
         ),
         unique=None,
         relations=[
-            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
-            " (별도 검증 영역)",
+            "End_Type 이 FLGD* 일 때 Rating 이 상대 flange 와 짝이 되어야 정합"
+            " (facing 은 End_Type 토큰에 포함). (별도 검증 영역)",
             "PMS description 에 합성",
         ],
         validation_location=(
@@ -4057,12 +4061,12 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         required=True,
         format_constraint=(
             "data/field_values.json 의 Ball_Valve_Group.End_Type 옵션"
-            " (closed set, 4개)."
+            " (closed set, 6개)."
         ),
         unique=None,
         relations=[
-            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
-            " (별도 검증 영역)",
+            "End_Type 이 FLGD* 일 때 Rating 이 상대 flange 와 짝이 되어야 정합"
+            " (facing 은 End_Type 토큰에 포함). (별도 검증 영역)",
             "PMS description 에 합성",
         ],
         validation_location=(
@@ -4239,8 +4243,8 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #     에 없음).
 #   - **Rating 11종만** (다른 valve 의 20종 보다 좁음) — ASTM: 150# / 300# /
 #     600# 만 (900# 이상 없음). JIS/KS: 5K ~ 20K 만 (30K 이상 없음).
-#   - **End_Type 2종만** (BW / FLG) — SW / TH 없음. Butterfly 는 face-to-face
-#     short body 가 표준 (flange 사이 wafer/lug 또는 double-flange).
+#   - **End_Type 컬럼 없음** — Butterfly 는 body 형태(Body_Type) 자체가 연결
+#     방식을 결정하므로 일반 valve 의 End_Type(BW/SW/TH/FLGD) 체계를 두지 않는다.
 #   - **Bonnet_Stem / Bore 없음** — Butterfly 는 bonnet 개념 약하고 (top cover
 #     로 stem 만), bore 는 항상 line size 와 거의 동일.
 #   - **Disc_Type 컬럼 신설 (Butterfly 고유)** — disc geometry 가 도메인 분류의
@@ -4252,14 +4256,15 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #       · TripleOffset (TOV — Triple Offset Valve): 추가 conical seat offset,
 #         metal seat tight closure. 고압·고온, ASME B16.34 적용.
 #       · (빈 값): Procurement Description 에 명시 안 하는 케이스.
-#   - **Body_Type 컬럼 신설 (Butterfly 고유)** — body 형태 (API 609 표준).
-#     End_Type 과 직교 (End_Type = 인터페이스 BW/FLG, Body_Type = body 형태).
-#     3종, 빈 값 불허 (required + Ball Bore / Plug Plug_Type 패턴):
+#   - **Body_Type 컬럼 (Butterfly 고유) = 연결 방식 겸함** — body 형태 (API 609
+#     표준). End_Type 을 대체 (Wafer/Lug/Double-Flanged 가 곧 end connection).
+#     4종, 빈 값 불허 (required + Ball Bore / Plug Plug_Type 패턴):
 #       · Wafer: 두 flange 사이에 끼움 — 가장 컴팩트/저렴, dead-end service
 #         불가 (양쪽 flange 모두 있어야 sealing).
 #       · Lug: threaded lugs 로 flange 별도 bolt — dead-end service 가능,
 #         downstream 분리 가능.
 #       · Double-Flanged: body 에 flange 통합 — 고압·고온 안정성, NPS 3~36.
+#       · Butt-Weld: 용접 단부 — API 609 2021 추가, 현장에선 드묾.
 #
 # 다른 Valve 시트와 동일한 부분:
 #   - Size 시스템: Size1_From / Size1_To 한 짝 (Reducing 없음).
@@ -4550,58 +4555,29 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unit=None,
     ),
     FieldDefinition(
-        name="End_Type",
-        meaning=(
-            "Valve 단부 (end connection) 형식. **2종만** (Butterfly 고유의"
-            " 좁은 풀):"
-            " BW (Butt Weld — 드묾), FLG (Flanged — 표준)."
-            " Butterfly 는 face-to-face short body 가 표준이라 SW / TH 없음."
-            " Body 형태 (Wafer/Lug/Double-Flanged) 는 별도 Body_Type 컬럼에서"
-            " 처리."
-        ),
-        data_type="string (short code)",
-        required=True,
-        format_constraint=(
-            "data/field_values.json 의 Butterfly_Valve_Group.End_Type 옵션"
-            " (closed set, 2개)."
-        ),
-        unique=None,
-        relations=[
-            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
-            " (별도 검증 영역)",
-            "Body_Type 과 의미적 직교 — End_Type 은 인터페이스, Body_Type 은"
-            " body 형태",
-            "PMS description 에 합성",
-        ],
-        validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
-        ),
-        input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
-        ),
-        unit=None,
-    ),
-    FieldDefinition(
         name="Body_Type",
         meaning=(
-            "Butterfly Valve 의 body 형태 (API 609 표준 3종). **Butterfly 고유"
-            " 컬럼** — End_Type 과 직교 (End_Type 은 연결 인터페이스 BW/FLG,"
-            " Body_Type 은 body 의 물리 형태):"
+            "Butterfly Valve 의 body 형태 = 연결 방식 (API 609 표준 4종)."
+            " **Butterfly 고유 컬럼** — 일반 valve 의 End_Type(BW/SW/TH/FLGD)"
+            " 체계 대신 body 형태 자체가 연결 방식을 결정하므로 End_Type 컬럼은"
+            " 두지 않는다 (Wafer/Lug/Double-Flanged 가 곧 end connection):"
             " Wafer (두 flange 사이에 끼움 — 가장 컴팩트/저렴, dead-end service"
             " 불가),"
             " Lug (threaded lugs 로 flange 별도 bolt — dead-end service 가능),"
-            " Double-Flanged (body 에 flange 통합 — 고압·고온 안정성)."
+            " Double-Flanged (body 에 flange 통합 — 고압·고온 안정성),"
+            " Butt-Weld (용접 단부 — API 609 2021 추가, 드묾)."
             " 빈 값 불허 — Butterfly valve 도메인 핵심 분류로 항상 명시."
         ),
         data_type="string (short code)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Butterfly_Valve_Group.Body_Type 옵션"
-            " (closed set, 3개)."
+            " (closed set, 4개)."
         ),
         unique=None,
         relations=[
-            "End_Type 과 의미적 직교 (위 End_Type.relations 참조)",
+            "연결 방식을 겸함 — Wafer/Lug/Double-Flanged 면 Rating + Facing 이"
+            " 상대 flange 와 짝이 되어야 정합 (별도 검증 영역)",
             "Body_Type=Wafer 일 때 dead-end service 금지 — 도메인 관행, 강제"
             " 검증 없음",
             "Body_Type=Double-Flanged 일 때 Rating 고압 (300# 이상) 흔함 —"
@@ -5060,12 +5036,12 @@ PLUG_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         required=True,
         format_constraint=(
             "data/field_values.json 의 Plug_Valve_Group.End_Type 옵션"
-            " (closed set, 4개)."
+            " (closed set, 6개)."
         ),
         unique=None,
         relations=[
-            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
-            " (별도 검증 영역)",
+            "End_Type 이 FLGD* 일 때 Rating 이 상대 flange 와 짝이 되어야 정합"
+            " (facing 은 End_Type 토큰에 포함). (별도 검증 영역)",
             "PMS description 에 합성",
         ],
         validation_location=(
@@ -5516,12 +5492,12 @@ NEEDLE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         required=True,
         format_constraint=(
             "data/field_values.json 의 Needle_Valve_Group.End_Type 옵션"
-            " (closed set, 4개)."
+            " (closed set, 6개)."
         ),
         unique=None,
         relations=[
-            "End_Type=FLG 일 때 Rating + Facing 이 flange 와 짝이 되어야 정합"
-            " (별도 검증 영역)",
+            "End_Type 이 FLGD* 일 때 Rating 이 상대 flange 와 짝이 되어야 정합"
+            " (facing 은 End_Type 토큰에 포함). (별도 검증 영역)",
             "PMS description 에 합성",
         ],
         validation_location=(
