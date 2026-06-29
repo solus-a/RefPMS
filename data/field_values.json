@@ -1351,11 +1351,11 @@
         "long": "API600 Trim 1 - 410/410/410 (13Cr)"
       },
       {
-        "short": "F304",
+        "short": "SS304",
         "long": "API600 Trim 2 - 304 SS"
       },
       {
-        "short": "F310",
+        "short": "SS310",
         "long": "API600 Trim 3 - 310 SS"
       },
       {
@@ -1395,7 +1395,7 @@
         "long": "API600 Trim 9 - Monel seat/disc/stem"
       },
       {
-        "short": "F316",
+        "short": "SS316",
         "long": "API600 Trim 10 - 316 SS"
       },
       {
@@ -1403,7 +1403,7 @@
         "long": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
       },
       {
-        "short": "F316+HHF",
+        "short": "SS316+HHF",
         "long": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
       },
       {
@@ -1415,15 +1415,15 @@
         "long": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
       },
       {
-        "short": "F304+FHF",
+        "short": "SS304+FHF",
         "long": "API600 Trim 15 - Full hard faced (seat+disc) + 304, 304 stem"
       },
       {
-        "short": "F316+FHF",
+        "short": "SS316+FHF",
         "long": "API600 Trim 16 - Full hard faced (seat+disc) + 316, 316 stem"
       },
       {
-        "short": "F347+FHF",
+        "short": "SS347+FHF",
         "long": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
       },
       {
@@ -1790,11 +1790,11 @@
         "long": "API600 Trim 1 - 410/410/410 (13Cr)"
       },
       {
-        "short": "F304",
+        "short": "SS304",
         "long": "API600 Trim 2 - 304 SS"
       },
       {
-        "short": "F310",
+        "short": "SS310",
         "long": "API600 Trim 3 - 310 SS"
       },
       {
@@ -1834,7 +1834,7 @@
         "long": "API600 Trim 9 - Monel seat/disc/stem"
       },
       {
-        "short": "F316",
+        "short": "SS316",
         "long": "API600 Trim 10 - 316 SS"
       },
       {
@@ -1842,7 +1842,7 @@
         "long": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
       },
       {
-        "short": "F316+HHF",
+        "short": "SS316+HHF",
         "long": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
       },
       {
@@ -1854,15 +1854,15 @@
         "long": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
       },
       {
-        "short": "F304+FHF",
+        "short": "SS304+FHF",
         "long": "API600 Trim 15 - Full hard faced (seat+disc) + 304, 304 stem"
       },
       {
-        "short": "F316+FHF",
+        "short": "SS316+FHF",
         "long": "API600 Trim 16 - Full hard faced (seat+disc) + 316, 316 stem"
       },
       {
-        "short": "F347+FHF",
+        "short": "SS347+FHF",
         "long": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
       },
       {
@@ -2225,11 +2225,11 @@
         "long": "API600 Trim 1 - 410/410/410 (13Cr)"
       },
       {
-        "short": "F304",
+        "short": "SS304",
         "long": "API600 Trim 2 - 304 SS"
       },
       {
-        "short": "F310",
+        "short": "SS310",
         "long": "API600 Trim 3 - 310 SS"
       },
       {
@@ -2269,7 +2269,7 @@
         "long": "API600 Trim 9 - Monel seat/disc/stem"
       },
       {
-        "short": "F316",
+        "short": "SS316",
         "long": "API600 Trim 10 - 316 SS"
       },
       {
@@ -2277,7 +2277,7 @@
         "long": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
       },
       {
-        "short": "F316+HHF",
+        "short": "SS316+HHF",
         "long": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
       },
       {
@@ -2289,15 +2289,15 @@
         "long": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
       },
       {
-        "short": "F304+FHF",
+        "short": "SS304+FHF",
         "long": "API600 Trim 15 - Full hard faced (seat+disc) + 304, 304 stem"
       },
       {
-        "short": "F316+FHF",
+        "short": "SS316+FHF",
         "long": "API600 Trim 16 - Full hard faced (seat+disc) + 316, 316 stem"
       },
       {
-        "short": "F347+FHF",
+        "short": "SS347+FHF",
         "long": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
       },
       {
@@ -2628,11 +2628,11 @@
     ],
     "Trim_Matl": [
       {
-        "short": "F316",
+        "short": "SS316",
         "long": "Stainless Steel 316"
       },
       {
-        "short": "F304",
+        "short": "SS304",
         "long": "Stainless Steel 304"
       },
       {
@@ -2666,7 +2666,7 @@
         "long": "Nylon"
       },
       {
-        "short": "F316",
+        "short": "SS316",
         "long": "Stainless Steel 316"
       },
       {
@@ -2956,11 +2956,11 @@
     ],
     "Disc_Matl": [
       {
-        "short": "F316",
+        "short": "SS316",
         "long": "Stainless Steel 316"
       },
       {
-        "short": "F304",
+        "short": "SS304",
         "long": "Stainless Steel 304"
       },
       {
@@ -2994,7 +2994,7 @@
         "long": "Reinforced PTFE"
       },
       {
-        "short": "F316",
+        "short": "SS316",
         "long": "Stainless Steel 316"
       },
       {
@@ -3215,11 +3215,11 @@
     ],
     "Plug_Matl": [
       {
-        "short": "F316",
+        "short": "SS316",
         "long": "Stainless Steel 316"
       },
       {
-        "short": "F304",
+        "short": "SS304",
         "long": "Stainless Steel 304"
       },
       {
@@ -3245,7 +3245,7 @@
         "long": "Viton"
       },
       {
-        "short": "F316",
+        "short": "SS316",
         "long": "Stainless Steel 316"
       },
       {
@@ -3539,11 +3539,11 @@
     ],
     "Trim_Matl": [
       {
-        "short": "F316",
+        "short": "SS316",
         "long": "Stainless Steel 316"
       },
       {
-        "short": "F304",
+        "short": "SS304",
         "long": "Stainless Steel 304"
       },
       {
@@ -3569,7 +3569,7 @@
         "long": "Viton"
       },
       {
-        "short": "F316",
+        "short": "SS316",
         "long": "Stainless Steel 316"
       },
       {
