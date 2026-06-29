@@ -724,12 +724,12 @@ _NONE_DISPLAY = "(None)"
 def _field_display_label(field: str, item: dict[str, str]) -> str:
     """드롭다운 표시값. keep-short 필드는 short 그대로, 그 외 약어형 enum 은 long(띄어쓰기 포함).
     빈 저장값은 (None) 으로 표시."""
-    short = (item.get("short", "") or "").strip()
+    short = (item.get("abbr", "") or "").strip()
     if not short:
         return _NONE_DISPLAY
     if field in _KEEP_SHORT_FIELDS:
         return short
-    return (item.get("long", "") or "").strip() or short
+    return (item.get("full", "") or "").strip() or short
 
 
 def _group_display_label(label: str) -> str:
@@ -759,7 +759,7 @@ def _options_for(sheet_name: str, field: str) -> list[tuple[str, str]] | None:
     items = (_field_values_db().get(sheet_name) or {}).get(field) or []
     if not items:
         return None
-    return [(it.get("short", ""), _field_display_label(field, it)) for it in items]
+    return [(it.get("abbr", ""), _field_display_label(field, it)) for it in items]
 
 
 # code 필드별 필터 사양: std 짝 + (선택) category 짝.
@@ -807,7 +807,7 @@ def _filtered_code_options(
             items = [it for it in items if (it.get("category") or "").strip() == cat]
     if not items:
         return None
-    return [(it.get("short", ""), _field_display_label(code_field, it)) for it in items]
+    return [(it.get("abbr", ""), _field_display_label(code_field, it)) for it in items]
 
 
 # ── Component row editor ───────────────────────────────────────────────────────

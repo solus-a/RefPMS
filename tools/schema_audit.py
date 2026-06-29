@@ -118,15 +118,15 @@ for group in headers_by_group:
         codes = g.get(code_field)
         if not codes:
             continue
-        std_shorts = {it.get("short") for it in g.get(std_field, [])} if std_field else None
-        cat_shorts = {it.get("short") for it in g.get(cat_field, [])} if cat_field else None
+        std_shorts = {it.get("abbr") for it in g.get(std_field, [])} if std_field else None
+        cat_shorts = {it.get("abbr") for it in g.get(cat_field, [])} if cat_field else None
         for it in codes:
             s = it.get("std")
             if std_shorts is not None and s is not None and s not in std_shorts:
-                issues["E"].append(f"{group}.{code_field}: code={it.get('short')!r} std={s!r} 가 {std_field} 에 없음")
+                issues["E"].append(f"{group}.{code_field}: code={it.get('abbr')!r} std={s!r} 가 {std_field} 에 없음")
             c = it.get("category")
             if cat_shorts is not None and c is not None and c not in cat_shorts:
-                issues["E"].append(f"{group}.{code_field}: code={it.get('short')!r} category={c!r} 가 {cat_field} 에 없음")
+                issues["E"].append(f"{group}.{code_field}: code={it.get('abbr')!r} category={c!r} 가 {cat_field} 에 없음")
 
 # ---- G: domain_schema 문서 드리프트 (상수명 = <GROUP>_FIELDS) ----
 try:

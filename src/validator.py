@@ -69,7 +69,7 @@ def load_matl_code_category_lookup(
         for item in options:
             if not isinstance(item, dict):
                 continue
-            short = str(item.get("short", "")).strip()
+            short = str(item.get("abbr", "")).strip()
             category = str(item.get("category", "")).strip()
             if short and category:
                 sheet_lookup[short] = category

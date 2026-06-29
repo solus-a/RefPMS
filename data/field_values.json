@@ -1,7 +1,7 @@
 {
   "_meta": {
     "version": 2,
-    "purpose": "Per-group dropdown values for component fields. Each group is self-contained — same field value lists may appear in multiple groups. Each entry has 'short' (stored value) and 'long' (display description). Code fields (Matl_Code / Bolt_Matl_Code / Nut_Matl_Code) carry an additional 'std' key so the dialog filters them by the matching std selection. Matl_Code entries additionally carry a 'category' key (CS / LTCS / AS / SS / DSS / SDSS / Ni-Alloy / Cu-Alloy / GI / CI) so the dialog and validator enforce Matl_Category ↔ Matl_Code consistency.",
+    "purpose": "Per-group dropdown values for component fields. Each group is self-contained — same field value lists may appear in multiple groups. Each entry has 'abbr' (stored/output value, uppercase except unit fields) and 'full' (display description). Code fields (Matl_Code / Bolt_Matl_Code / Nut_Matl_Code) carry an additional 'std' key so the dialog filters them by the matching std selection. Matl_Code entries additionally carry a 'category' key (CS / LTCS / AS / SS / DSS / SDSS / Ni-Alloy / Cu-Alloy / GI / CI) so the dialog and validator enforce Matl_Category ↔ Matl_Code consistency.",
     "external_dropdown_sources": {
       "Item_Code": "data/item_code_db.json (per-group, planned)",
       "Class_Name": "Class_Define sheet rows",
@@ -15,3822 +15,3822 @@
   "Pipe_Group": {
     "Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "AS",
-        "long": "Alloy Steel"
+        "abbr": "AS",
+        "full": "Alloy Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       },
       {
-        "short": "DSS",
-        "long": "Duplex Stainless Steel"
+        "abbr": "DSS",
+        "full": "Duplex Stainless Steel"
       },
       {
-        "short": "SDSS",
-        "long": "Super Duplex Stainless Steel"
+        "abbr": "SDSS",
+        "full": "Super Duplex Stainless Steel"
       },
       {
-        "short": "NI-ALLOY",
-        "long": "Nickel Alloy"
+        "abbr": "NI-ALLOY",
+        "full": "Nickel Alloy"
       },
       {
-        "short": "CU-ALLOY",
-        "long": "Copper Alloy"
+        "abbr": "CU-ALLOY",
+        "full": "Copper Alloy"
       },
       {
-        "short": "GI",
-        "long": "Galvanized Iron"
+        "abbr": "GI",
+        "full": "Galvanized Iron"
       },
       {
-        "short": "CI",
-        "long": "Cast Iron"
+        "abbr": "CI",
+        "full": "Cast Iron"
       }
     ],
     "Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "ASME",
-        "long": "ASME"
+        "abbr": "ASME",
+        "full": "ASME"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       },
       {
-        "short": "EN",
-        "long": "EN"
+        "abbr": "EN",
+        "full": "EN"
       },
       {
-        "short": "DIN",
-        "long": "DIN"
+        "abbr": "DIN",
+        "full": "DIN"
       },
       {
-        "short": "API",
-        "long": "API"
+        "abbr": "API",
+        "full": "API"
       }
     ],
     "Matl_Code": [
       {
-        "short": "A106-B",
+        "abbr": "A106-B",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A106 Gr.B"
+        "full": "ASTM A106 Gr.B"
       },
       {
-        "short": "A53-B",
+        "abbr": "A53-B",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A53 Gr.B"
+        "full": "ASTM A53 Gr.B"
       },
       {
-        "short": "A672-C60-CL13",
+        "abbr": "A672-C60-CL13",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A672 C60 CL13"
+        "full": "ASTM A672 C60 CL13"
       },
       {
-        "short": "A333-6",
+        "abbr": "A333-6",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A333 Gr.6"
+        "full": "ASTM A333 Gr.6"
       },
       {
-        "short": "A312-TP304",
+        "abbr": "A312-TP304",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A312 TP304"
+        "full": "ASTM A312 TP304"
       },
       {
-        "short": "A312-TP316",
+        "abbr": "A312-TP316",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A312 TP316"
+        "full": "ASTM A312 TP316"
       },
       {
-        "short": "A312-TP304L",
+        "abbr": "A312-TP304L",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A312 TP304L"
+        "full": "ASTM A312 TP304L"
       },
       {
-        "short": "A312-TP316L",
+        "abbr": "A312-TP316L",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A312 TP316L"
+        "full": "ASTM A312 TP316L"
       },
       {
-        "short": "A335-P11",
-        "std": "ASTM",
-        "category": "AS",
-        "long": "ASTM A335 P11"
-      },
-      {
-        "short": "A335-P22",
+        "abbr": "A335-P11",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A335 P22"
+        "full": "ASTM A335 P11"
       },
       {
-        "short": "STPG370",
+        "abbr": "A335-P22",
+        "std": "ASTM",
+        "category": "AS",
+        "full": "ASTM A335 P22"
+      },
+      {
+        "abbr": "STPG370",
         "std": "JIS",
         "category": "CS",
-        "long": "JIS STPG370"
+        "full": "JIS STPG370"
       },
       {
-        "short": "STPG410",
+        "abbr": "STPG410",
         "std": "JIS",
         "category": "CS",
-        "long": "JIS STPG410"
+        "full": "JIS STPG410"
       },
       {
-        "short": "SUS304TP",
+        "abbr": "SUS304TP",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SUS304TP"
+        "full": "JIS SUS304TP"
       },
       {
-        "short": "SUS316TP",
+        "abbr": "SUS316TP",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SUS316TP"
+        "full": "JIS SUS316TP"
       }
     ],
     "Manufacturing_Method": [
       {
-        "short": "SMLS",
-        "long": "Seamless"
+        "abbr": "SMLS",
+        "full": "Seamless"
       },
       {
-        "short": "ERW",
-        "long": "Electric Resistance Welded"
+        "abbr": "ERW",
+        "full": "Electric Resistance Welded"
       },
       {
-        "short": "EFW",
-        "long": "Electric Fusion Welded"
+        "abbr": "EFW",
+        "full": "Electric Fusion Welded"
       },
       {
-        "short": "LSAW",
-        "long": "Longitudinal Submerged Arc Welded"
+        "abbr": "LSAW",
+        "full": "Longitudinal Submerged Arc Welded"
       },
       {
-        "short": "SSAW",
-        "long": "Spiral Submerged Arc Welded"
+        "abbr": "SSAW",
+        "full": "Spiral Submerged Arc Welded"
       }
     ],
     "End_Type": [
       {
-        "short": "PE",
-        "long": "Plain End"
+        "abbr": "PE",
+        "full": "Plain End"
       },
       {
-        "short": "BE",
-        "long": "Beveled End"
+        "abbr": "BE",
+        "full": "Beveled End"
       },
       {
-        "short": "TE",
-        "long": "Threaded End"
+        "abbr": "TE",
+        "full": "Threaded End"
       },
       {
-        "short": "PBE",
-        "long": "Plain Both Ends"
+        "abbr": "PBE",
+        "full": "Plain Both Ends"
       },
       {
-        "short": "BBE",
-        "long": "Beveled Both Ends"
+        "abbr": "BBE",
+        "full": "Beveled Both Ends"
       },
       {
-        "short": "TBE",
-        "long": "Threaded Both Ends"
+        "abbr": "TBE",
+        "full": "Threaded Both Ends"
       },
       {
-        "short": "PE/TE(NPT)",
-        "long": "Plain End x NPT Threaded End"
+        "abbr": "PE/TE(NPT)",
+        "full": "Plain End x NPT Threaded End"
       },
       {
-        "short": "PE/TE(PT)",
-        "long": "Plain End x PT Threaded End"
+        "abbr": "PE/TE(PT)",
+        "full": "Plain End x PT Threaded End"
       },
       {
-        "short": "BE/PE",
-        "long": "Beveled End x Plain End"
+        "abbr": "BE/PE",
+        "full": "Beveled End x Plain End"
       }
     ],
     "Length": [
       {
-        "short": "",
-        "long": ""
+        "abbr": "",
+        "full": ""
       },
       {
-        "short": "50mm",
-        "long": "50 mm Nipple"
+        "abbr": "50mm",
+        "full": "50 mm Nipple"
       },
       {
-        "short": "75mm",
-        "long": "75 mm Nipple"
+        "abbr": "75mm",
+        "full": "75 mm Nipple"
       },
       {
-        "short": "100mm",
-        "long": "100 mm Nipple"
+        "abbr": "100mm",
+        "full": "100 mm Nipple"
       },
       {
-        "short": "150mm",
-        "long": "150 mm Nipple"
+        "abbr": "150mm",
+        "full": "150 mm Nipple"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Forged_Fitting_Group": {
     "Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "AS",
-        "long": "Alloy Steel"
+        "abbr": "AS",
+        "full": "Alloy Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       },
       {
-        "short": "DSS",
-        "long": "Duplex Stainless Steel"
+        "abbr": "DSS",
+        "full": "Duplex Stainless Steel"
       },
       {
-        "short": "SDSS",
-        "long": "Super Duplex Stainless Steel"
+        "abbr": "SDSS",
+        "full": "Super Duplex Stainless Steel"
       },
       {
-        "short": "NI-ALLOY",
-        "long": "Nickel Alloy"
+        "abbr": "NI-ALLOY",
+        "full": "Nickel Alloy"
       }
     ],
     "Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       },
       {
-        "short": "EN",
-        "long": "EN"
+        "abbr": "EN",
+        "full": "EN"
       }
     ],
     "Matl_Code": [
       {
-        "short": "A105",
+        "abbr": "A105",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A105"
+        "full": "ASTM A105"
       },
       {
-        "short": "A350-LF2",
+        "abbr": "A350-LF2",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A350 LF2"
+        "full": "ASTM A350 LF2"
       },
       {
-        "short": "A182-F304",
+        "abbr": "A182-F304",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F304"
+        "full": "ASTM A182 F304"
       },
       {
-        "short": "A182-F316",
+        "abbr": "A182-F316",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F316"
+        "full": "ASTM A182 F316"
       },
       {
-        "short": "A182-F304L",
+        "abbr": "A182-F304L",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F304L"
+        "full": "ASTM A182 F304L"
       },
       {
-        "short": "A182-F316L",
+        "abbr": "A182-F316L",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F316L"
+        "full": "ASTM A182 F316L"
       },
       {
-        "short": "A182-F11",
+        "abbr": "A182-F11",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A182 F11"
+        "full": "ASTM A182 F11"
       },
       {
-        "short": "A182-F22",
+        "abbr": "A182-F22",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A182 F22"
+        "full": "ASTM A182 F22"
       },
       {
-        "short": "SF440A",
+        "abbr": "SF440A",
         "std": "JIS",
         "category": "CS",
-        "long": "JIS SF440A"
+        "full": "JIS SF440A"
       },
       {
-        "short": "SUS304-F",
+        "abbr": "SUS304-F",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SUS304 Forged"
+        "full": "JIS SUS304 Forged"
       },
       {
-        "short": "SUS316-F",
+        "abbr": "SUS316-F",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SUS316 Forged"
+        "full": "JIS SUS316 Forged"
       }
     ],
     "Rating": [
       {
-        "short": "2000#",
+        "abbr": "2000#",
         "std": "ASTM",
-        "long": "Class 2000"
+        "full": "Class 2000"
       },
       {
-        "short": "3000#",
+        "abbr": "3000#",
         "std": "ASTM",
-        "long": "Class 3000"
+        "full": "Class 3000"
       },
       {
-        "short": "6000#",
+        "abbr": "6000#",
         "std": "ASTM",
-        "long": "Class 6000"
+        "full": "Class 6000"
       },
       {
-        "short": "9000#",
+        "abbr": "9000#",
         "std": "ASTM",
-        "long": "Class 9000"
+        "full": "Class 9000"
       },
       {
-        "short": "SCH80",
+        "abbr": "SCH80",
         "std": "JIS",
-        "long": "Schedule 80"
+        "full": "Schedule 80"
       },
       {
-        "short": "SCH80",
+        "abbr": "SCH80",
         "std": "KS",
-        "long": "Schedule 80"
+        "full": "Schedule 80"
       }
     ],
     "End_Type": [
       {
-        "short": "SW",
-        "long": "Socket Weld"
+        "abbr": "SW",
+        "full": "Socket Weld"
       },
       {
-        "short": "PT",
-        "long": "Threaded (PT)"
+        "abbr": "PT",
+        "full": "Threaded (PT)"
       },
       {
-        "short": "NPT",
-        "long": "Threaded (NPT)"
+        "abbr": "NPT",
+        "full": "Threaded (NPT)"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Wrought_Fitting_Group": {
     "Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "AS",
-        "long": "Alloy Steel"
+        "abbr": "AS",
+        "full": "Alloy Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       },
       {
-        "short": "DSS",
-        "long": "Duplex Stainless Steel"
+        "abbr": "DSS",
+        "full": "Duplex Stainless Steel"
       },
       {
-        "short": "SDSS",
-        "long": "Super Duplex Stainless Steel"
+        "abbr": "SDSS",
+        "full": "Super Duplex Stainless Steel"
       },
       {
-        "short": "NI-ALLOY",
-        "long": "Nickel Alloy"
+        "abbr": "NI-ALLOY",
+        "full": "Nickel Alloy"
       }
     ],
     "Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       },
       {
-        "short": "EN",
-        "long": "EN"
+        "abbr": "EN",
+        "full": "EN"
       }
     ],
     "Matl_Code": [
       {
-        "short": "A234-WPB",
+        "abbr": "A234-WPB",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A234 WPB"
+        "full": "ASTM A234 WPB"
       },
       {
-        "short": "A234-WPC",
+        "abbr": "A234-WPC",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A234 WPC"
+        "full": "ASTM A234 WPC"
       },
       {
-        "short": "A420-WPL6",
+        "abbr": "A420-WPL6",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A420 WPL6"
+        "full": "ASTM A420 WPL6"
       },
       {
-        "short": "A420-WPL3",
+        "abbr": "A420-WPL3",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A420 WPL3"
+        "full": "ASTM A420 WPL3"
       },
       {
-        "short": "A403-WP304",
+        "abbr": "A403-WP304",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A403 WP304"
+        "full": "ASTM A403 WP304"
       },
       {
-        "short": "A403-WP316",
+        "abbr": "A403-WP316",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A403 WP316"
+        "full": "ASTM A403 WP316"
       },
       {
-        "short": "A403-WP304L",
+        "abbr": "A403-WP304L",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A403 WP304L"
+        "full": "ASTM A403 WP304L"
       },
       {
-        "short": "A403-WP316L",
+        "abbr": "A403-WP316L",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A403 WP316L"
+        "full": "ASTM A403 WP316L"
       },
       {
-        "short": "A234-WP11",
+        "abbr": "A234-WP11",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A234 WP11"
+        "full": "ASTM A234 WP11"
       },
       {
-        "short": "A234-WP22",
+        "abbr": "A234-WP22",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A234 WP22"
+        "full": "ASTM A234 WP22"
       },
       {
-        "short": "PG370",
+        "abbr": "PG370",
         "std": "JIS",
         "category": "CS",
-        "long": "JIS B 2311 PG370"
+        "full": "JIS B 2311 PG370"
       },
       {
-        "short": "PS410",
+        "abbr": "PS410",
         "std": "JIS",
         "category": "CS",
-        "long": "JIS B 2311 PS410"
+        "full": "JIS B 2311 PS410"
       },
       {
-        "short": "PL380",
+        "abbr": "PL380",
         "std": "JIS",
         "category": "LTCS",
-        "long": "JIS B 2311 PL380"
+        "full": "JIS B 2311 PL380"
       },
       {
-        "short": "PA22",
+        "abbr": "PA22",
         "std": "JIS",
         "category": "AS",
-        "long": "JIS B 2311 PA22"
+        "full": "JIS B 2311 PA22"
       },
       {
-        "short": "SUS304",
+        "abbr": "SUS304",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS B 2311 SUS304"
+        "full": "JIS B 2311 SUS304"
       },
       {
-        "short": "SUS304L",
+        "abbr": "SUS304L",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS B 2311 SUS304L"
+        "full": "JIS B 2311 SUS304L"
       },
       {
-        "short": "SUS316",
+        "abbr": "SUS316",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS B 2311 SUS316"
+        "full": "JIS B 2311 SUS316"
       },
       {
-        "short": "SUS316L",
+        "abbr": "SUS316L",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS B 2311 SUS316L"
+        "full": "JIS B 2311 SUS316L"
       }
     ],
     "Manufacturing_Method": [
       {
-        "short": "SMLS",
-        "long": "Seamless"
+        "abbr": "SMLS",
+        "full": "Seamless"
       },
       {
-        "short": "WLD",
-        "long": "Welded"
+        "abbr": "WLD",
+        "full": "Welded"
       }
     ],
     "End_Type": [
       {
-        "short": "BW",
-        "long": "Butt Weld"
+        "abbr": "BW",
+        "full": "Butt Weld"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Flange_Group": {
     "Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "AS",
-        "long": "Alloy Steel"
+        "abbr": "AS",
+        "full": "Alloy Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       },
       {
-        "short": "DSS",
-        "long": "Duplex Stainless Steel"
+        "abbr": "DSS",
+        "full": "Duplex Stainless Steel"
       },
       {
-        "short": "SDSS",
-        "long": "Super Duplex Stainless Steel"
+        "abbr": "SDSS",
+        "full": "Super Duplex Stainless Steel"
       },
       {
-        "short": "NI-ALLOY",
-        "long": "Nickel Alloy"
+        "abbr": "NI-ALLOY",
+        "full": "Nickel Alloy"
       }
     ],
     "Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       },
       {
-        "short": "EN",
-        "long": "EN"
+        "abbr": "EN",
+        "full": "EN"
       }
     ],
     "Matl_Code": [
       {
-        "short": "A105",
+        "abbr": "A105",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A105"
+        "full": "ASTM A105"
       },
       {
-        "short": "A350-LF2",
+        "abbr": "A350-LF2",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A350 LF2"
+        "full": "ASTM A350 LF2"
       },
       {
-        "short": "A182-F304",
+        "abbr": "A182-F304",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F304"
+        "full": "ASTM A182 F304"
       },
       {
-        "short": "A182-F316",
+        "abbr": "A182-F316",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F316"
+        "full": "ASTM A182 F316"
       },
       {
-        "short": "A182-F304L",
+        "abbr": "A182-F304L",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F304L"
+        "full": "ASTM A182 F304L"
       },
       {
-        "short": "A182-F316L",
+        "abbr": "A182-F316L",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F316L"
+        "full": "ASTM A182 F316L"
       },
       {
-        "short": "A182-F11",
+        "abbr": "A182-F11",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A182 F11"
+        "full": "ASTM A182 F11"
       },
       {
-        "short": "A182-F22",
+        "abbr": "A182-F22",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A182 F22"
+        "full": "ASTM A182 F22"
       },
       {
-        "short": "SF440A",
+        "abbr": "SF440A",
         "std": "JIS",
         "category": "CS",
-        "long": "JIS SF440A"
+        "full": "JIS SF440A"
       },
       {
-        "short": "SUS304-F",
+        "abbr": "SUS304-F",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SUS304 Forged"
+        "full": "JIS SUS304 Forged"
       },
       {
-        "short": "SUS316-F",
+        "abbr": "SUS316-F",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SUS316 Forged"
+        "full": "JIS SUS316 Forged"
       }
     ],
     "Rating": [
       {
-        "short": "150#",
+        "abbr": "150#",
         "std": "ASTM",
-        "long": "Class 150"
+        "full": "Class 150"
       },
       {
-        "short": "300#",
+        "abbr": "300#",
         "std": "ASTM",
-        "long": "Class 300"
+        "full": "Class 300"
       },
       {
-        "short": "600#",
+        "abbr": "600#",
         "std": "ASTM",
-        "long": "Class 600"
+        "full": "Class 600"
       },
       {
-        "short": "900#",
+        "abbr": "900#",
         "std": "ASTM",
-        "long": "Class 900"
+        "full": "Class 900"
       },
       {
-        "short": "1500#",
+        "abbr": "1500#",
         "std": "ASTM",
-        "long": "Class 1500"
+        "full": "Class 1500"
       },
       {
-        "short": "2500#",
+        "abbr": "2500#",
         "std": "ASTM",
-        "long": "Class 2500"
+        "full": "Class 2500"
       },
       {
-        "short": "JIS5K",
+        "abbr": "JIS5K",
         "std": "JIS",
-        "long": "JIS 5K"
+        "full": "JIS 5K"
       },
       {
-        "short": "JIS10K",
+        "abbr": "JIS10K",
         "std": "JIS",
-        "long": "JIS 10K"
+        "full": "JIS 10K"
       },
       {
-        "short": "JIS16K",
+        "abbr": "JIS16K",
         "std": "JIS",
-        "long": "JIS 16K"
+        "full": "JIS 16K"
       },
       {
-        "short": "JIS20K",
+        "abbr": "JIS20K",
         "std": "JIS",
-        "long": "JIS 20K"
+        "full": "JIS 20K"
       },
       {
-        "short": "JIS30K",
+        "abbr": "JIS30K",
         "std": "JIS",
-        "long": "JIS 30K"
+        "full": "JIS 30K"
       },
       {
-        "short": "JIS40K",
+        "abbr": "JIS40K",
         "std": "JIS",
-        "long": "JIS 40K"
+        "full": "JIS 40K"
       },
       {
-        "short": "JIS63K",
+        "abbr": "JIS63K",
         "std": "JIS",
-        "long": "JIS 63K"
+        "full": "JIS 63K"
       },
       {
-        "short": "KS5K",
+        "abbr": "KS5K",
         "std": "KS",
-        "long": "KS 5K"
+        "full": "KS 5K"
       },
       {
-        "short": "KS10K",
+        "abbr": "KS10K",
         "std": "KS",
-        "long": "KS 10K"
+        "full": "KS 10K"
       },
       {
-        "short": "KS16K",
+        "abbr": "KS16K",
         "std": "KS",
-        "long": "KS 16K"
+        "full": "KS 16K"
       },
       {
-        "short": "KS20K",
+        "abbr": "KS20K",
         "std": "KS",
-        "long": "KS 20K"
+        "full": "KS 20K"
       },
       {
-        "short": "KS30K",
+        "abbr": "KS30K",
         "std": "KS",
-        "long": "KS 30K"
+        "full": "KS 30K"
       },
       {
-        "short": "KS40K",
+        "abbr": "KS40K",
         "std": "KS",
-        "long": "KS 40K"
+        "full": "KS 40K"
       },
       {
-        "short": "KS63K",
+        "abbr": "KS63K",
         "std": "KS",
-        "long": "KS 63K"
+        "full": "KS 63K"
       }
     ],
     "Facing": [
       {
-        "short": "RF",
-        "long": "Raised Face"
+        "abbr": "RF",
+        "full": "Raised Face"
       },
       {
-        "short": "FF",
-        "long": "Flat Face"
+        "abbr": "FF",
+        "full": "Flat Face"
       },
       {
-        "short": "RTJ",
-        "long": "Ring Type Joint"
+        "abbr": "RTJ",
+        "full": "Ring Type Joint"
       },
       {
-        "short": "MF",
-        "long": "Male Face"
+        "abbr": "MF",
+        "full": "Male Face"
       },
       {
-        "short": "FM",
-        "long": "Female Face"
+        "abbr": "FM",
+        "full": "Female Face"
       },
       {
-        "short": "TG",
-        "long": "Tongue and Groove"
+        "abbr": "TG",
+        "full": "Tongue and Groove"
       }
     ],
     "Flange_Type": [
       {
-        "short": "WN",
-        "long": "Weld Neck"
+        "abbr": "WN",
+        "full": "Weld Neck"
       },
       {
-        "short": "SO",
-        "long": "Slip-On"
+        "abbr": "SO",
+        "full": "Slip-On"
       },
       {
-        "short": "LJ",
-        "long": "Lap Joint"
+        "abbr": "LJ",
+        "full": "Lap Joint"
       },
       {
-        "short": "SW",
-        "long": "Socket Weld"
+        "abbr": "SW",
+        "full": "Socket Weld"
       },
       {
-        "short": "THRD",
-        "long": "Threaded"
+        "abbr": "THRD",
+        "full": "Threaded"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Gasket_Group": {
     "Gasket_Type": [
       {
-        "short": "SHEET",
-        "long": "Sheet"
+        "abbr": "SHEET",
+        "full": "Sheet"
       },
       {
-        "short": "SPIRAL WOUND",
-        "long": "Spiral Wound"
+        "abbr": "SPIRAL WOUND",
+        "full": "Spiral Wound"
       },
       {
-        "short": "RTJ",
-        "long": "Ring Type Joint"
+        "abbr": "RTJ",
+        "full": "Ring Type Joint"
       },
       {
-        "short": "PTFE ENVELOPED",
-        "long": "PTFE Enveloped"
+        "abbr": "PTFE ENVELOPED",
+        "full": "PTFE Enveloped"
       },
       {
-        "short": "SOLID",
-        "long": "Solid"
+        "abbr": "SOLID",
+        "full": "Solid"
       }
     ],
     "Material_Primary": [
       {
-        "short": "COMPRESSED NON-ASBESTOS",
-        "long": "Compressed Non-Asbestos Fiber (CNAF)"
+        "abbr": "COMPRESSED NON-ASBESTOS",
+        "full": "Compressed Non-Asbestos Fiber (CNAF)"
       },
       {
-        "short": "PTFE",
-        "long": "PTFE"
+        "abbr": "PTFE",
+        "full": "PTFE"
       },
       {
-        "short": "GRAPHITE",
-        "long": "Flexible Graphite"
+        "abbr": "GRAPHITE",
+        "full": "Flexible Graphite"
       },
       {
-        "short": "EPDM",
-        "long": "EPDM Rubber"
+        "abbr": "EPDM",
+        "full": "EPDM Rubber"
       },
       {
-        "short": "NBR",
-        "long": "NBR Rubber"
+        "abbr": "NBR",
+        "full": "NBR Rubber"
       },
       {
-        "short": "SBR",
-        "long": "SBR Rubber"
+        "abbr": "SBR",
+        "full": "SBR Rubber"
       },
       {
-        "short": "SS304+GRAPHITE",
-        "long": "SS304 Winding + Graphite Filler"
+        "abbr": "SS304+GRAPHITE",
+        "full": "SS304 Winding + Graphite Filler"
       },
       {
-        "short": "SS304+PTFE",
-        "long": "SS304 Winding + PTFE Filler"
+        "abbr": "SS304+PTFE",
+        "full": "SS304 Winding + PTFE Filler"
       },
       {
-        "short": "SS316+GRAPHITE",
-        "long": "SS316 Winding + Graphite Filler"
+        "abbr": "SS316+GRAPHITE",
+        "full": "SS316 Winding + Graphite Filler"
       },
       {
-        "short": "SS316+PTFE",
-        "long": "SS316 Winding + PTFE Filler"
+        "abbr": "SS316+PTFE",
+        "full": "SS316 Winding + PTFE Filler"
       },
       {
-        "short": "NON-ASBESTOS INSERT",
-        "long": "Non-Asbestos Insert"
+        "abbr": "NON-ASBESTOS INSERT",
+        "full": "Non-Asbestos Insert"
       },
       {
-        "short": "GRAPHITE INSERT",
-        "long": "Graphite Insert"
+        "abbr": "GRAPHITE INSERT",
+        "full": "Graphite Insert"
       },
       {
-        "short": "SS INSERT",
-        "long": "SS Corrugated Insert"
+        "abbr": "SS INSERT",
+        "full": "SS Corrugated Insert"
       },
       {
-        "short": "SOFT-IRON",
-        "long": "Soft Iron"
+        "abbr": "SOFT-IRON",
+        "full": "Soft Iron"
       },
       {
-        "short": "SS304",
-        "long": "SS304"
+        "abbr": "SS304",
+        "full": "SS304"
       },
       {
-        "short": "SS316",
-        "long": "SS316"
+        "abbr": "SS316",
+        "full": "SS316"
       },
       {
-        "short": "MONEL-400",
-        "long": "Monel 400"
+        "abbr": "MONEL-400",
+        "full": "Monel 400"
       },
       {
-        "short": "INCONEL-625",
-        "long": "Inconel 625"
+        "abbr": "INCONEL-625",
+        "full": "Inconel 625"
       }
     ],
     "Material_Secondary": [
       {
-        "short": "",
-        "long": "(none)"
+        "abbr": "",
+        "full": "(none)"
       },
       {
-        "short": "ARAMID FIBER+NBR",
-        "long": "Aramid Fiber + NBR Binder"
+        "abbr": "ARAMID FIBER+NBR",
+        "full": "Aramid Fiber + NBR Binder"
       },
       {
-        "short": "ARAMID FIBER+SBR",
-        "long": "Aramid Fiber + SBR Binder"
+        "abbr": "ARAMID FIBER+SBR",
+        "full": "Aramid Fiber + SBR Binder"
       },
       {
-        "short": "ARAMID FIBER+EPDM",
-        "long": "Aramid Fiber + EPDM Binder"
+        "abbr": "ARAMID FIBER+EPDM",
+        "full": "Aramid Fiber + EPDM Binder"
       },
       {
-        "short": "GLASS FIBER+NBR",
-        "long": "Glass Fiber + NBR Binder"
+        "abbr": "GLASS FIBER+NBR",
+        "full": "Glass Fiber + NBR Binder"
       },
       {
-        "short": "IR-SS304 OR-CS",
-        "long": "Inner Ring SS304 / Outer Ring Carbon Steel"
+        "abbr": "IR-SS304 OR-CS",
+        "full": "Inner Ring SS304 / Outer Ring Carbon Steel"
       },
       {
-        "short": "IR-SS304 OR-SS304",
-        "long": "Inner Ring SS304 / Outer Ring SS304"
+        "abbr": "IR-SS304 OR-SS304",
+        "full": "Inner Ring SS304 / Outer Ring SS304"
       },
       {
-        "short": "IR-SS316 OR-CS",
-        "long": "Inner Ring SS316 / Outer Ring Carbon Steel"
+        "abbr": "IR-SS316 OR-CS",
+        "full": "Inner Ring SS316 / Outer Ring Carbon Steel"
       },
       {
-        "short": "IR-SS316 OR-SS316",
-        "long": "Inner Ring SS316 / Outer Ring SS316"
+        "abbr": "IR-SS316 OR-SS316",
+        "full": "Inner Ring SS316 / Outer Ring SS316"
       },
       {
-        "short": "IR-CS OR-CS",
-        "long": "Inner Ring Carbon Steel / Outer Ring Carbon Steel"
+        "abbr": "IR-CS OR-CS",
+        "full": "Inner Ring Carbon Steel / Outer Ring Carbon Steel"
       }
     ],
     "Rating": [
       {
-        "short": "150#",
+        "abbr": "150#",
         "std": "ASTM",
-        "long": "Class 150"
+        "full": "Class 150"
       },
       {
-        "short": "300#",
+        "abbr": "300#",
         "std": "ASTM",
-        "long": "Class 300"
+        "full": "Class 300"
       },
       {
-        "short": "600#",
+        "abbr": "600#",
         "std": "ASTM",
-        "long": "Class 600"
+        "full": "Class 600"
       },
       {
-        "short": "900#",
+        "abbr": "900#",
         "std": "ASTM",
-        "long": "Class 900"
+        "full": "Class 900"
       },
       {
-        "short": "1500#",
+        "abbr": "1500#",
         "std": "ASTM",
-        "long": "Class 1500"
+        "full": "Class 1500"
       },
       {
-        "short": "2500#",
+        "abbr": "2500#",
         "std": "ASTM",
-        "long": "Class 2500"
+        "full": "Class 2500"
       },
       {
-        "short": "JIS5K",
+        "abbr": "JIS5K",
         "std": "JIS",
-        "long": "JIS 5K"
+        "full": "JIS 5K"
       },
       {
-        "short": "JIS10K",
+        "abbr": "JIS10K",
         "std": "JIS",
-        "long": "JIS 10K"
+        "full": "JIS 10K"
       },
       {
-        "short": "JIS16K",
+        "abbr": "JIS16K",
         "std": "JIS",
-        "long": "JIS 16K"
+        "full": "JIS 16K"
       },
       {
-        "short": "JIS20K",
+        "abbr": "JIS20K",
         "std": "JIS",
-        "long": "JIS 20K"
+        "full": "JIS 20K"
       },
       {
-        "short": "JIS30K",
+        "abbr": "JIS30K",
         "std": "JIS",
-        "long": "JIS 30K"
+        "full": "JIS 30K"
       },
       {
-        "short": "JIS40K",
+        "abbr": "JIS40K",
         "std": "JIS",
-        "long": "JIS 40K"
+        "full": "JIS 40K"
       },
       {
-        "short": "JIS63K",
+        "abbr": "JIS63K",
         "std": "JIS",
-        "long": "JIS 63K"
+        "full": "JIS 63K"
       },
       {
-        "short": "KS5K",
+        "abbr": "KS5K",
         "std": "KS",
-        "long": "KS 5K"
+        "full": "KS 5K"
       },
       {
-        "short": "KS10K",
+        "abbr": "KS10K",
         "std": "KS",
-        "long": "KS 10K"
+        "full": "KS 10K"
       },
       {
-        "short": "KS16K",
+        "abbr": "KS16K",
         "std": "KS",
-        "long": "KS 16K"
+        "full": "KS 16K"
       },
       {
-        "short": "KS20K",
+        "abbr": "KS20K",
         "std": "KS",
-        "long": "KS 20K"
+        "full": "KS 20K"
       },
       {
-        "short": "KS30K",
+        "abbr": "KS30K",
         "std": "KS",
-        "long": "KS 30K"
+        "full": "KS 30K"
       },
       {
-        "short": "KS40K",
+        "abbr": "KS40K",
         "std": "KS",
-        "long": "KS 40K"
+        "full": "KS 40K"
       },
       {
-        "short": "KS63K",
+        "abbr": "KS63K",
         "std": "KS",
-        "long": "KS 63K"
+        "full": "KS 63K"
       }
     ],
     "Facing": [
       {
-        "short": "RF",
-        "long": "Raised Face"
+        "abbr": "RF",
+        "full": "Raised Face"
       },
       {
-        "short": "FF",
-        "long": "Flat Face"
+        "abbr": "FF",
+        "full": "Flat Face"
       },
       {
-        "short": "RTJ",
-        "long": "Ring Type Joint"
+        "abbr": "RTJ",
+        "full": "Ring Type Joint"
       }
     ],
     "Thickness": [
       {
-        "short": "1.5mm",
-        "long": "1.5 mm thick"
+        "abbr": "1.5mm",
+        "full": "1.5 mm thick"
       },
       {
-        "short": "3.0mm",
-        "long": "3.0 mm thick"
+        "abbr": "3.0mm",
+        "full": "3.0 mm thick"
       },
       {
-        "short": "4.5mm",
-        "long": "4.5 mm thick"
+        "abbr": "4.5mm",
+        "full": "4.5 mm thick"
       },
       {
-        "short": "6.0mm",
-        "long": "6.0 mm thick"
+        "abbr": "6.0mm",
+        "full": "6.0 mm thick"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Bolt_Group": {
     "Bolt_Type": [
       {
-        "short": "STUD BOLT",
-        "long": "Stud Bolt"
+        "abbr": "STUD BOLT",
+        "full": "Stud Bolt"
       },
       {
-        "short": "MACHINE BOLT",
-        "long": "Machine Bolt"
+        "abbr": "MACHINE BOLT",
+        "full": "Machine Bolt"
       }
     ],
     "Bolt_Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "AS",
-        "long": "Alloy Steel"
+        "abbr": "AS",
+        "full": "Alloy Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       }
     ],
     "Bolt_Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       }
     ],
     "Bolt_Matl_Code": [
       {
-        "short": "A307-B",
+        "abbr": "A307-B",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A307 Gr.B"
+        "full": "ASTM A307 Gr.B"
       },
       {
-        "short": "A193-B7",
+        "abbr": "A193-B7",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A193 B7"
+        "full": "ASTM A193 B7"
       },
       {
-        "short": "A193-B16",
+        "abbr": "A193-B16",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A193 B16"
+        "full": "ASTM A193 B16"
       },
       {
-        "short": "A320-L7",
+        "abbr": "A320-L7",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A320 L7"
+        "full": "ASTM A320 L7"
       },
       {
-        "short": "A193-B8",
+        "abbr": "A193-B8",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A193 B8"
+        "full": "ASTM A193 B8"
       },
       {
-        "short": "SCM435",
+        "abbr": "SCM435",
         "std": "JIS",
         "category": "AS",
-        "long": "JIS SCM435"
+        "full": "JIS SCM435"
       }
     ],
     "Nut_Type": [
       {
-        "short": "HEX NUTS",
-        "long": "Hex Nuts"
+        "abbr": "HEX NUTS",
+        "full": "Hex Nuts"
       },
       {
-        "short": "HEAVY HEX NUTS",
-        "long": "Heavy Hex Nuts"
+        "abbr": "HEAVY HEX NUTS",
+        "full": "Heavy Hex Nuts"
       }
     ],
     "Nut_Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       }
     ],
     "Nut_Matl_Code": [
       {
-        "short": "A194-2H",
+        "abbr": "A194-2H",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A194 Gr.2H"
+        "full": "ASTM A194 Gr.2H"
       },
       {
-        "short": "A194-7",
+        "abbr": "A194-7",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A194 Gr.7"
+        "full": "ASTM A194 Gr.7"
       },
       {
-        "short": "A194-8",
+        "abbr": "A194-8",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A194 Gr.8"
+        "full": "ASTM A194 Gr.8"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Gate_Valve_Group": {
     "Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "AS",
-        "long": "Alloy Steel"
+        "abbr": "AS",
+        "full": "Alloy Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       },
       {
-        "short": "DSS",
-        "long": "Duplex Stainless Steel"
+        "abbr": "DSS",
+        "full": "Duplex Stainless Steel"
       },
       {
-        "short": "SDSS",
-        "long": "Super Duplex Stainless Steel"
+        "abbr": "SDSS",
+        "full": "Super Duplex Stainless Steel"
       },
       {
-        "short": "NI-ALLOY",
-        "long": "Nickel Alloy"
+        "abbr": "NI-ALLOY",
+        "full": "Nickel Alloy"
       }
     ],
     "Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       },
       {
-        "short": "EN",
-        "long": "EN"
+        "abbr": "EN",
+        "full": "EN"
       }
     ],
     "Matl_Code": [
       {
-        "short": "A216-WCB",
+        "abbr": "A216-WCB",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A216 WCB"
+        "full": "ASTM A216 WCB"
       },
       {
-        "short": "A352-LCB",
+        "abbr": "A352-LCB",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A352 LCB"
+        "full": "ASTM A352 LCB"
       },
       {
-        "short": "A352-LCC",
+        "abbr": "A352-LCC",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A352 LCC"
+        "full": "ASTM A352 LCC"
       },
       {
-        "short": "A351-CF8",
+        "abbr": "A351-CF8",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8"
+        "full": "ASTM A351 CF8"
       },
       {
-        "short": "A351-CF8M",
+        "abbr": "A351-CF8M",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8M"
+        "full": "ASTM A351 CF8M"
       },
       {
-        "short": "A217-WC1",
+        "abbr": "A217-WC1",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A217 WC1"
+        "full": "ASTM A217 WC1"
       },
       {
-        "short": "A217-WC6",
+        "abbr": "A217-WC6",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A217 WC6"
+        "full": "ASTM A217 WC6"
       },
       {
-        "short": "A217-WC9",
+        "abbr": "A217-WC9",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A217 WC9"
+        "full": "ASTM A217 WC9"
       },
       {
-        "short": "SCS13A",
+        "abbr": "SCS13A",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SCS13A"
+        "full": "JIS SCS13A"
       },
       {
-        "short": "SCS14A",
+        "abbr": "SCS14A",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SCS14A"
+        "full": "JIS SCS14A"
       }
     ],
     "Trim_Matl": [
       {
-        "short": "13CR",
-        "long": "API600 Trim 1 - 410/410/410 (13Cr)"
+        "abbr": "13CR",
+        "full": "API600 Trim 1 - 410/410/410 (13Cr)"
       },
       {
-        "short": "SS304",
-        "long": "API600 Trim 2 - 304 SS"
+        "abbr": "SS304",
+        "full": "API600 Trim 2 - 304 SS"
       },
       {
-        "short": "SS310",
-        "long": "API600 Trim 3 - 310 SS"
+        "abbr": "SS310",
+        "full": "API600 Trim 3 - 310 SS"
       },
       {
-        "short": "13CR-HD",
-        "long": "API600 Trim 4 - Dual hardened 410 seat & disc, 410 stem"
+        "abbr": "13CR-HD",
+        "full": "API600 Trim 4 - Dual hardened 410 seat & disc, 410 stem"
       },
       {
-        "short": "13CR+FHF",
-        "long": "API600 Trim 5 - Full hard faced (Stellite, seat+disc), 410 stem"
+        "abbr": "13CR+FHF",
+        "full": "API600 Trim 5 - Full hard faced (Stellite, seat+disc), 410 stem"
       },
       {
-        "short": "13CR+FHF-NICR",
-        "long": "API600 Trim 5A - Full hard faced (Ni-Cr, seat+disc), 410 stem"
+        "abbr": "13CR+FHF-NICR",
+        "full": "API600 Trim 5A - Full hard faced (Ni-Cr, seat+disc), 410 stem"
       },
       {
-        "short": "13CR+FHF-ULTIMET",
-        "long": "API600 Trim 5B - Full hard faced (Ultimet, seat+disc), 410 stem"
+        "abbr": "13CR+FHF-ULTIMET",
+        "full": "API600 Trim 5B - Full hard faced (Ultimet, seat+disc), 410 stem"
       },
       {
-        "short": "13CR+CUNI",
-        "long": "API600 Trim 6 - 410 + Cu-Ni seat, 410 disc/stem"
+        "abbr": "13CR+CUNI",
+        "full": "API600 Trim 6 - 410 + Cu-Ni seat, 410 disc/stem"
       },
       {
-        "short": "13CR+HD",
-        "long": "API600 Trim 7 - Single hardened 410 seat + 410 disc, 410 stem"
+        "abbr": "13CR+HD",
+        "full": "API600 Trim 7 - Single hardened 410 seat + 410 disc, 410 stem"
       },
       {
-        "short": "13CR+HHF",
-        "long": "API600 Trim 8 - Half hard faced (Stellite seat only) + 13Cr disc, 410 stem"
+        "abbr": "13CR+HHF",
+        "full": "API600 Trim 8 - Half hard faced (Stellite seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "13CR+HHF-NICR",
-        "long": "API600 Trim 8A - Half hard faced (Ni-Cr seat only) + 13Cr disc, 410 stem"
+        "abbr": "13CR+HHF-NICR",
+        "full": "API600 Trim 8A - Half hard faced (Ni-Cr seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "MONEL",
-        "long": "API600 Trim 9 - Monel seat/disc/stem"
+        "abbr": "MONEL",
+        "full": "API600 Trim 9 - Monel seat/disc/stem"
       },
       {
-        "short": "SS316",
-        "long": "API600 Trim 10 - 316 SS"
+        "abbr": "SS316",
+        "full": "API600 Trim 10 - 316 SS"
       },
       {
-        "short": "MONEL+HHF",
-        "long": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
+        "abbr": "MONEL+HHF",
+        "full": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
       },
       {
-        "short": "SS316+HHF",
-        "long": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
+        "abbr": "SS316+HHF",
+        "full": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
       },
       {
-        "short": "ALLOY20",
-        "long": "API600 Trim 13 - Alloy 20"
+        "abbr": "ALLOY20",
+        "full": "API600 Trim 13 - Alloy 20"
       },
       {
-        "short": "ALLOY20+HHF",
-        "long": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
+        "abbr": "ALLOY20+HHF",
+        "full": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
       },
       {
-        "short": "SS304+FHF",
-        "long": "API600 Trim 15 - Full hard faced (seat+disc) + 304, 304 stem"
+        "abbr": "SS304+FHF",
+        "full": "API600 Trim 15 - Full hard faced (seat+disc) + 304, 304 stem"
       },
       {
-        "short": "SS316+FHF",
-        "long": "API600 Trim 16 - Full hard faced (seat+disc) + 316, 316 stem"
+        "abbr": "SS316+FHF",
+        "full": "API600 Trim 16 - Full hard faced (seat+disc) + 316, 316 stem"
       },
       {
-        "short": "SS347+FHF",
-        "long": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
+        "abbr": "SS347+FHF",
+        "full": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
       },
       {
-        "short": "ALLOY20+FHF",
-        "long": "API600 Trim 18 - Full hard faced (seat+disc) + Alloy 20"
+        "abbr": "ALLOY20+FHF",
+        "full": "API600 Trim 18 - Full hard faced (seat+disc) + Alloy 20"
       },
       {
-        "short": "NIALLOY",
-        "long": "API600 Trim 19 - Nickel alloy seat/disc/stem"
+        "abbr": "NIALLOY",
+        "full": "API600 Trim 19 - Nickel alloy seat/disc/stem"
       },
       {
-        "short": "HASTELLOY-C276",
-        "long": "API600 Trim 19B - Hastelloy C-276"
+        "abbr": "HASTELLOY-C276",
+        "full": "API600 Trim 19B - Hastelloy C-276"
       },
       {
-        "short": "INCOLOY-825",
-        "long": "API600 Trim 19C - Incoloy 825"
+        "abbr": "INCOLOY-825",
+        "full": "API600 Trim 19C - Incoloy 825"
       },
       {
-        "short": "NIALLOY+HHF",
-        "long": "API600 Trim 20 - Half hard faced seat + Nickel alloy"
+        "abbr": "NIALLOY+HHF",
+        "full": "API600 Trim 20 - Half hard faced seat + Nickel alloy"
       },
       {
-        "short": "HASTELLOY-C276+HHF",
-        "long": "API600 Trim 20B - Half hard faced seat + Hastelloy C-276"
+        "abbr": "HASTELLOY-C276+HHF",
+        "full": "API600 Trim 20B - Half hard faced seat + Hastelloy C-276"
       },
       {
-        "short": "INCOLOY-825+HHF",
-        "long": "API600 Trim 20C - Half hard faced seat + Incoloy 825"
+        "abbr": "INCOLOY-825+HHF",
+        "full": "API600 Trim 20C - Half hard faced seat + Incoloy 825"
       },
       {
-        "short": "NIALLOY+FHF",
-        "long": "API600 Trim 21 - Full hard faced (seat+disc) + Nickel alloy"
+        "abbr": "NIALLOY+FHF",
+        "full": "API600 Trim 21 - Full hard faced (seat+disc) + Nickel alloy"
       }
     ],
     "Rating": [
       {
-        "short": "150#",
+        "abbr": "150#",
         "std": "ASTM",
-        "long": "Class 150"
+        "full": "Class 150"
       },
       {
-        "short": "300#",
+        "abbr": "300#",
         "std": "ASTM",
-        "long": "Class 300"
+        "full": "Class 300"
       },
       {
-        "short": "600#",
+        "abbr": "600#",
         "std": "ASTM",
-        "long": "Class 600"
+        "full": "Class 600"
       },
       {
-        "short": "800#",
+        "abbr": "800#",
         "std": "ASTM",
-        "long": "Class 800"
+        "full": "Class 800"
       },
       {
-        "short": "900#",
+        "abbr": "900#",
         "std": "ASTM",
-        "long": "Class 900"
+        "full": "Class 900"
       },
       {
-        "short": "1500#",
+        "abbr": "1500#",
         "std": "ASTM",
-        "long": "Class 1500"
+        "full": "Class 1500"
       },
       {
-        "short": "2500#",
+        "abbr": "2500#",
         "std": "ASTM",
-        "long": "Class 2500"
+        "full": "Class 2500"
       },
       {
-        "short": "JIS5K",
+        "abbr": "JIS5K",
         "std": "JIS",
-        "long": "JIS 5K"
+        "full": "JIS 5K"
       },
       {
-        "short": "JIS10K",
+        "abbr": "JIS10K",
         "std": "JIS",
-        "long": "JIS 10K"
+        "full": "JIS 10K"
       },
       {
-        "short": "JIS16K",
+        "abbr": "JIS16K",
         "std": "JIS",
-        "long": "JIS 16K"
+        "full": "JIS 16K"
       },
       {
-        "short": "JIS20K",
+        "abbr": "JIS20K",
         "std": "JIS",
-        "long": "JIS 20K"
+        "full": "JIS 20K"
       },
       {
-        "short": "JIS30K",
+        "abbr": "JIS30K",
         "std": "JIS",
-        "long": "JIS 30K"
+        "full": "JIS 30K"
       },
       {
-        "short": "JIS40K",
+        "abbr": "JIS40K",
         "std": "JIS",
-        "long": "JIS 40K"
+        "full": "JIS 40K"
       },
       {
-        "short": "JIS63K",
+        "abbr": "JIS63K",
         "std": "JIS",
-        "long": "JIS 63K"
+        "full": "JIS 63K"
       },
       {
-        "short": "KS5K",
+        "abbr": "KS5K",
         "std": "KS",
-        "long": "KS 5K"
+        "full": "KS 5K"
       },
       {
-        "short": "KS10K",
+        "abbr": "KS10K",
         "std": "KS",
-        "long": "KS 10K"
+        "full": "KS 10K"
       },
       {
-        "short": "KS16K",
+        "abbr": "KS16K",
         "std": "KS",
-        "long": "KS 16K"
+        "full": "KS 16K"
       },
       {
-        "short": "KS20K",
+        "abbr": "KS20K",
         "std": "KS",
-        "long": "KS 20K"
+        "full": "KS 20K"
       },
       {
-        "short": "KS30K",
+        "abbr": "KS30K",
         "std": "KS",
-        "long": "KS 30K"
+        "full": "KS 30K"
       },
       {
-        "short": "KS40K",
+        "abbr": "KS40K",
         "std": "KS",
-        "long": "KS 40K"
+        "full": "KS 40K"
       },
       {
-        "short": "KS63K",
+        "abbr": "KS63K",
         "std": "KS",
-        "long": "KS 63K"
+        "full": "KS 63K"
       }
     ],
     "End_Type": [
       {
-        "short": "BW",
-        "long": "Butt Weld"
+        "abbr": "BW",
+        "full": "Butt Weld"
       },
       {
-        "short": "SW",
-        "long": "Socket Weld"
+        "abbr": "SW",
+        "full": "Socket Weld"
       },
       {
-        "short": "TH",
-        "long": "Threaded"
+        "abbr": "TH",
+        "full": "Threaded"
       },
       {
-        "short": "FLGD RF",
-        "long": "Flanged, Raised Face"
+        "abbr": "FLGD RF",
+        "full": "Flanged, Raised Face"
       },
       {
-        "short": "FLGD FF",
-        "long": "Flanged, Flat Face"
+        "abbr": "FLGD FF",
+        "full": "Flanged, Flat Face"
       },
       {
-        "short": "FLGD RTJ",
-        "long": "Flanged, Ring Type Joint"
+        "abbr": "FLGD RTJ",
+        "full": "Flanged, Ring Type Joint"
       }
     ],
     "Bonnet_Stem": [
       {
-        "short": "BB OS&Y",
-        "long": "Bolted Bonnet, Outside Screw & Yoke"
+        "abbr": "BB OS&Y",
+        "full": "Bolted Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "BB NRS",
-        "long": "Bolted Bonnet, Non-Rising Stem"
+        "abbr": "BB NRS",
+        "full": "Bolted Bonnet, Non-Rising Stem"
       },
       {
-        "short": "BB ISRS",
-        "long": "Bolted Bonnet, Inside Screw Rising Stem"
+        "abbr": "BB ISRS",
+        "full": "Bolted Bonnet, Inside Screw Rising Stem"
       },
       {
-        "short": "WB OS&Y",
-        "long": "Welded Bonnet, Outside Screw & Yoke"
+        "abbr": "WB OS&Y",
+        "full": "Welded Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "PSB OS&Y",
-        "long": "Pressure-Sealed Bonnet, Outside Screw & Yoke"
+        "abbr": "PSB OS&Y",
+        "full": "Pressure-Sealed Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "SB ISRS",
-        "long": "Screwed Bonnet, Inside Screw Rising Stem"
+        "abbr": "SB ISRS",
+        "full": "Screwed Bonnet, Inside Screw Rising Stem"
       },
       {
-        "short": "SB NRS",
-        "long": "Screwed Bonnet, Non-Rising Stem"
+        "abbr": "SB NRS",
+        "full": "Screwed Bonnet, Non-Rising Stem"
       }
     ],
     "Wedge_Type": [
       {
-        "short": "",
-        "long": "(unspecified)"
+        "abbr": "",
+        "full": "(unspecified)"
       },
       {
-        "short": "SOLID",
-        "long": "Solid Wedge"
+        "abbr": "SOLID",
+        "full": "Solid Wedge"
       },
       {
-        "short": "FLEXIBLE",
-        "long": "Flexible Wedge"
+        "abbr": "FLEXIBLE",
+        "full": "Flexible Wedge"
       },
       {
-        "short": "SPLIT",
-        "long": "Split Wedge"
+        "abbr": "SPLIT",
+        "full": "Split Wedge"
       },
       {
-        "short": "TC",
-        "long": "Through Conduit"
+        "abbr": "TC",
+        "full": "Through Conduit"
       }
     ],
     "Operation": [
       {
-        "short": "HW",
-        "long": "Handwheel (Manual)"
+        "abbr": "HW",
+        "full": "Handwheel (Manual)"
       },
       {
-        "short": "LO",
-        "long": "Lever Operated"
+        "abbr": "LO",
+        "full": "Lever Operated"
       },
       {
-        "short": "WO",
-        "long": "Wrench Operated"
+        "abbr": "WO",
+        "full": "Wrench Operated"
       },
       {
-        "short": "GO",
-        "long": "Gear Operated"
+        "abbr": "GO",
+        "full": "Gear Operated"
       },
       {
-        "short": "CO",
-        "long": "Chain Operated"
+        "abbr": "CO",
+        "full": "Chain Operated"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Globe_Valve_Group": {
     "Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "AS",
-        "long": "Alloy Steel"
+        "abbr": "AS",
+        "full": "Alloy Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       },
       {
-        "short": "DSS",
-        "long": "Duplex Stainless Steel"
+        "abbr": "DSS",
+        "full": "Duplex Stainless Steel"
       },
       {
-        "short": "SDSS",
-        "long": "Super Duplex Stainless Steel"
+        "abbr": "SDSS",
+        "full": "Super Duplex Stainless Steel"
       },
       {
-        "short": "NI-ALLOY",
-        "long": "Nickel Alloy"
+        "abbr": "NI-ALLOY",
+        "full": "Nickel Alloy"
       }
     ],
     "Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       },
       {
-        "short": "EN",
-        "long": "EN"
+        "abbr": "EN",
+        "full": "EN"
       }
     ],
     "Matl_Code": [
       {
-        "short": "A216-WCB",
+        "abbr": "A216-WCB",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A216 WCB"
+        "full": "ASTM A216 WCB"
       },
       {
-        "short": "A352-LCB",
+        "abbr": "A352-LCB",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A352 LCB"
+        "full": "ASTM A352 LCB"
       },
       {
-        "short": "A352-LCC",
+        "abbr": "A352-LCC",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A352 LCC"
+        "full": "ASTM A352 LCC"
       },
       {
-        "short": "A351-CF8",
+        "abbr": "A351-CF8",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8"
+        "full": "ASTM A351 CF8"
       },
       {
-        "short": "A351-CF8M",
+        "abbr": "A351-CF8M",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8M"
+        "full": "ASTM A351 CF8M"
       },
       {
-        "short": "A217-WC1",
+        "abbr": "A217-WC1",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A217 WC1"
+        "full": "ASTM A217 WC1"
       },
       {
-        "short": "A217-WC6",
+        "abbr": "A217-WC6",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A217 WC6"
+        "full": "ASTM A217 WC6"
       },
       {
-        "short": "A217-WC9",
+        "abbr": "A217-WC9",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A217 WC9"
+        "full": "ASTM A217 WC9"
       },
       {
-        "short": "SCS13A",
+        "abbr": "SCS13A",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SCS13A"
+        "full": "JIS SCS13A"
       },
       {
-        "short": "SCS14A",
+        "abbr": "SCS14A",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SCS14A"
+        "full": "JIS SCS14A"
       }
     ],
     "Trim_Matl": [
       {
-        "short": "13CR",
-        "long": "API600 Trim 1 - 410/410/410 (13Cr)"
+        "abbr": "13CR",
+        "full": "API600 Trim 1 - 410/410/410 (13Cr)"
       },
       {
-        "short": "SS304",
-        "long": "API600 Trim 2 - 304 SS"
+        "abbr": "SS304",
+        "full": "API600 Trim 2 - 304 SS"
       },
       {
-        "short": "SS310",
-        "long": "API600 Trim 3 - 310 SS"
+        "abbr": "SS310",
+        "full": "API600 Trim 3 - 310 SS"
       },
       {
-        "short": "13CR-HD",
-        "long": "API600 Trim 4 - Dual hardened 410 seat & disc, 410 stem"
+        "abbr": "13CR-HD",
+        "full": "API600 Trim 4 - Dual hardened 410 seat & disc, 410 stem"
       },
       {
-        "short": "13CR+FHF",
-        "long": "API600 Trim 5 - Full hard faced (Stellite, seat+disc), 410 stem"
+        "abbr": "13CR+FHF",
+        "full": "API600 Trim 5 - Full hard faced (Stellite, seat+disc), 410 stem"
       },
       {
-        "short": "13CR+FHF-NICR",
-        "long": "API600 Trim 5A - Full hard faced (Ni-Cr, seat+disc), 410 stem"
+        "abbr": "13CR+FHF-NICR",
+        "full": "API600 Trim 5A - Full hard faced (Ni-Cr, seat+disc), 410 stem"
       },
       {
-        "short": "13CR+FHF-ULTIMET",
-        "long": "API600 Trim 5B - Full hard faced (Ultimet, seat+disc), 410 stem"
+        "abbr": "13CR+FHF-ULTIMET",
+        "full": "API600 Trim 5B - Full hard faced (Ultimet, seat+disc), 410 stem"
       },
       {
-        "short": "13CR+CUNI",
-        "long": "API600 Trim 6 - 410 + Cu-Ni seat, 410 disc/stem"
+        "abbr": "13CR+CUNI",
+        "full": "API600 Trim 6 - 410 + Cu-Ni seat, 410 disc/stem"
       },
       {
-        "short": "13CR+HD",
-        "long": "API600 Trim 7 - Single hardened 410 seat + 410 disc, 410 stem"
+        "abbr": "13CR+HD",
+        "full": "API600 Trim 7 - Single hardened 410 seat + 410 disc, 410 stem"
       },
       {
-        "short": "13CR+HHF",
-        "long": "API600 Trim 8 - Half hard faced (Stellite seat only) + 13Cr disc, 410 stem"
+        "abbr": "13CR+HHF",
+        "full": "API600 Trim 8 - Half hard faced (Stellite seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "13CR+HHF-NICR",
-        "long": "API600 Trim 8A - Half hard faced (Ni-Cr seat only) + 13Cr disc, 410 stem"
+        "abbr": "13CR+HHF-NICR",
+        "full": "API600 Trim 8A - Half hard faced (Ni-Cr seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "MONEL",
-        "long": "API600 Trim 9 - Monel seat/disc/stem"
+        "abbr": "MONEL",
+        "full": "API600 Trim 9 - Monel seat/disc/stem"
       },
       {
-        "short": "SS316",
-        "long": "API600 Trim 10 - 316 SS"
+        "abbr": "SS316",
+        "full": "API600 Trim 10 - 316 SS"
       },
       {
-        "short": "MONEL+HHF",
-        "long": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
+        "abbr": "MONEL+HHF",
+        "full": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
       },
       {
-        "short": "SS316+HHF",
-        "long": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
+        "abbr": "SS316+HHF",
+        "full": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
       },
       {
-        "short": "ALLOY20",
-        "long": "API600 Trim 13 - Alloy 20"
+        "abbr": "ALLOY20",
+        "full": "API600 Trim 13 - Alloy 20"
       },
       {
-        "short": "ALLOY20+HHF",
-        "long": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
+        "abbr": "ALLOY20+HHF",
+        "full": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
       },
       {
-        "short": "SS304+FHF",
-        "long": "API600 Trim 15 - Full hard faced (seat+disc) + 304, 304 stem"
+        "abbr": "SS304+FHF",
+        "full": "API600 Trim 15 - Full hard faced (seat+disc) + 304, 304 stem"
       },
       {
-        "short": "SS316+FHF",
-        "long": "API600 Trim 16 - Full hard faced (seat+disc) + 316, 316 stem"
+        "abbr": "SS316+FHF",
+        "full": "API600 Trim 16 - Full hard faced (seat+disc) + 316, 316 stem"
       },
       {
-        "short": "SS347+FHF",
-        "long": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
+        "abbr": "SS347+FHF",
+        "full": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
       },
       {
-        "short": "ALLOY20+FHF",
-        "long": "API600 Trim 18 - Full hard faced (seat+disc) + Alloy 20"
+        "abbr": "ALLOY20+FHF",
+        "full": "API600 Trim 18 - Full hard faced (seat+disc) + Alloy 20"
       },
       {
-        "short": "NIALLOY",
-        "long": "API600 Trim 19 - Nickel alloy seat/disc/stem"
+        "abbr": "NIALLOY",
+        "full": "API600 Trim 19 - Nickel alloy seat/disc/stem"
       },
       {
-        "short": "HASTELLOY-C276",
-        "long": "API600 Trim 19B - Hastelloy C-276"
+        "abbr": "HASTELLOY-C276",
+        "full": "API600 Trim 19B - Hastelloy C-276"
       },
       {
-        "short": "INCOLOY-825",
-        "long": "API600 Trim 19C - Incoloy 825"
+        "abbr": "INCOLOY-825",
+        "full": "API600 Trim 19C - Incoloy 825"
       },
       {
-        "short": "NIALLOY+HHF",
-        "long": "API600 Trim 20 - Half hard faced seat + Nickel alloy"
+        "abbr": "NIALLOY+HHF",
+        "full": "API600 Trim 20 - Half hard faced seat + Nickel alloy"
       },
       {
-        "short": "HASTELLOY-C276+HHF",
-        "long": "API600 Trim 20B - Half hard faced seat + Hastelloy C-276"
+        "abbr": "HASTELLOY-C276+HHF",
+        "full": "API600 Trim 20B - Half hard faced seat + Hastelloy C-276"
       },
       {
-        "short": "INCOLOY-825+HHF",
-        "long": "API600 Trim 20C - Half hard faced seat + Incoloy 825"
+        "abbr": "INCOLOY-825+HHF",
+        "full": "API600 Trim 20C - Half hard faced seat + Incoloy 825"
       },
       {
-        "short": "NIALLOY+FHF",
-        "long": "API600 Trim 21 - Full hard faced (seat+disc) + Nickel alloy"
+        "abbr": "NIALLOY+FHF",
+        "full": "API600 Trim 21 - Full hard faced (seat+disc) + Nickel alloy"
       }
     ],
     "Rating": [
       {
-        "short": "150#",
+        "abbr": "150#",
         "std": "ASTM",
-        "long": "Class 150"
+        "full": "Class 150"
       },
       {
-        "short": "300#",
+        "abbr": "300#",
         "std": "ASTM",
-        "long": "Class 300"
+        "full": "Class 300"
       },
       {
-        "short": "600#",
+        "abbr": "600#",
         "std": "ASTM",
-        "long": "Class 600"
+        "full": "Class 600"
       },
       {
-        "short": "800#",
+        "abbr": "800#",
         "std": "ASTM",
-        "long": "Class 800"
+        "full": "Class 800"
       },
       {
-        "short": "900#",
+        "abbr": "900#",
         "std": "ASTM",
-        "long": "Class 900"
+        "full": "Class 900"
       },
       {
-        "short": "1500#",
+        "abbr": "1500#",
         "std": "ASTM",
-        "long": "Class 1500"
+        "full": "Class 1500"
       },
       {
-        "short": "2500#",
+        "abbr": "2500#",
         "std": "ASTM",
-        "long": "Class 2500"
+        "full": "Class 2500"
       },
       {
-        "short": "JIS5K",
+        "abbr": "JIS5K",
         "std": "JIS",
-        "long": "JIS 5K"
+        "full": "JIS 5K"
       },
       {
-        "short": "JIS10K",
+        "abbr": "JIS10K",
         "std": "JIS",
-        "long": "JIS 10K"
+        "full": "JIS 10K"
       },
       {
-        "short": "JIS16K",
+        "abbr": "JIS16K",
         "std": "JIS",
-        "long": "JIS 16K"
+        "full": "JIS 16K"
       },
       {
-        "short": "JIS20K",
+        "abbr": "JIS20K",
         "std": "JIS",
-        "long": "JIS 20K"
+        "full": "JIS 20K"
       },
       {
-        "short": "JIS30K",
+        "abbr": "JIS30K",
         "std": "JIS",
-        "long": "JIS 30K"
+        "full": "JIS 30K"
       },
       {
-        "short": "JIS40K",
+        "abbr": "JIS40K",
         "std": "JIS",
-        "long": "JIS 40K"
+        "full": "JIS 40K"
       },
       {
-        "short": "JIS63K",
+        "abbr": "JIS63K",
         "std": "JIS",
-        "long": "JIS 63K"
+        "full": "JIS 63K"
       },
       {
-        "short": "KS5K",
+        "abbr": "KS5K",
         "std": "KS",
-        "long": "KS 5K"
+        "full": "KS 5K"
       },
       {
-        "short": "KS10K",
+        "abbr": "KS10K",
         "std": "KS",
-        "long": "KS 10K"
+        "full": "KS 10K"
       },
       {
-        "short": "KS16K",
+        "abbr": "KS16K",
         "std": "KS",
-        "long": "KS 16K"
+        "full": "KS 16K"
       },
       {
-        "short": "KS20K",
+        "abbr": "KS20K",
         "std": "KS",
-        "long": "KS 20K"
+        "full": "KS 20K"
       },
       {
-        "short": "KS30K",
+        "abbr": "KS30K",
         "std": "KS",
-        "long": "KS 30K"
+        "full": "KS 30K"
       },
       {
-        "short": "KS40K",
+        "abbr": "KS40K",
         "std": "KS",
-        "long": "KS 40K"
+        "full": "KS 40K"
       },
       {
-        "short": "KS63K",
+        "abbr": "KS63K",
         "std": "KS",
-        "long": "KS 63K"
+        "full": "KS 63K"
       }
     ],
     "End_Type": [
       {
-        "short": "BW",
-        "long": "Butt Weld"
+        "abbr": "BW",
+        "full": "Butt Weld"
       },
       {
-        "short": "SW",
-        "long": "Socket Weld"
+        "abbr": "SW",
+        "full": "Socket Weld"
       },
       {
-        "short": "TH",
-        "long": "Threaded"
+        "abbr": "TH",
+        "full": "Threaded"
       },
       {
-        "short": "FLGD RF",
-        "long": "Flanged, Raised Face"
+        "abbr": "FLGD RF",
+        "full": "Flanged, Raised Face"
       },
       {
-        "short": "FLGD FF",
-        "long": "Flanged, Flat Face"
+        "abbr": "FLGD FF",
+        "full": "Flanged, Flat Face"
       },
       {
-        "short": "FLGD RTJ",
-        "long": "Flanged, Ring Type Joint"
+        "abbr": "FLGD RTJ",
+        "full": "Flanged, Ring Type Joint"
       }
     ],
     "Bonnet_Stem": [
       {
-        "short": "BB OS&Y",
-        "long": "Bolted Bonnet, Outside Screw & Yoke"
+        "abbr": "BB OS&Y",
+        "full": "Bolted Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "BB NRS",
-        "long": "Bolted Bonnet, Non-Rising Stem"
+        "abbr": "BB NRS",
+        "full": "Bolted Bonnet, Non-Rising Stem"
       },
       {
-        "short": "BB ISRS",
-        "long": "Bolted Bonnet, Inside Screw Rising Stem"
+        "abbr": "BB ISRS",
+        "full": "Bolted Bonnet, Inside Screw Rising Stem"
       },
       {
-        "short": "WB OS&Y",
-        "long": "Welded Bonnet, Outside Screw & Yoke"
+        "abbr": "WB OS&Y",
+        "full": "Welded Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "PSB OS&Y",
-        "long": "Pressure-Sealed Bonnet, Outside Screw & Yoke"
+        "abbr": "PSB OS&Y",
+        "full": "Pressure-Sealed Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "SB ISRS",
-        "long": "Screwed Bonnet, Inside Screw Rising Stem"
+        "abbr": "SB ISRS",
+        "full": "Screwed Bonnet, Inside Screw Rising Stem"
       },
       {
-        "short": "SB NRS",
-        "long": "Screwed Bonnet, Non-Rising Stem"
+        "abbr": "SB NRS",
+        "full": "Screwed Bonnet, Non-Rising Stem"
       }
     ],
     "Operation": [
       {
-        "short": "HW",
-        "long": "Handwheel (Manual)"
+        "abbr": "HW",
+        "full": "Handwheel (Manual)"
       },
       {
-        "short": "LO",
-        "long": "Lever Operated"
+        "abbr": "LO",
+        "full": "Lever Operated"
       },
       {
-        "short": "WO",
-        "long": "Wrench Operated"
+        "abbr": "WO",
+        "full": "Wrench Operated"
       },
       {
-        "short": "GO",
-        "long": "Gear Operated"
+        "abbr": "GO",
+        "full": "Gear Operated"
       },
       {
-        "short": "CO",
-        "long": "Chain Operated"
+        "abbr": "CO",
+        "full": "Chain Operated"
       }
     ],
     "Disc_Type": [
       {
-        "short": "",
-        "long": "(unspecified)"
+        "abbr": "",
+        "full": "(unspecified)"
       },
       {
-        "short": "PLUG",
-        "long": "Plug Disc"
+        "abbr": "PLUG",
+        "full": "Plug Disc"
       },
       {
-        "short": "CONVENTIONAL",
-        "long": "Conventional Disc"
+        "abbr": "CONVENTIONAL",
+        "full": "Conventional Disc"
       },
       {
-        "short": "COMPOSITION",
-        "long": "Composition Disc"
+        "abbr": "COMPOSITION",
+        "full": "Composition Disc"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Check_Valve_Group": {
     "Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "AS",
-        "long": "Alloy Steel"
+        "abbr": "AS",
+        "full": "Alloy Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       },
       {
-        "short": "DSS",
-        "long": "Duplex Stainless Steel"
+        "abbr": "DSS",
+        "full": "Duplex Stainless Steel"
       },
       {
-        "short": "SDSS",
-        "long": "Super Duplex Stainless Steel"
+        "abbr": "SDSS",
+        "full": "Super Duplex Stainless Steel"
       },
       {
-        "short": "NI-ALLOY",
-        "long": "Nickel Alloy"
+        "abbr": "NI-ALLOY",
+        "full": "Nickel Alloy"
       }
     ],
     "Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       },
       {
-        "short": "EN",
-        "long": "EN"
+        "abbr": "EN",
+        "full": "EN"
       }
     ],
     "Matl_Code": [
       {
-        "short": "A216-WCB",
+        "abbr": "A216-WCB",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A216 WCB"
+        "full": "ASTM A216 WCB"
       },
       {
-        "short": "A352-LCB",
+        "abbr": "A352-LCB",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A352 LCB"
+        "full": "ASTM A352 LCB"
       },
       {
-        "short": "A352-LCC",
+        "abbr": "A352-LCC",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A352 LCC"
+        "full": "ASTM A352 LCC"
       },
       {
-        "short": "A351-CF8",
+        "abbr": "A351-CF8",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8"
+        "full": "ASTM A351 CF8"
       },
       {
-        "short": "A351-CF8M",
+        "abbr": "A351-CF8M",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8M"
+        "full": "ASTM A351 CF8M"
       },
       {
-        "short": "A217-WC1",
+        "abbr": "A217-WC1",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A217 WC1"
+        "full": "ASTM A217 WC1"
       },
       {
-        "short": "A217-WC6",
+        "abbr": "A217-WC6",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A217 WC6"
+        "full": "ASTM A217 WC6"
       },
       {
-        "short": "A217-WC9",
+        "abbr": "A217-WC9",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A217 WC9"
+        "full": "ASTM A217 WC9"
       },
       {
-        "short": "SCS13A",
+        "abbr": "SCS13A",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SCS13A"
+        "full": "JIS SCS13A"
       },
       {
-        "short": "SCS14A",
+        "abbr": "SCS14A",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SCS14A"
+        "full": "JIS SCS14A"
       }
     ],
     "Trim_Matl": [
       {
-        "short": "13CR",
-        "long": "API600 Trim 1 - 410/410/410 (13Cr)"
+        "abbr": "13CR",
+        "full": "API600 Trim 1 - 410/410/410 (13Cr)"
       },
       {
-        "short": "SS304",
-        "long": "API600 Trim 2 - 304 SS"
+        "abbr": "SS304",
+        "full": "API600 Trim 2 - 304 SS"
       },
       {
-        "short": "SS310",
-        "long": "API600 Trim 3 - 310 SS"
+        "abbr": "SS310",
+        "full": "API600 Trim 3 - 310 SS"
       },
       {
-        "short": "13CR-HD",
-        "long": "API600 Trim 4 - Dual hardened 410 seat & disc, 410 stem"
+        "abbr": "13CR-HD",
+        "full": "API600 Trim 4 - Dual hardened 410 seat & disc, 410 stem"
       },
       {
-        "short": "13CR+FHF",
-        "long": "API600 Trim 5 - Full hard faced (Stellite, seat+disc), 410 stem"
+        "abbr": "13CR+FHF",
+        "full": "API600 Trim 5 - Full hard faced (Stellite, seat+disc), 410 stem"
       },
       {
-        "short": "13CR+FHF-NICR",
-        "long": "API600 Trim 5A - Full hard faced (Ni-Cr, seat+disc), 410 stem"
+        "abbr": "13CR+FHF-NICR",
+        "full": "API600 Trim 5A - Full hard faced (Ni-Cr, seat+disc), 410 stem"
       },
       {
-        "short": "13CR+FHF-ULTIMET",
-        "long": "API600 Trim 5B - Full hard faced (Ultimet, seat+disc), 410 stem"
+        "abbr": "13CR+FHF-ULTIMET",
+        "full": "API600 Trim 5B - Full hard faced (Ultimet, seat+disc), 410 stem"
       },
       {
-        "short": "13CR+CUNI",
-        "long": "API600 Trim 6 - 410 + Cu-Ni seat, 410 disc/stem"
+        "abbr": "13CR+CUNI",
+        "full": "API600 Trim 6 - 410 + Cu-Ni seat, 410 disc/stem"
       },
       {
-        "short": "13CR+HD",
-        "long": "API600 Trim 7 - Single hardened 410 seat + 410 disc, 410 stem"
+        "abbr": "13CR+HD",
+        "full": "API600 Trim 7 - Single hardened 410 seat + 410 disc, 410 stem"
       },
       {
-        "short": "13CR+HHF",
-        "long": "API600 Trim 8 - Half hard faced (Stellite seat only) + 13Cr disc, 410 stem"
+        "abbr": "13CR+HHF",
+        "full": "API600 Trim 8 - Half hard faced (Stellite seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "13CR+HHF-NICR",
-        "long": "API600 Trim 8A - Half hard faced (Ni-Cr seat only) + 13Cr disc, 410 stem"
+        "abbr": "13CR+HHF-NICR",
+        "full": "API600 Trim 8A - Half hard faced (Ni-Cr seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "MONEL",
-        "long": "API600 Trim 9 - Monel seat/disc/stem"
+        "abbr": "MONEL",
+        "full": "API600 Trim 9 - Monel seat/disc/stem"
       },
       {
-        "short": "SS316",
-        "long": "API600 Trim 10 - 316 SS"
+        "abbr": "SS316",
+        "full": "API600 Trim 10 - 316 SS"
       },
       {
-        "short": "MONEL+HHF",
-        "long": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
+        "abbr": "MONEL+HHF",
+        "full": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
       },
       {
-        "short": "SS316+HHF",
-        "long": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
+        "abbr": "SS316+HHF",
+        "full": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
       },
       {
-        "short": "ALLOY20",
-        "long": "API600 Trim 13 - Alloy 20"
+        "abbr": "ALLOY20",
+        "full": "API600 Trim 13 - Alloy 20"
       },
       {
-        "short": "ALLOY20+HHF",
-        "long": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
+        "abbr": "ALLOY20+HHF",
+        "full": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
       },
       {
-        "short": "SS304+FHF",
-        "long": "API600 Trim 15 - Full hard faced (seat+disc) + 304, 304 stem"
+        "abbr": "SS304+FHF",
+        "full": "API600 Trim 15 - Full hard faced (seat+disc) + 304, 304 stem"
       },
       {
-        "short": "SS316+FHF",
-        "long": "API600 Trim 16 - Full hard faced (seat+disc) + 316, 316 stem"
+        "abbr": "SS316+FHF",
+        "full": "API600 Trim 16 - Full hard faced (seat+disc) + 316, 316 stem"
       },
       {
-        "short": "SS347+FHF",
-        "long": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
+        "abbr": "SS347+FHF",
+        "full": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
       },
       {
-        "short": "ALLOY20+FHF",
-        "long": "API600 Trim 18 - Full hard faced (seat+disc) + Alloy 20"
+        "abbr": "ALLOY20+FHF",
+        "full": "API600 Trim 18 - Full hard faced (seat+disc) + Alloy 20"
       },
       {
-        "short": "NIALLOY",
-        "long": "API600 Trim 19 - Nickel alloy seat/disc/stem"
+        "abbr": "NIALLOY",
+        "full": "API600 Trim 19 - Nickel alloy seat/disc/stem"
       },
       {
-        "short": "HASTELLOY-C276",
-        "long": "API600 Trim 19B - Hastelloy C-276"
+        "abbr": "HASTELLOY-C276",
+        "full": "API600 Trim 19B - Hastelloy C-276"
       },
       {
-        "short": "INCOLOY-825",
-        "long": "API600 Trim 19C - Incoloy 825"
+        "abbr": "INCOLOY-825",
+        "full": "API600 Trim 19C - Incoloy 825"
       },
       {
-        "short": "NIALLOY+HHF",
-        "long": "API600 Trim 20 - Half hard faced seat + Nickel alloy"
+        "abbr": "NIALLOY+HHF",
+        "full": "API600 Trim 20 - Half hard faced seat + Nickel alloy"
       },
       {
-        "short": "HASTELLOY-C276+HHF",
-        "long": "API600 Trim 20B - Half hard faced seat + Hastelloy C-276"
+        "abbr": "HASTELLOY-C276+HHF",
+        "full": "API600 Trim 20B - Half hard faced seat + Hastelloy C-276"
       },
       {
-        "short": "INCOLOY-825+HHF",
-        "long": "API600 Trim 20C - Half hard faced seat + Incoloy 825"
+        "abbr": "INCOLOY-825+HHF",
+        "full": "API600 Trim 20C - Half hard faced seat + Incoloy 825"
       },
       {
-        "short": "NIALLOY+FHF",
-        "long": "API600 Trim 21 - Full hard faced (seat+disc) + Nickel alloy"
+        "abbr": "NIALLOY+FHF",
+        "full": "API600 Trim 21 - Full hard faced (seat+disc) + Nickel alloy"
       }
     ],
     "Rating": [
       {
-        "short": "150#",
+        "abbr": "150#",
         "std": "ASTM",
-        "long": "Class 150"
+        "full": "Class 150"
       },
       {
-        "short": "300#",
+        "abbr": "300#",
         "std": "ASTM",
-        "long": "Class 300"
+        "full": "Class 300"
       },
       {
-        "short": "600#",
+        "abbr": "600#",
         "std": "ASTM",
-        "long": "Class 600"
+        "full": "Class 600"
       },
       {
-        "short": "800#",
+        "abbr": "800#",
         "std": "ASTM",
-        "long": "Class 800"
+        "full": "Class 800"
       },
       {
-        "short": "900#",
+        "abbr": "900#",
         "std": "ASTM",
-        "long": "Class 900"
+        "full": "Class 900"
       },
       {
-        "short": "1500#",
+        "abbr": "1500#",
         "std": "ASTM",
-        "long": "Class 1500"
+        "full": "Class 1500"
       },
       {
-        "short": "2500#",
+        "abbr": "2500#",
         "std": "ASTM",
-        "long": "Class 2500"
+        "full": "Class 2500"
       },
       {
-        "short": "JIS5K",
+        "abbr": "JIS5K",
         "std": "JIS",
-        "long": "JIS 5K"
+        "full": "JIS 5K"
       },
       {
-        "short": "JIS10K",
+        "abbr": "JIS10K",
         "std": "JIS",
-        "long": "JIS 10K"
+        "full": "JIS 10K"
       },
       {
-        "short": "JIS16K",
+        "abbr": "JIS16K",
         "std": "JIS",
-        "long": "JIS 16K"
+        "full": "JIS 16K"
       },
       {
-        "short": "JIS20K",
+        "abbr": "JIS20K",
         "std": "JIS",
-        "long": "JIS 20K"
+        "full": "JIS 20K"
       },
       {
-        "short": "JIS30K",
+        "abbr": "JIS30K",
         "std": "JIS",
-        "long": "JIS 30K"
+        "full": "JIS 30K"
       },
       {
-        "short": "JIS40K",
+        "abbr": "JIS40K",
         "std": "JIS",
-        "long": "JIS 40K"
+        "full": "JIS 40K"
       },
       {
-        "short": "JIS63K",
+        "abbr": "JIS63K",
         "std": "JIS",
-        "long": "JIS 63K"
+        "full": "JIS 63K"
       },
       {
-        "short": "KS5K",
+        "abbr": "KS5K",
         "std": "KS",
-        "long": "KS 5K"
+        "full": "KS 5K"
       },
       {
-        "short": "KS10K",
+        "abbr": "KS10K",
         "std": "KS",
-        "long": "KS 10K"
+        "full": "KS 10K"
       },
       {
-        "short": "KS16K",
+        "abbr": "KS16K",
         "std": "KS",
-        "long": "KS 16K"
+        "full": "KS 16K"
       },
       {
-        "short": "KS20K",
+        "abbr": "KS20K",
         "std": "KS",
-        "long": "KS 20K"
+        "full": "KS 20K"
       },
       {
-        "short": "KS30K",
+        "abbr": "KS30K",
         "std": "KS",
-        "long": "KS 30K"
+        "full": "KS 30K"
       },
       {
-        "short": "KS40K",
+        "abbr": "KS40K",
         "std": "KS",
-        "long": "KS 40K"
+        "full": "KS 40K"
       },
       {
-        "short": "KS63K",
+        "abbr": "KS63K",
         "std": "KS",
-        "long": "KS 63K"
+        "full": "KS 63K"
       }
     ],
     "End_Type": [
       {
-        "short": "BW",
-        "long": "Butt Weld"
+        "abbr": "BW",
+        "full": "Butt Weld"
       },
       {
-        "short": "SW",
-        "long": "Socket Weld"
+        "abbr": "SW",
+        "full": "Socket Weld"
       },
       {
-        "short": "TH",
-        "long": "Threaded"
+        "abbr": "TH",
+        "full": "Threaded"
       },
       {
-        "short": "FLGD RF",
-        "long": "Flanged, Raised Face"
+        "abbr": "FLGD RF",
+        "full": "Flanged, Raised Face"
       },
       {
-        "short": "FLGD FF",
-        "long": "Flanged, Flat Face"
+        "abbr": "FLGD FF",
+        "full": "Flanged, Flat Face"
       },
       {
-        "short": "FLGD RTJ",
-        "long": "Flanged, Ring Type Joint"
+        "abbr": "FLGD RTJ",
+        "full": "Flanged, Ring Type Joint"
       }
     ],
     "Cover_Disc": [
       {
-        "short": "",
-        "long": "(unspecified)"
+        "abbr": "",
+        "full": "(unspecified)"
       },
       {
-        "short": "BC SWING",
-        "long": "Bolted Cover, Swing Disc"
+        "abbr": "BC SWING",
+        "full": "Bolted Cover, Swing Disc"
       },
       {
-        "short": "BC LIFT",
-        "long": "Bolted Cover, Lift Disc"
+        "abbr": "BC LIFT",
+        "full": "Bolted Cover, Lift Disc"
       },
       {
-        "short": "BC TILTING",
-        "long": "Bolted Cover, Tilting Disc"
+        "abbr": "BC TILTING",
+        "full": "Bolted Cover, Tilting Disc"
       },
       {
-        "short": "PSC SWING",
-        "long": "Pressure-Sealed Cover, Swing Disc"
+        "abbr": "PSC SWING",
+        "full": "Pressure-Sealed Cover, Swing Disc"
       },
       {
-        "short": "PSC TILTING",
-        "long": "Pressure-Sealed Cover, Tilting Disc"
+        "abbr": "PSC TILTING",
+        "full": "Pressure-Sealed Cover, Tilting Disc"
       },
       {
-        "short": "SC SWING",
-        "long": "Screwed Cap, Swing Disc"
+        "abbr": "SC SWING",
+        "full": "Screwed Cap, Swing Disc"
       },
       {
-        "short": "SC LIFT",
-        "long": "Screwed Cap, Lift Disc"
+        "abbr": "SC LIFT",
+        "full": "Screwed Cap, Lift Disc"
       },
       {
-        "short": "DUAL PLATE",
-        "long": "Dual Plate (Wafer)"
+        "abbr": "DUAL PLATE",
+        "full": "Dual Plate (Wafer)"
       },
       {
-        "short": "BALL",
-        "long": "Ball Check"
+        "abbr": "BALL",
+        "full": "Ball Check"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Ball_Valve_Group": {
     "Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "AS",
-        "long": "Alloy Steel"
+        "abbr": "AS",
+        "full": "Alloy Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       },
       {
-        "short": "DSS",
-        "long": "Duplex Stainless Steel"
+        "abbr": "DSS",
+        "full": "Duplex Stainless Steel"
       },
       {
-        "short": "SDSS",
-        "long": "Super Duplex Stainless Steel"
+        "abbr": "SDSS",
+        "full": "Super Duplex Stainless Steel"
       },
       {
-        "short": "NI-ALLOY",
-        "long": "Nickel Alloy"
+        "abbr": "NI-ALLOY",
+        "full": "Nickel Alloy"
       }
     ],
     "Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       },
       {
-        "short": "EN",
-        "long": "EN"
+        "abbr": "EN",
+        "full": "EN"
       }
     ],
     "Matl_Code": [
       {
-        "short": "A216-WCB",
+        "abbr": "A216-WCB",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A216 WCB"
+        "full": "ASTM A216 WCB"
       },
       {
-        "short": "A352-LCB",
+        "abbr": "A352-LCB",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A352 LCB"
+        "full": "ASTM A352 LCB"
       },
       {
-        "short": "A352-LCC",
+        "abbr": "A352-LCC",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A352 LCC"
+        "full": "ASTM A352 LCC"
       },
       {
-        "short": "A351-CF8",
+        "abbr": "A351-CF8",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8"
+        "full": "ASTM A351 CF8"
       },
       {
-        "short": "A351-CF8M",
+        "abbr": "A351-CF8M",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8M"
+        "full": "ASTM A351 CF8M"
       },
       {
-        "short": "A105",
+        "abbr": "A105",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A105"
+        "full": "ASTM A105"
       },
       {
-        "short": "A350-LF2",
+        "abbr": "A350-LF2",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A350 LF2"
+        "full": "ASTM A350 LF2"
       },
       {
-        "short": "A182-F316",
+        "abbr": "A182-F316",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F316"
+        "full": "ASTM A182 F316"
       },
       {
-        "short": "SCS13A",
+        "abbr": "SCS13A",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SCS13A"
+        "full": "JIS SCS13A"
       },
       {
-        "short": "SCS14A",
+        "abbr": "SCS14A",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SCS14A"
+        "full": "JIS SCS14A"
       }
     ],
     "Trim_Matl": [
       {
-        "short": "SS316",
-        "long": "Stainless Steel 316"
+        "abbr": "SS316",
+        "full": "Stainless Steel 316"
       },
       {
-        "short": "SS304",
-        "long": "Stainless Steel 304"
+        "abbr": "SS304",
+        "full": "Stainless Steel 304"
       },
       {
-        "short": "13CR",
-        "long": "13Cr"
+        "abbr": "13CR",
+        "full": "13Cr"
       },
       {
-        "short": "INCONEL-625",
-        "long": "Inconel 625"
+        "abbr": "INCONEL-625",
+        "full": "Inconel 625"
       },
       {
-        "short": "MONEL-400",
-        "long": "Monel 400"
+        "abbr": "MONEL-400",
+        "full": "Monel 400"
       }
     ],
     "Seat_Matl": [
       {
-        "short": "PTFE",
-        "long": "PTFE"
+        "abbr": "PTFE",
+        "full": "PTFE"
       },
       {
-        "short": "RPTFE",
-        "long": "Reinforced PTFE"
+        "abbr": "RPTFE",
+        "full": "Reinforced PTFE"
       },
       {
-        "short": "DEVLON",
-        "long": "Devlon"
+        "abbr": "DEVLON",
+        "full": "Devlon"
       },
       {
-        "short": "NYLON",
-        "long": "Nylon"
+        "abbr": "NYLON",
+        "full": "Nylon"
       },
       {
-        "short": "SS316",
-        "long": "Stainless Steel 316"
+        "abbr": "SS316",
+        "full": "Stainless Steel 316"
       },
       {
-        "short": "STELLITE-6",
-        "long": "Stellite Gr.6"
+        "abbr": "STELLITE-6",
+        "full": "Stellite Gr.6"
       }
     ],
     "Rating": [
       {
-        "short": "150#",
+        "abbr": "150#",
         "std": "ASTM",
-        "long": "Class 150"
+        "full": "Class 150"
       },
       {
-        "short": "300#",
+        "abbr": "300#",
         "std": "ASTM",
-        "long": "Class 300"
+        "full": "Class 300"
       },
       {
-        "short": "600#",
+        "abbr": "600#",
         "std": "ASTM",
-        "long": "Class 600"
+        "full": "Class 600"
       },
       {
-        "short": "900#",
+        "abbr": "900#",
         "std": "ASTM",
-        "long": "Class 900"
+        "full": "Class 900"
       },
       {
-        "short": "1500#",
+        "abbr": "1500#",
         "std": "ASTM",
-        "long": "Class 1500"
+        "full": "Class 1500"
       },
       {
-        "short": "2500#",
+        "abbr": "2500#",
         "std": "ASTM",
-        "long": "Class 2500"
+        "full": "Class 2500"
       },
       {
-        "short": "JIS5K",
+        "abbr": "JIS5K",
         "std": "JIS",
-        "long": "JIS 5K"
+        "full": "JIS 5K"
       },
       {
-        "short": "JIS10K",
+        "abbr": "JIS10K",
         "std": "JIS",
-        "long": "JIS 10K"
+        "full": "JIS 10K"
       },
       {
-        "short": "JIS16K",
+        "abbr": "JIS16K",
         "std": "JIS",
-        "long": "JIS 16K"
+        "full": "JIS 16K"
       },
       {
-        "short": "JIS20K",
+        "abbr": "JIS20K",
         "std": "JIS",
-        "long": "JIS 20K"
+        "full": "JIS 20K"
       },
       {
-        "short": "JIS30K",
+        "abbr": "JIS30K",
         "std": "JIS",
-        "long": "JIS 30K"
+        "full": "JIS 30K"
       },
       {
-        "short": "JIS40K",
+        "abbr": "JIS40K",
         "std": "JIS",
-        "long": "JIS 40K"
+        "full": "JIS 40K"
       },
       {
-        "short": "JIS63K",
+        "abbr": "JIS63K",
         "std": "JIS",
-        "long": "JIS 63K"
+        "full": "JIS 63K"
       },
       {
-        "short": "KS5K",
+        "abbr": "KS5K",
         "std": "KS",
-        "long": "KS 5K"
+        "full": "KS 5K"
       },
       {
-        "short": "KS10K",
+        "abbr": "KS10K",
         "std": "KS",
-        "long": "KS 10K"
+        "full": "KS 10K"
       },
       {
-        "short": "KS16K",
+        "abbr": "KS16K",
         "std": "KS",
-        "long": "KS 16K"
+        "full": "KS 16K"
       },
       {
-        "short": "KS20K",
+        "abbr": "KS20K",
         "std": "KS",
-        "long": "KS 20K"
+        "full": "KS 20K"
       },
       {
-        "short": "KS30K",
+        "abbr": "KS30K",
         "std": "KS",
-        "long": "KS 30K"
+        "full": "KS 30K"
       },
       {
-        "short": "KS40K",
+        "abbr": "KS40K",
         "std": "KS",
-        "long": "KS 40K"
+        "full": "KS 40K"
       },
       {
-        "short": "KS63K",
+        "abbr": "KS63K",
         "std": "KS",
-        "long": "KS 63K"
+        "full": "KS 63K"
       }
     ],
     "End_Type": [
       {
-        "short": "BW",
-        "long": "Butt Weld"
+        "abbr": "BW",
+        "full": "Butt Weld"
       },
       {
-        "short": "SW",
-        "long": "Socket Weld"
+        "abbr": "SW",
+        "full": "Socket Weld"
       },
       {
-        "short": "TH",
-        "long": "Threaded"
+        "abbr": "TH",
+        "full": "Threaded"
       },
       {
-        "short": "FLGD RF",
-        "long": "Flanged, Raised Face"
+        "abbr": "FLGD RF",
+        "full": "Flanged, Raised Face"
       },
       {
-        "short": "FLGD FF",
-        "long": "Flanged, Flat Face"
+        "abbr": "FLGD FF",
+        "full": "Flanged, Flat Face"
       },
       {
-        "short": "FLGD RTJ",
-        "long": "Flanged, Ring Type Joint"
+        "abbr": "FLGD RTJ",
+        "full": "Flanged, Ring Type Joint"
       }
     ],
     "Bore": [
       {
-        "short": "FB",
-        "long": "Full Bore"
+        "abbr": "FB",
+        "full": "Full Bore"
       },
       {
-        "short": "RB",
-        "long": "Reduced Bore"
+        "abbr": "RB",
+        "full": "Reduced Bore"
       }
     ],
     "Entry_Type": [
       {
-        "short": "",
-        "long": "(unspecified)"
+        "abbr": "",
+        "full": "(unspecified)"
       },
       {
-        "short": "TOP ENTRY",
-        "long": "Top Entry"
+        "abbr": "TOP ENTRY",
+        "full": "Top Entry"
       },
       {
-        "short": "SIDE ENTRY",
-        "long": "Side Entry"
+        "abbr": "SIDE ENTRY",
+        "full": "Side Entry"
       },
       {
-        "short": "END ENTRY",
-        "long": "End Entry"
+        "abbr": "END ENTRY",
+        "full": "End Entry"
       }
     ],
     "Operation": [
       {
-        "short": "HW",
-        "long": "Handwheel (Manual)"
+        "abbr": "HW",
+        "full": "Handwheel (Manual)"
       },
       {
-        "short": "LO",
-        "long": "Lever Operated"
+        "abbr": "LO",
+        "full": "Lever Operated"
       },
       {
-        "short": "WO",
-        "long": "Wrench Operated"
+        "abbr": "WO",
+        "full": "Wrench Operated"
       },
       {
-        "short": "GO",
-        "long": "Gear Operated"
+        "abbr": "GO",
+        "full": "Gear Operated"
       },
       {
-        "short": "CO",
-        "long": "Chain Operated"
+        "abbr": "CO",
+        "full": "Chain Operated"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Butterfly_Valve_Group": {
     "Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       },
       {
-        "short": "DSS",
-        "long": "Duplex Stainless Steel"
+        "abbr": "DSS",
+        "full": "Duplex Stainless Steel"
       },
       {
-        "short": "NI-ALLOY",
-        "long": "Nickel Alloy"
+        "abbr": "NI-ALLOY",
+        "full": "Nickel Alloy"
       },
       {
-        "short": "CI",
-        "long": "Cast Iron"
+        "abbr": "CI",
+        "full": "Cast Iron"
       }
     ],
     "Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       },
       {
-        "short": "EN",
-        "long": "EN"
+        "abbr": "EN",
+        "full": "EN"
       }
     ],
     "Matl_Code": [
       {
-        "short": "A216-WCB",
+        "abbr": "A216-WCB",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A216 WCB"
+        "full": "ASTM A216 WCB"
       },
       {
-        "short": "A352-LCB",
+        "abbr": "A352-LCB",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A352 LCB"
+        "full": "ASTM A352 LCB"
       },
       {
-        "short": "A351-CF8",
+        "abbr": "A351-CF8",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8"
+        "full": "ASTM A351 CF8"
       },
       {
-        "short": "A351-CF8M",
+        "abbr": "A351-CF8M",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8M"
+        "full": "ASTM A351 CF8M"
       },
       {
-        "short": "A126-B",
-        "std": "ASTM",
-        "category": "CI",
-        "long": "ASTM A126 Cl.B"
-      },
-      {
-        "short": "A395",
+        "abbr": "A126-B",
         "std": "ASTM",
         "category": "CI",
-        "long": "ASTM A395"
+        "full": "ASTM A126 Cl.B"
       },
       {
-        "short": "SCS13A",
-        "std": "JIS",
-        "category": "SS",
-        "long": "JIS SCS13A"
+        "abbr": "A395",
+        "std": "ASTM",
+        "category": "CI",
+        "full": "ASTM A395"
       },
       {
-        "short": "SCS14A",
+        "abbr": "SCS13A",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SCS14A"
+        "full": "JIS SCS13A"
+      },
+      {
+        "abbr": "SCS14A",
+        "std": "JIS",
+        "category": "SS",
+        "full": "JIS SCS14A"
       }
     ],
     "Disc_Matl": [
       {
-        "short": "SS316",
-        "long": "Stainless Steel 316"
+        "abbr": "SS316",
+        "full": "Stainless Steel 316"
       },
       {
-        "short": "SS304",
-        "long": "Stainless Steel 304"
+        "abbr": "SS304",
+        "full": "Stainless Steel 304"
       },
       {
-        "short": "13CR",
-        "long": "13Cr"
+        "abbr": "13CR",
+        "full": "13Cr"
       },
       {
-        "short": "INCONEL-625",
-        "long": "Inconel 625"
+        "abbr": "INCONEL-625",
+        "full": "Inconel 625"
       },
       {
-        "short": "BRONZE",
-        "long": "Aluminum Bronze"
+        "abbr": "BRONZE",
+        "full": "Aluminum Bronze"
       }
     ],
     "Seat_Matl": [
       {
-        "short": "EPDM",
-        "long": "EPDM Rubber"
+        "abbr": "EPDM",
+        "full": "EPDM Rubber"
       },
       {
-        "short": "NBR",
-        "long": "NBR"
+        "abbr": "NBR",
+        "full": "NBR"
       },
       {
-        "short": "PTFE",
-        "long": "PTFE"
+        "abbr": "PTFE",
+        "full": "PTFE"
       },
       {
-        "short": "RPTFE",
-        "long": "Reinforced PTFE"
+        "abbr": "RPTFE",
+        "full": "Reinforced PTFE"
       },
       {
-        "short": "SS316",
-        "long": "Stainless Steel 316"
+        "abbr": "SS316",
+        "full": "Stainless Steel 316"
       },
       {
-        "short": "STELLITE-6",
-        "long": "Stellite Gr.6"
+        "abbr": "STELLITE-6",
+        "full": "Stellite Gr.6"
       }
     ],
     "Rating": [
       {
-        "short": "150#",
+        "abbr": "150#",
         "std": "ASTM",
-        "long": "Class 150"
+        "full": "Class 150"
       },
       {
-        "short": "300#",
+        "abbr": "300#",
         "std": "ASTM",
-        "long": "Class 300"
+        "full": "Class 300"
       },
       {
-        "short": "600#",
+        "abbr": "600#",
         "std": "ASTM",
-        "long": "Class 600"
+        "full": "Class 600"
       },
       {
-        "short": "JIS5K",
+        "abbr": "JIS5K",
         "std": "JIS",
-        "long": "JIS 5K"
+        "full": "JIS 5K"
       },
       {
-        "short": "JIS10K",
+        "abbr": "JIS10K",
         "std": "JIS",
-        "long": "JIS 10K"
+        "full": "JIS 10K"
       },
       {
-        "short": "JIS16K",
+        "abbr": "JIS16K",
         "std": "JIS",
-        "long": "JIS 16K"
+        "full": "JIS 16K"
       },
       {
-        "short": "JIS20K",
+        "abbr": "JIS20K",
         "std": "JIS",
-        "long": "JIS 20K"
+        "full": "JIS 20K"
       },
       {
-        "short": "KS5K",
+        "abbr": "KS5K",
         "std": "KS",
-        "long": "KS 5K"
+        "full": "KS 5K"
       },
       {
-        "short": "KS10K",
+        "abbr": "KS10K",
         "std": "KS",
-        "long": "KS 10K"
+        "full": "KS 10K"
       },
       {
-        "short": "KS16K",
+        "abbr": "KS16K",
         "std": "KS",
-        "long": "KS 16K"
+        "full": "KS 16K"
       },
       {
-        "short": "KS20K",
+        "abbr": "KS20K",
         "std": "KS",
-        "long": "KS 20K"
+        "full": "KS 20K"
       }
     ],
     "Body_Type": [
       {
-        "short": "WAFER",
-        "long": "Wafer Body"
+        "abbr": "WAFER",
+        "full": "Wafer Body"
       },
       {
-        "short": "LUG",
-        "long": "Lug Body"
+        "abbr": "LUG",
+        "full": "Lug Body"
       },
       {
-        "short": "DOUBLE-FLANGED",
-        "long": "Double-Flanged Body"
+        "abbr": "DOUBLE-FLANGED",
+        "full": "Double-Flanged Body"
       },
       {
-        "short": "BUTT-WELD",
-        "long": "Butt-Weld Body"
+        "abbr": "BUTT-WELD",
+        "full": "Butt-Weld Body"
       }
     ],
     "Operation": [
       {
-        "short": "HW",
-        "long": "Handwheel (Manual)"
+        "abbr": "HW",
+        "full": "Handwheel (Manual)"
       },
       {
-        "short": "LO",
-        "long": "Lever Operated"
+        "abbr": "LO",
+        "full": "Lever Operated"
       },
       {
-        "short": "WO",
-        "long": "Wrench Operated"
+        "abbr": "WO",
+        "full": "Wrench Operated"
       },
       {
-        "short": "GO",
-        "long": "Gear Operated"
+        "abbr": "GO",
+        "full": "Gear Operated"
       },
       {
-        "short": "CO",
-        "long": "Chain Operated"
+        "abbr": "CO",
+        "full": "Chain Operated"
       }
     ],
     "Disc_Type": [
       {
-        "short": "",
-        "long": "(unspecified)"
+        "abbr": "",
+        "full": "(unspecified)"
       },
       {
-        "short": "CONCENTRIC",
-        "long": "Concentric Disc"
+        "abbr": "CONCENTRIC",
+        "full": "Concentric Disc"
       },
       {
-        "short": "DOUBLE OFFSET",
-        "long": "Double Offset Disc"
+        "abbr": "DOUBLE OFFSET",
+        "full": "Double Offset Disc"
       },
       {
-        "short": "TRIPLE OFFSET",
-        "long": "Triple Offset Disc"
+        "abbr": "TRIPLE OFFSET",
+        "full": "Triple Offset Disc"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Plug_Valve_Group": {
     "Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "AS",
-        "long": "Alloy Steel"
+        "abbr": "AS",
+        "full": "Alloy Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       },
       {
-        "short": "DSS",
-        "long": "Duplex Stainless Steel"
+        "abbr": "DSS",
+        "full": "Duplex Stainless Steel"
       },
       {
-        "short": "NI-ALLOY",
-        "long": "Nickel Alloy"
+        "abbr": "NI-ALLOY",
+        "full": "Nickel Alloy"
       }
     ],
     "Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       },
       {
-        "short": "EN",
-        "long": "EN"
+        "abbr": "EN",
+        "full": "EN"
       }
     ],
     "Matl_Code": [
       {
-        "short": "A216-WCB",
+        "abbr": "A216-WCB",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A216 WCB"
+        "full": "ASTM A216 WCB"
       },
       {
-        "short": "A352-LCB",
+        "abbr": "A352-LCB",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A352 LCB"
+        "full": "ASTM A352 LCB"
       },
       {
-        "short": "A352-LCC",
+        "abbr": "A352-LCC",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A352 LCC"
+        "full": "ASTM A352 LCC"
       },
       {
-        "short": "A351-CF8",
+        "abbr": "A351-CF8",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8"
+        "full": "ASTM A351 CF8"
       },
       {
-        "short": "A351-CF8M",
+        "abbr": "A351-CF8M",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A351 CF8M"
+        "full": "ASTM A351 CF8M"
       },
       {
-        "short": "SCS13A",
+        "abbr": "SCS13A",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SCS13A"
+        "full": "JIS SCS13A"
       },
       {
-        "short": "SCS14A",
+        "abbr": "SCS14A",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SCS14A"
+        "full": "JIS SCS14A"
       }
     ],
     "Plug_Matl": [
       {
-        "short": "SS316",
-        "long": "Stainless Steel 316"
+        "abbr": "SS316",
+        "full": "Stainless Steel 316"
       },
       {
-        "short": "SS304",
-        "long": "Stainless Steel 304"
+        "abbr": "SS304",
+        "full": "Stainless Steel 304"
       },
       {
-        "short": "13CR",
-        "long": "13Cr"
+        "abbr": "13CR",
+        "full": "13Cr"
       },
       {
-        "short": "INCONEL-625",
-        "long": "Inconel 625"
+        "abbr": "INCONEL-625",
+        "full": "Inconel 625"
       },
       {
-        "short": "MONEL-400",
-        "long": "Monel 400"
+        "abbr": "MONEL-400",
+        "full": "Monel 400"
       }
     ],
     "Seat_Matl": [
       {
-        "short": "PTFE",
-        "long": "PTFE"
+        "abbr": "PTFE",
+        "full": "PTFE"
       },
       {
-        "short": "VITON",
-        "long": "Viton"
+        "abbr": "VITON",
+        "full": "Viton"
       },
       {
-        "short": "SS316",
-        "long": "Stainless Steel 316"
+        "abbr": "SS316",
+        "full": "Stainless Steel 316"
       },
       {
-        "short": "STELLITE-6",
-        "long": "Stellite Gr.6"
+        "abbr": "STELLITE-6",
+        "full": "Stellite Gr.6"
       }
     ],
     "Rating": [
       {
-        "short": "150#",
+        "abbr": "150#",
         "std": "ASTM",
-        "long": "Class 150"
+        "full": "Class 150"
       },
       {
-        "short": "300#",
+        "abbr": "300#",
         "std": "ASTM",
-        "long": "Class 300"
+        "full": "Class 300"
       },
       {
-        "short": "600#",
+        "abbr": "600#",
         "std": "ASTM",
-        "long": "Class 600"
+        "full": "Class 600"
       },
       {
-        "short": "900#",
+        "abbr": "900#",
         "std": "ASTM",
-        "long": "Class 900"
+        "full": "Class 900"
       },
       {
-        "short": "1500#",
+        "abbr": "1500#",
         "std": "ASTM",
-        "long": "Class 1500"
+        "full": "Class 1500"
       },
       {
-        "short": "2500#",
+        "abbr": "2500#",
         "std": "ASTM",
-        "long": "Class 2500"
+        "full": "Class 2500"
       },
       {
-        "short": "JIS5K",
+        "abbr": "JIS5K",
         "std": "JIS",
-        "long": "JIS 5K"
+        "full": "JIS 5K"
       },
       {
-        "short": "JIS10K",
+        "abbr": "JIS10K",
         "std": "JIS",
-        "long": "JIS 10K"
+        "full": "JIS 10K"
       },
       {
-        "short": "JIS16K",
+        "abbr": "JIS16K",
         "std": "JIS",
-        "long": "JIS 16K"
+        "full": "JIS 16K"
       },
       {
-        "short": "JIS20K",
+        "abbr": "JIS20K",
         "std": "JIS",
-        "long": "JIS 20K"
+        "full": "JIS 20K"
       },
       {
-        "short": "JIS30K",
+        "abbr": "JIS30K",
         "std": "JIS",
-        "long": "JIS 30K"
+        "full": "JIS 30K"
       },
       {
-        "short": "JIS40K",
+        "abbr": "JIS40K",
         "std": "JIS",
-        "long": "JIS 40K"
+        "full": "JIS 40K"
       },
       {
-        "short": "JIS63K",
+        "abbr": "JIS63K",
         "std": "JIS",
-        "long": "JIS 63K"
+        "full": "JIS 63K"
       },
       {
-        "short": "KS5K",
+        "abbr": "KS5K",
         "std": "KS",
-        "long": "KS 5K"
+        "full": "KS 5K"
       },
       {
-        "short": "KS10K",
+        "abbr": "KS10K",
         "std": "KS",
-        "long": "KS 10K"
+        "full": "KS 10K"
       },
       {
-        "short": "KS16K",
+        "abbr": "KS16K",
         "std": "KS",
-        "long": "KS 16K"
+        "full": "KS 16K"
       },
       {
-        "short": "KS20K",
+        "abbr": "KS20K",
         "std": "KS",
-        "long": "KS 20K"
+        "full": "KS 20K"
       },
       {
-        "short": "KS30K",
+        "abbr": "KS30K",
         "std": "KS",
-        "long": "KS 30K"
+        "full": "KS 30K"
       },
       {
-        "short": "KS40K",
+        "abbr": "KS40K",
         "std": "KS",
-        "long": "KS 40K"
+        "full": "KS 40K"
       },
       {
-        "short": "KS63K",
+        "abbr": "KS63K",
         "std": "KS",
-        "long": "KS 63K"
+        "full": "KS 63K"
       }
     ],
     "End_Type": [
       {
-        "short": "BW",
-        "long": "Butt Weld"
+        "abbr": "BW",
+        "full": "Butt Weld"
       },
       {
-        "short": "SW",
-        "long": "Socket Weld"
+        "abbr": "SW",
+        "full": "Socket Weld"
       },
       {
-        "short": "TH",
-        "long": "Threaded"
+        "abbr": "TH",
+        "full": "Threaded"
       },
       {
-        "short": "FLGD RF",
-        "long": "Flanged, Raised Face"
+        "abbr": "FLGD RF",
+        "full": "Flanged, Raised Face"
       },
       {
-        "short": "FLGD FF",
-        "long": "Flanged, Flat Face"
+        "abbr": "FLGD FF",
+        "full": "Flanged, Flat Face"
       },
       {
-        "short": "FLGD RTJ",
-        "long": "Flanged, Ring Type Joint"
+        "abbr": "FLGD RTJ",
+        "full": "Flanged, Ring Type Joint"
       }
     ],
     "Operation": [
       {
-        "short": "HW",
-        "long": "Handwheel (Manual)"
+        "abbr": "HW",
+        "full": "Handwheel (Manual)"
       },
       {
-        "short": "LO",
-        "long": "Lever Operated"
+        "abbr": "LO",
+        "full": "Lever Operated"
       },
       {
-        "short": "WO",
-        "long": "Wrench Operated"
+        "abbr": "WO",
+        "full": "Wrench Operated"
       },
       {
-        "short": "GO",
-        "long": "Gear Operated"
+        "abbr": "GO",
+        "full": "Gear Operated"
       },
       {
-        "short": "CO",
-        "long": "Chain Operated"
+        "abbr": "CO",
+        "full": "Chain Operated"
       }
     ],
     "Plug_Type": [
       {
-        "short": "LUBRICATED",
-        "long": "Lubricated"
+        "abbr": "LUBRICATED",
+        "full": "Lubricated"
       },
       {
-        "short": "NON-LUBRICATED",
-        "long": "Non-Lubricated"
+        "abbr": "NON-LUBRICATED",
+        "full": "Non-Lubricated"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   },
   "Needle_Valve_Group": {
     "Matl_Category": [
       {
-        "short": "CS",
-        "long": "Carbon Steel"
+        "abbr": "CS",
+        "full": "Carbon Steel"
       },
       {
-        "short": "LTCS",
-        "long": "Low Temperature Carbon Steel"
+        "abbr": "LTCS",
+        "full": "Low Temperature Carbon Steel"
       },
       {
-        "short": "AS",
-        "long": "Alloy Steel"
+        "abbr": "AS",
+        "full": "Alloy Steel"
       },
       {
-        "short": "SS",
-        "long": "Stainless Steel"
+        "abbr": "SS",
+        "full": "Stainless Steel"
       },
       {
-        "short": "DSS",
-        "long": "Duplex Stainless Steel"
+        "abbr": "DSS",
+        "full": "Duplex Stainless Steel"
       },
       {
-        "short": "SDSS",
-        "long": "Super Duplex Stainless Steel"
+        "abbr": "SDSS",
+        "full": "Super Duplex Stainless Steel"
       },
       {
-        "short": "NI-ALLOY",
-        "long": "Nickel Alloy"
+        "abbr": "NI-ALLOY",
+        "full": "Nickel Alloy"
       }
     ],
     "Matl_Std": [
       {
-        "short": "ASTM",
-        "long": "ASTM"
+        "abbr": "ASTM",
+        "full": "ASTM"
       },
       {
-        "short": "JIS",
-        "long": "JIS"
+        "abbr": "JIS",
+        "full": "JIS"
       },
       {
-        "short": "KS",
-        "long": "KS"
+        "abbr": "KS",
+        "full": "KS"
       },
       {
-        "short": "EN",
-        "long": "EN"
+        "abbr": "EN",
+        "full": "EN"
       }
     ],
     "Matl_Code": [
       {
-        "short": "A105",
+        "abbr": "A105",
         "std": "ASTM",
         "category": "CS",
-        "long": "ASTM A105"
+        "full": "ASTM A105"
       },
       {
-        "short": "A350-LF2",
+        "abbr": "A350-LF2",
         "std": "ASTM",
         "category": "LTCS",
-        "long": "ASTM A350 LF2"
+        "full": "ASTM A350 LF2"
       },
       {
-        "short": "A182-F304",
+        "abbr": "A182-F304",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F304"
+        "full": "ASTM A182 F304"
       },
       {
-        "short": "A182-F316",
+        "abbr": "A182-F316",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F316"
+        "full": "ASTM A182 F316"
       },
       {
-        "short": "A182-F304L",
+        "abbr": "A182-F304L",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F304L"
+        "full": "ASTM A182 F304L"
       },
       {
-        "short": "A182-F316L",
+        "abbr": "A182-F316L",
         "std": "ASTM",
         "category": "SS",
-        "long": "ASTM A182 F316L"
+        "full": "ASTM A182 F316L"
       },
       {
-        "short": "A182-F11",
+        "abbr": "A182-F11",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A182 F11"
+        "full": "ASTM A182 F11"
       },
       {
-        "short": "A182-F22",
+        "abbr": "A182-F22",
         "std": "ASTM",
         "category": "AS",
-        "long": "ASTM A182 F22"
+        "full": "ASTM A182 F22"
       },
       {
-        "short": "SF440A",
+        "abbr": "SF440A",
         "std": "JIS",
         "category": "CS",
-        "long": "JIS SF440A"
+        "full": "JIS SF440A"
       },
       {
-        "short": "SUS304-F",
+        "abbr": "SUS304-F",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SUS304 Forged"
+        "full": "JIS SUS304 Forged"
       },
       {
-        "short": "SUS316-F",
+        "abbr": "SUS316-F",
         "std": "JIS",
         "category": "SS",
-        "long": "JIS SUS316 Forged"
+        "full": "JIS SUS316 Forged"
       }
     ],
     "Trim_Matl": [
       {
-        "short": "SS316",
-        "long": "Stainless Steel 316"
+        "abbr": "SS316",
+        "full": "Stainless Steel 316"
       },
       {
-        "short": "SS304",
-        "long": "Stainless Steel 304"
+        "abbr": "SS304",
+        "full": "Stainless Steel 304"
       },
       {
-        "short": "13CR",
-        "long": "13Cr"
+        "abbr": "13CR",
+        "full": "13Cr"
       },
       {
-        "short": "INCONEL-625",
-        "long": "Inconel 625"
+        "abbr": "INCONEL-625",
+        "full": "Inconel 625"
       },
       {
-        "short": "MONEL-400",
-        "long": "Monel 400"
+        "abbr": "MONEL-400",
+        "full": "Monel 400"
       }
     ],
     "Seat_Matl": [
       {
-        "short": "PTFE",
-        "long": "PTFE"
+        "abbr": "PTFE",
+        "full": "PTFE"
       },
       {
-        "short": "VITON",
-        "long": "Viton"
+        "abbr": "VITON",
+        "full": "Viton"
       },
       {
-        "short": "SS316",
-        "long": "Stainless Steel 316"
+        "abbr": "SS316",
+        "full": "Stainless Steel 316"
       },
       {
-        "short": "STELLITE-6",
-        "long": "Stellite Gr.6"
+        "abbr": "STELLITE-6",
+        "full": "Stellite Gr.6"
       }
     ],
     "Rating": [
       {
-        "short": "150#",
+        "abbr": "150#",
         "std": "ASTM",
-        "long": "Class 150"
+        "full": "Class 150"
       },
       {
-        "short": "300#",
+        "abbr": "300#",
         "std": "ASTM",
-        "long": "Class 300"
+        "full": "Class 300"
       },
       {
-        "short": "600#",
+        "abbr": "600#",
         "std": "ASTM",
-        "long": "Class 600"
+        "full": "Class 600"
       },
       {
-        "short": "900#",
+        "abbr": "900#",
         "std": "ASTM",
-        "long": "Class 900"
+        "full": "Class 900"
       },
       {
-        "short": "1500#",
+        "abbr": "1500#",
         "std": "ASTM",
-        "long": "Class 1500"
+        "full": "Class 1500"
       },
       {
-        "short": "2500#",
+        "abbr": "2500#",
         "std": "ASTM",
-        "long": "Class 2500"
+        "full": "Class 2500"
       },
       {
-        "short": "JIS5K",
+        "abbr": "JIS5K",
         "std": "JIS",
-        "long": "JIS 5K"
+        "full": "JIS 5K"
       },
       {
-        "short": "JIS10K",
+        "abbr": "JIS10K",
         "std": "JIS",
-        "long": "JIS 10K"
+        "full": "JIS 10K"
       },
       {
-        "short": "JIS16K",
+        "abbr": "JIS16K",
         "std": "JIS",
-        "long": "JIS 16K"
+        "full": "JIS 16K"
       },
       {
-        "short": "JIS20K",
+        "abbr": "JIS20K",
         "std": "JIS",
-        "long": "JIS 20K"
+        "full": "JIS 20K"
       },
       {
-        "short": "JIS30K",
+        "abbr": "JIS30K",
         "std": "JIS",
-        "long": "JIS 30K"
+        "full": "JIS 30K"
       },
       {
-        "short": "JIS40K",
+        "abbr": "JIS40K",
         "std": "JIS",
-        "long": "JIS 40K"
+        "full": "JIS 40K"
       },
       {
-        "short": "JIS63K",
+        "abbr": "JIS63K",
         "std": "JIS",
-        "long": "JIS 63K"
+        "full": "JIS 63K"
       },
       {
-        "short": "KS5K",
+        "abbr": "KS5K",
         "std": "KS",
-        "long": "KS 5K"
+        "full": "KS 5K"
       },
       {
-        "short": "KS10K",
+        "abbr": "KS10K",
         "std": "KS",
-        "long": "KS 10K"
+        "full": "KS 10K"
       },
       {
-        "short": "KS16K",
+        "abbr": "KS16K",
         "std": "KS",
-        "long": "KS 16K"
+        "full": "KS 16K"
       },
       {
-        "short": "KS20K",
+        "abbr": "KS20K",
         "std": "KS",
-        "long": "KS 20K"
+        "full": "KS 20K"
       },
       {
-        "short": "KS30K",
+        "abbr": "KS30K",
         "std": "KS",
-        "long": "KS 30K"
+        "full": "KS 30K"
       },
       {
-        "short": "KS40K",
+        "abbr": "KS40K",
         "std": "KS",
-        "long": "KS 40K"
+        "full": "KS 40K"
       },
       {
-        "short": "KS63K",
+        "abbr": "KS63K",
         "std": "KS",
-        "long": "KS 63K"
+        "full": "KS 63K"
       }
     ],
     "End_Type": [
       {
-        "short": "BW",
-        "long": "Butt Weld"
+        "abbr": "BW",
+        "full": "Butt Weld"
       },
       {
-        "short": "SW",
-        "long": "Socket Weld"
+        "abbr": "SW",
+        "full": "Socket Weld"
       },
       {
-        "short": "TH",
-        "long": "Threaded"
+        "abbr": "TH",
+        "full": "Threaded"
       },
       {
-        "short": "FLGD RF",
-        "long": "Flanged, Raised Face"
+        "abbr": "FLGD RF",
+        "full": "Flanged, Raised Face"
       },
       {
-        "short": "FLGD FF",
-        "long": "Flanged, Flat Face"
+        "abbr": "FLGD FF",
+        "full": "Flanged, Flat Face"
       },
       {
-        "short": "FLGD RTJ",
-        "long": "Flanged, Ring Type Joint"
+        "abbr": "FLGD RTJ",
+        "full": "Flanged, Ring Type Joint"
       }
     ],
     "Bonnet_Stem": [
       {
-        "short": "BB OS&Y",
-        "long": "Bolted Bonnet, Outside Screw & Yoke"
+        "abbr": "BB OS&Y",
+        "full": "Bolted Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "BB NRS",
-        "long": "Bolted Bonnet, Non-Rising Stem"
+        "abbr": "BB NRS",
+        "full": "Bolted Bonnet, Non-Rising Stem"
       },
       {
-        "short": "BB ISRS",
-        "long": "Bolted Bonnet, Inside Screw Rising Stem"
+        "abbr": "BB ISRS",
+        "full": "Bolted Bonnet, Inside Screw Rising Stem"
       },
       {
-        "short": "WB OS&Y",
-        "long": "Welded Bonnet, Outside Screw & Yoke"
+        "abbr": "WB OS&Y",
+        "full": "Welded Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "PSB OS&Y",
-        "long": "Pressure-Sealed Bonnet, Outside Screw & Yoke"
+        "abbr": "PSB OS&Y",
+        "full": "Pressure-Sealed Bonnet, Outside Screw & Yoke"
       },
       {
-        "short": "SB ISRS",
-        "long": "Screwed Bonnet, Inside Screw Rising Stem"
+        "abbr": "SB ISRS",
+        "full": "Screwed Bonnet, Inside Screw Rising Stem"
       },
       {
-        "short": "SB NRS",
-        "long": "Screwed Bonnet, Non-Rising Stem"
+        "abbr": "SB NRS",
+        "full": "Screwed Bonnet, Non-Rising Stem"
       }
     ],
     "Operation": [
       {
-        "short": "HW",
-        "long": "Handwheel (Manual)"
+        "abbr": "HW",
+        "full": "Handwheel (Manual)"
       },
       {
-        "short": "LO",
-        "long": "Lever Operated"
+        "abbr": "LO",
+        "full": "Lever Operated"
       },
       {
-        "short": "WO",
-        "long": "Wrench Operated"
+        "abbr": "WO",
+        "full": "Wrench Operated"
       },
       {
-        "short": "GO",
-        "long": "Gear Operated"
+        "abbr": "GO",
+        "full": "Gear Operated"
       },
       {
-        "short": "CO",
-        "long": "Chain Operated"
+        "abbr": "CO",
+        "full": "Chain Operated"
       }
     ],
     "Disc_Type": [
       {
-        "short": "NEEDLE",
-        "long": "Needle Disc"
+        "abbr": "NEEDLE",
+        "full": "Needle Disc"
       }
     ],
     "Option_Code": [
       {
-        "short": "001",
-        "long": "Default item"
+        "abbr": "001",
+        "full": "Default item"
       }
     ]
   }
