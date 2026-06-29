@@ -39,11 +39,11 @@
         "long": "Super Duplex Stainless Steel"
       },
       {
-        "short": "Ni-Alloy",
+        "short": "NI-ALLOY",
         "long": "Nickel Alloy"
       },
       {
-        "short": "Cu-Alloy",
+        "short": "CU-ALLOY",
         "long": "Copper Alloy"
       },
       {
@@ -287,7 +287,7 @@
         "long": "Super Duplex Stainless Steel"
       },
       {
-        "short": "Ni-Alloy",
+        "short": "NI-ALLOY",
         "long": "Nickel Alloy"
       }
     ],
@@ -399,12 +399,12 @@
         "long": "Class 9000"
       },
       {
-        "short": "Sch80",
+        "short": "SCH80",
         "std": "JIS",
         "long": "Schedule 80"
       },
       {
-        "short": "Sch80",
+        "short": "SCH80",
         "std": "KS",
         "long": "Schedule 80"
       }
@@ -457,7 +457,7 @@
         "long": "Super Duplex Stainless Steel"
       },
       {
-        "short": "Ni-Alloy",
+        "short": "NI-ALLOY",
         "long": "Nickel Alloy"
       }
     ],
@@ -639,7 +639,7 @@
         "long": "Super Duplex Stainless Steel"
       },
       {
-        "short": "Ni-Alloy",
+        "short": "NI-ALLOY",
         "long": "Nickel Alloy"
       }
     ],
@@ -911,7 +911,7 @@
     ],
     "Material_Primary": [
       {
-        "short": "Compressed Non-Asbestos",
+        "short": "COMPRESSED NON-ASBESTOS",
         "long": "Compressed Non-Asbestos Fiber (CNAF)"
       },
       {
@@ -919,7 +919,7 @@
         "long": "PTFE"
       },
       {
-        "short": "Graphite",
+        "short": "GRAPHITE",
         "long": "Flexible Graphite"
       },
       {
@@ -935,7 +935,7 @@
         "long": "SBR Rubber"
       },
       {
-        "short": "SS304+Graphite",
+        "short": "SS304+GRAPHITE",
         "long": "SS304 Winding + Graphite Filler"
       },
       {
@@ -943,7 +943,7 @@
         "long": "SS304 Winding + PTFE Filler"
       },
       {
-        "short": "SS316+Graphite",
+        "short": "SS316+GRAPHITE",
         "long": "SS316 Winding + Graphite Filler"
       },
       {
@@ -951,19 +951,19 @@
         "long": "SS316 Winding + PTFE Filler"
       },
       {
-        "short": "Non-Asbestos Insert",
+        "short": "NON-ASBESTOS INSERT",
         "long": "Non-Asbestos Insert"
       },
       {
-        "short": "Graphite Insert",
+        "short": "GRAPHITE INSERT",
         "long": "Graphite Insert"
       },
       {
-        "short": "SS Insert",
+        "short": "SS INSERT",
         "long": "SS Corrugated Insert"
       },
       {
-        "short": "Soft-Iron",
+        "short": "SOFT-IRON",
         "long": "Soft Iron"
       },
       {
@@ -975,11 +975,11 @@
         "long": "SS316"
       },
       {
-        "short": "Monel-400",
+        "short": "MONEL-400",
         "long": "Monel 400"
       },
       {
-        "short": "Inconel-625",
+        "short": "INCONEL-625",
         "long": "Inconel 625"
       }
     ],
@@ -989,19 +989,19 @@
         "long": "(none)"
       },
       {
-        "short": "Aramid Fiber+NBR",
+        "short": "ARAMID FIBER+NBR",
         "long": "Aramid Fiber + NBR Binder"
       },
       {
-        "short": "Aramid Fiber+SBR",
+        "short": "ARAMID FIBER+SBR",
         "long": "Aramid Fiber + SBR Binder"
       },
       {
-        "short": "Aramid Fiber+EPDM",
+        "short": "ARAMID FIBER+EPDM",
         "long": "Aramid Fiber + EPDM Binder"
       },
       {
-        "short": "Glass Fiber+NBR",
+        "short": "GLASS FIBER+NBR",
         "long": "Glass Fiber + NBR Binder"
       },
       {
@@ -1325,7 +1325,7 @@
         "long": "Super Duplex Stainless Steel"
       },
       {
-        "short": "Ni-Alloy",
+        "short": "NI-ALLOY",
         "long": "Nickel Alloy"
       }
     ],
@@ -1411,7 +1411,7 @@
     ],
     "Trim_Matl": [
       {
-        "short": "13Cr",
+        "short": "13CR",
         "long": "API600 Trim 1 - 410/410/410 (13Cr)"
       },
       {
@@ -1423,39 +1423,39 @@
         "long": "API600 Trim 3 - 310 SS"
       },
       {
-        "short": "13Cr-Hd",
+        "short": "13CR-HD",
         "long": "API600 Trim 4 - Dual hardened 410 seat & disc, 410 stem"
       },
       {
-        "short": "13Cr+FHF",
+        "short": "13CR+FHF",
         "long": "API600 Trim 5 - Full hard faced (Stellite, seat+disc), 410 stem"
       },
       {
-        "short": "13Cr+FHF-NiCr",
+        "short": "13CR+FHF-NICR",
         "long": "API600 Trim 5A - Full hard faced (Ni-Cr, seat+disc), 410 stem"
       },
       {
-        "short": "13Cr+FHF-Ultimet",
+        "short": "13CR+FHF-ULTIMET",
         "long": "API600 Trim 5B - Full hard faced (Ultimet, seat+disc), 410 stem"
       },
       {
-        "short": "13Cr+CuNi",
+        "short": "13CR+CUNI",
         "long": "API600 Trim 6 - 410 + Cu-Ni seat, 410 disc/stem"
       },
       {
-        "short": "13Cr+Hd",
+        "short": "13CR+HD",
         "long": "API600 Trim 7 - Single hardened 410 seat + 410 disc, 410 stem"
       },
       {
-        "short": "13Cr+HHF",
+        "short": "13CR+HHF",
         "long": "API600 Trim 8 - Half hard faced (Stellite seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "13Cr+HHF-NiCr",
+        "short": "13CR+HHF-NICR",
         "long": "API600 Trim 8A - Half hard faced (Ni-Cr seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "Monel",
+        "short": "MONEL",
         "long": "API600 Trim 9 - Monel seat/disc/stem"
       },
       {
@@ -1463,7 +1463,7 @@
         "long": "API600 Trim 10 - 316 SS"
       },
       {
-        "short": "Monel+HHF",
+        "short": "MONEL+HHF",
         "long": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
       },
       {
@@ -1471,11 +1471,11 @@
         "long": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
       },
       {
-        "short": "Alloy20",
+        "short": "ALLOY20",
         "long": "API600 Trim 13 - Alloy 20"
       },
       {
-        "short": "Alloy20+HHF",
+        "short": "ALLOY20+HHF",
         "long": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
       },
       {
@@ -1491,35 +1491,35 @@
         "long": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
       },
       {
-        "short": "Alloy20+FHF",
+        "short": "ALLOY20+FHF",
         "long": "API600 Trim 18 - Full hard faced (seat+disc) + Alloy 20"
       },
       {
-        "short": "NiAlloy",
+        "short": "NIALLOY",
         "long": "API600 Trim 19 - Nickel alloy seat/disc/stem"
       },
       {
-        "short": "Hastelloy-C276",
+        "short": "HASTELLOY-C276",
         "long": "API600 Trim 19B - Hastelloy C-276"
       },
       {
-        "short": "Incoloy-825",
+        "short": "INCOLOY-825",
         "long": "API600 Trim 19C - Incoloy 825"
       },
       {
-        "short": "NiAlloy+HHF",
+        "short": "NIALLOY+HHF",
         "long": "API600 Trim 20 - Half hard faced seat + Nickel alloy"
       },
       {
-        "short": "Hastelloy-C276+HHF",
+        "short": "HASTELLOY-C276+HHF",
         "long": "API600 Trim 20B - Half hard faced seat + Hastelloy C-276"
       },
       {
-        "short": "Incoloy-825+HHF",
+        "short": "INCOLOY-825+HHF",
         "long": "API600 Trim 20C - Half hard faced seat + Incoloy 825"
       },
       {
-        "short": "NiAlloy+FHF",
+        "short": "NIALLOY+FHF",
         "long": "API600 Trim 21 - Full hard faced (seat+disc) + Nickel alloy"
       }
     ],
@@ -1692,15 +1692,15 @@
         "long": "(unspecified)"
       },
       {
-        "short": "Solid",
+        "short": "SOLID",
         "long": "Solid Wedge"
       },
       {
-        "short": "Flexible",
+        "short": "FLEXIBLE",
         "long": "Flexible Wedge"
       },
       {
-        "short": "Split",
+        "short": "SPLIT",
         "long": "Split Wedge"
       },
       {
@@ -1764,7 +1764,7 @@
         "long": "Super Duplex Stainless Steel"
       },
       {
-        "short": "Ni-Alloy",
+        "short": "NI-ALLOY",
         "long": "Nickel Alloy"
       }
     ],
@@ -1850,7 +1850,7 @@
     ],
     "Trim_Matl": [
       {
-        "short": "13Cr",
+        "short": "13CR",
         "long": "API600 Trim 1 - 410/410/410 (13Cr)"
       },
       {
@@ -1862,39 +1862,39 @@
         "long": "API600 Trim 3 - 310 SS"
       },
       {
-        "short": "13Cr-Hd",
+        "short": "13CR-HD",
         "long": "API600 Trim 4 - Dual hardened 410 seat & disc, 410 stem"
       },
       {
-        "short": "13Cr+FHF",
+        "short": "13CR+FHF",
         "long": "API600 Trim 5 - Full hard faced (Stellite, seat+disc), 410 stem"
       },
       {
-        "short": "13Cr+FHF-NiCr",
+        "short": "13CR+FHF-NICR",
         "long": "API600 Trim 5A - Full hard faced (Ni-Cr, seat+disc), 410 stem"
       },
       {
-        "short": "13Cr+FHF-Ultimet",
+        "short": "13CR+FHF-ULTIMET",
         "long": "API600 Trim 5B - Full hard faced (Ultimet, seat+disc), 410 stem"
       },
       {
-        "short": "13Cr+CuNi",
+        "short": "13CR+CUNI",
         "long": "API600 Trim 6 - 410 + Cu-Ni seat, 410 disc/stem"
       },
       {
-        "short": "13Cr+Hd",
+        "short": "13CR+HD",
         "long": "API600 Trim 7 - Single hardened 410 seat + 410 disc, 410 stem"
       },
       {
-        "short": "13Cr+HHF",
+        "short": "13CR+HHF",
         "long": "API600 Trim 8 - Half hard faced (Stellite seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "13Cr+HHF-NiCr",
+        "short": "13CR+HHF-NICR",
         "long": "API600 Trim 8A - Half hard faced (Ni-Cr seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "Monel",
+        "short": "MONEL",
         "long": "API600 Trim 9 - Monel seat/disc/stem"
       },
       {
@@ -1902,7 +1902,7 @@
         "long": "API600 Trim 10 - 316 SS"
       },
       {
-        "short": "Monel+HHF",
+        "short": "MONEL+HHF",
         "long": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
       },
       {
@@ -1910,11 +1910,11 @@
         "long": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
       },
       {
-        "short": "Alloy20",
+        "short": "ALLOY20",
         "long": "API600 Trim 13 - Alloy 20"
       },
       {
-        "short": "Alloy20+HHF",
+        "short": "ALLOY20+HHF",
         "long": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
       },
       {
@@ -1930,35 +1930,35 @@
         "long": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
       },
       {
-        "short": "Alloy20+FHF",
+        "short": "ALLOY20+FHF",
         "long": "API600 Trim 18 - Full hard faced (seat+disc) + Alloy 20"
       },
       {
-        "short": "NiAlloy",
+        "short": "NIALLOY",
         "long": "API600 Trim 19 - Nickel alloy seat/disc/stem"
       },
       {
-        "short": "Hastelloy-C276",
+        "short": "HASTELLOY-C276",
         "long": "API600 Trim 19B - Hastelloy C-276"
       },
       {
-        "short": "Incoloy-825",
+        "short": "INCOLOY-825",
         "long": "API600 Trim 19C - Incoloy 825"
       },
       {
-        "short": "NiAlloy+HHF",
+        "short": "NIALLOY+HHF",
         "long": "API600 Trim 20 - Half hard faced seat + Nickel alloy"
       },
       {
-        "short": "Hastelloy-C276+HHF",
+        "short": "HASTELLOY-C276+HHF",
         "long": "API600 Trim 20B - Half hard faced seat + Hastelloy C-276"
       },
       {
-        "short": "Incoloy-825+HHF",
+        "short": "INCOLOY-825+HHF",
         "long": "API600 Trim 20C - Half hard faced seat + Incoloy 825"
       },
       {
-        "short": "NiAlloy+FHF",
+        "short": "NIALLOY+FHF",
         "long": "API600 Trim 21 - Full hard faced (seat+disc) + Nickel alloy"
       }
     ],
@@ -2153,15 +2153,15 @@
         "long": "(unspecified)"
       },
       {
-        "short": "Plug",
+        "short": "PLUG",
         "long": "Plug Disc"
       },
       {
-        "short": "Conventional",
+        "short": "CONVENTIONAL",
         "long": "Conventional Disc"
       },
       {
-        "short": "Composition",
+        "short": "COMPOSITION",
         "long": "Composition Disc"
       }
     ],
@@ -2199,7 +2199,7 @@
         "long": "Super Duplex Stainless Steel"
       },
       {
-        "short": "Ni-Alloy",
+        "short": "NI-ALLOY",
         "long": "Nickel Alloy"
       }
     ],
@@ -2285,7 +2285,7 @@
     ],
     "Trim_Matl": [
       {
-        "short": "13Cr",
+        "short": "13CR",
         "long": "API600 Trim 1 - 410/410/410 (13Cr)"
       },
       {
@@ -2297,39 +2297,39 @@
         "long": "API600 Trim 3 - 310 SS"
       },
       {
-        "short": "13Cr-Hd",
+        "short": "13CR-HD",
         "long": "API600 Trim 4 - Dual hardened 410 seat & disc, 410 stem"
       },
       {
-        "short": "13Cr+FHF",
+        "short": "13CR+FHF",
         "long": "API600 Trim 5 - Full hard faced (Stellite, seat+disc), 410 stem"
       },
       {
-        "short": "13Cr+FHF-NiCr",
+        "short": "13CR+FHF-NICR",
         "long": "API600 Trim 5A - Full hard faced (Ni-Cr, seat+disc), 410 stem"
       },
       {
-        "short": "13Cr+FHF-Ultimet",
+        "short": "13CR+FHF-ULTIMET",
         "long": "API600 Trim 5B - Full hard faced (Ultimet, seat+disc), 410 stem"
       },
       {
-        "short": "13Cr+CuNi",
+        "short": "13CR+CUNI",
         "long": "API600 Trim 6 - 410 + Cu-Ni seat, 410 disc/stem"
       },
       {
-        "short": "13Cr+Hd",
+        "short": "13CR+HD",
         "long": "API600 Trim 7 - Single hardened 410 seat + 410 disc, 410 stem"
       },
       {
-        "short": "13Cr+HHF",
+        "short": "13CR+HHF",
         "long": "API600 Trim 8 - Half hard faced (Stellite seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "13Cr+HHF-NiCr",
+        "short": "13CR+HHF-NICR",
         "long": "API600 Trim 8A - Half hard faced (Ni-Cr seat only) + 13Cr disc, 410 stem"
       },
       {
-        "short": "Monel",
+        "short": "MONEL",
         "long": "API600 Trim 9 - Monel seat/disc/stem"
       },
       {
@@ -2337,7 +2337,7 @@
         "long": "API600 Trim 10 - 316 SS"
       },
       {
-        "short": "Monel+HHF",
+        "short": "MONEL+HHF",
         "long": "API600 Trim 11 - Half hard faced seat + Monel, Monel stem"
       },
       {
@@ -2345,11 +2345,11 @@
         "long": "API600 Trim 12 - Half hard faced seat + 316, 316 stem"
       },
       {
-        "short": "Alloy20",
+        "short": "ALLOY20",
         "long": "API600 Trim 13 - Alloy 20"
       },
       {
-        "short": "Alloy20+HHF",
+        "short": "ALLOY20+HHF",
         "long": "API600 Trim 14 - Half hard faced seat + Alloy 20, Alloy 20 stem"
       },
       {
@@ -2365,35 +2365,35 @@
         "long": "API600 Trim 17 - Full hard faced (seat+disc) + 347, 347 stem"
       },
       {
-        "short": "Alloy20+FHF",
+        "short": "ALLOY20+FHF",
         "long": "API600 Trim 18 - Full hard faced (seat+disc) + Alloy 20"
       },
       {
-        "short": "NiAlloy",
+        "short": "NIALLOY",
         "long": "API600 Trim 19 - Nickel alloy seat/disc/stem"
       },
       {
-        "short": "Hastelloy-C276",
+        "short": "HASTELLOY-C276",
         "long": "API600 Trim 19B - Hastelloy C-276"
       },
       {
-        "short": "Incoloy-825",
+        "short": "INCOLOY-825",
         "long": "API600 Trim 19C - Incoloy 825"
       },
       {
-        "short": "NiAlloy+HHF",
+        "short": "NIALLOY+HHF",
         "long": "API600 Trim 20 - Half hard faced seat + Nickel alloy"
       },
       {
-        "short": "Hastelloy-C276+HHF",
+        "short": "HASTELLOY-C276+HHF",
         "long": "API600 Trim 20B - Half hard faced seat + Hastelloy C-276"
       },
       {
-        "short": "Incoloy-825+HHF",
+        "short": "INCOLOY-825+HHF",
         "long": "API600 Trim 20C - Half hard faced seat + Incoloy 825"
       },
       {
-        "short": "NiAlloy+FHF",
+        "short": "NIALLOY+FHF",
         "long": "API600 Trim 21 - Full hard faced (seat+disc) + Nickel alloy"
       }
     ],
@@ -2606,7 +2606,7 @@
         "long": "Super Duplex Stainless Steel"
       },
       {
-        "short": "Ni-Alloy",
+        "short": "NI-ALLOY",
         "long": "Nickel Alloy"
       }
     ],
@@ -2700,15 +2700,15 @@
         "long": "Stainless Steel 304"
       },
       {
-        "short": "13Cr",
+        "short": "13CR",
         "long": "13Cr"
       },
       {
-        "short": "Inconel-625",
+        "short": "INCONEL-625",
         "long": "Inconel 625"
       },
       {
-        "short": "Monel-400",
+        "short": "MONEL-400",
         "long": "Monel 400"
       }
     ],
@@ -2722,11 +2722,11 @@
         "long": "Reinforced PTFE"
       },
       {
-        "short": "Devlon",
+        "short": "DEVLON",
         "long": "Devlon"
       },
       {
-        "short": "Nylon",
+        "short": "NYLON",
         "long": "Nylon"
       },
       {
@@ -2734,7 +2734,7 @@
         "long": "Stainless Steel 316"
       },
       {
-        "short": "Stellite-6",
+        "short": "STELLITE-6",
         "long": "Stellite Gr.6"
       }
     ],
@@ -2882,15 +2882,15 @@
         "long": "(unspecified)"
       },
       {
-        "short": "Top Entry",
+        "short": "TOP ENTRY",
         "long": "Top Entry"
       },
       {
-        "short": "Side Entry",
+        "short": "SIDE ENTRY",
         "long": "Side Entry"
       },
       {
-        "short": "End Entry",
+        "short": "END ENTRY",
         "long": "End Entry"
       }
     ],
@@ -2942,7 +2942,7 @@
         "long": "Duplex Stainless Steel"
       },
       {
-        "short": "Ni-Alloy",
+        "short": "NI-ALLOY",
         "long": "Nickel Alloy"
       },
       {
@@ -3028,15 +3028,15 @@
         "long": "Stainless Steel 304"
       },
       {
-        "short": "13Cr",
+        "short": "13CR",
         "long": "13Cr"
       },
       {
-        "short": "Inconel-625",
+        "short": "INCONEL-625",
         "long": "Inconel 625"
       },
       {
-        "short": "Bronze",
+        "short": "BRONZE",
         "long": "Aluminum Bronze"
       }
     ],
@@ -3062,7 +3062,7 @@
         "long": "Stainless Steel 316"
       },
       {
-        "short": "Stellite-6",
+        "short": "STELLITE-6",
         "long": "Stellite Gr.6"
       }
     ],
@@ -3125,19 +3125,19 @@
     ],
     "Body_Type": [
       {
-        "short": "Wafer",
+        "short": "WAFER",
         "long": "Wafer Body"
       },
       {
-        "short": "Lug",
+        "short": "LUG",
         "long": "Lug Body"
       },
       {
-        "short": "Double-Flanged",
+        "short": "DOUBLE-FLANGED",
         "long": "Double-Flanged Body"
       },
       {
-        "short": "Butt-Weld",
+        "short": "BUTT-WELD",
         "long": "Butt-Weld Body"
       }
     ],
@@ -3169,15 +3169,15 @@
         "long": "(unspecified)"
       },
       {
-        "short": "Concentric",
+        "short": "CONCENTRIC",
         "long": "Concentric Disc"
       },
       {
-        "short": "Double Offset",
+        "short": "DOUBLE OFFSET",
         "long": "Double Offset Disc"
       },
       {
-        "short": "Triple Offset",
+        "short": "TRIPLE OFFSET",
         "long": "Triple Offset Disc"
       }
     ],
@@ -3211,7 +3211,7 @@
         "long": "Duplex Stainless Steel"
       },
       {
-        "short": "Ni-Alloy",
+        "short": "NI-ALLOY",
         "long": "Nickel Alloy"
       }
     ],
@@ -3287,15 +3287,15 @@
         "long": "Stainless Steel 304"
       },
       {
-        "short": "13Cr",
+        "short": "13CR",
         "long": "13Cr"
       },
       {
-        "short": "Inconel-625",
+        "short": "INCONEL-625",
         "long": "Inconel 625"
       },
       {
-        "short": "Monel-400",
+        "short": "MONEL-400",
         "long": "Monel 400"
       }
     ],
@@ -3305,7 +3305,7 @@
         "long": "PTFE"
       },
       {
-        "short": "Viton",
+        "short": "VITON",
         "long": "Viton"
       },
       {
@@ -3313,7 +3313,7 @@
         "long": "Stainless Steel 316"
       },
       {
-        "short": "Stellite-6",
+        "short": "STELLITE-6",
         "long": "Stellite Gr.6"
       }
     ],
@@ -3469,11 +3469,11 @@
     ],
     "Plug_Type": [
       {
-        "short": "Lubricated",
+        "short": "LUBRICATED",
         "long": "Lubricated"
       },
       {
-        "short": "Non-Lubricated",
+        "short": "NON-LUBRICATED",
         "long": "Non-Lubricated"
       }
     ],
@@ -3511,7 +3511,7 @@
         "long": "Super Duplex Stainless Steel"
       },
       {
-        "short": "Ni-Alloy",
+        "short": "NI-ALLOY",
         "long": "Nickel Alloy"
       }
     ],
@@ -3611,15 +3611,15 @@
         "long": "Stainless Steel 304"
       },
       {
-        "short": "13Cr",
+        "short": "13CR",
         "long": "13Cr"
       },
       {
-        "short": "Inconel-625",
+        "short": "INCONEL-625",
         "long": "Inconel 625"
       },
       {
-        "short": "Monel-400",
+        "short": "MONEL-400",
         "long": "Monel 400"
       }
     ],
@@ -3629,7 +3629,7 @@
         "long": "PTFE"
       },
       {
-        "short": "Viton",
+        "short": "VITON",
         "long": "Viton"
       },
       {
@@ -3637,7 +3637,7 @@
         "long": "Stainless Steel 316"
       },
       {
-        "short": "Stellite-6",
+        "short": "STELLITE-6",
         "long": "Stellite Gr.6"
       }
     ],
@@ -3823,7 +3823,7 @@
     ],
     "Disc_Type": [
       {
-        "short": "Needle",
+        "short": "NEEDLE",
         "long": "Needle Disc"
       }
     ],
