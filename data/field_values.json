@@ -890,21 +890,29 @@
     "Gasket_Type": [
       {
         "short": "SHEET",
-        "long": "Sheet Gasket"
+        "long": "Sheet"
       },
       {
-        "short": "SW",
+        "short": "SPIRAL WOUND",
         "long": "Spiral Wound"
       },
       {
         "short": "RTJ",
         "long": "Ring Type Joint"
+      },
+      {
+        "short": "PTFE ENVELOPED",
+        "long": "PTFE Enveloped"
+      },
+      {
+        "short": "SOLID",
+        "long": "Solid (machined, single material)"
       }
     ],
     "Material_Primary": [
       {
-        "short": "Non-Asbestos",
-        "long": "Non-Asbestos / CNAF"
+        "short": "Compressed Non-Asbestos",
+        "long": "Compressed Non-Asbestos Fiber (CNAF)"
       },
       {
         "short": "PTFE",
@@ -913,6 +921,18 @@
       {
         "short": "Graphite",
         "long": "Flexible Graphite"
+      },
+      {
+        "short": "EPDM",
+        "long": "EPDM Rubber"
+      },
+      {
+        "short": "NBR",
+        "long": "NBR Rubber"
+      },
+      {
+        "short": "SBR",
+        "long": "SBR Rubber"
       },
       {
         "short": "SS304+Graphite",
@@ -931,6 +951,18 @@
         "long": "SS316 Winding + PTFE Filler"
       },
       {
+        "short": "Non-Asbestos Insert",
+        "long": "Non-Asbestos Insert"
+      },
+      {
+        "short": "Graphite Insert",
+        "long": "Graphite Insert"
+      },
+      {
+        "short": "SS Insert",
+        "long": "SS Corrugated Insert"
+      },
+      {
         "short": "Soft-Iron",
         "long": "Soft Iron"
       },
@@ -941,6 +973,14 @@
       {
         "short": "SS316",
         "long": "SS316"
+      },
+      {
+        "short": "Monel-400",
+        "long": "Monel 400"
+      },
+      {
+        "short": "Inconel-625",
+        "long": "Inconel 625"
       }
     ],
     "Material_Secondary": [
@@ -949,16 +989,40 @@
         "long": "(none)"
       },
       {
-        "short": "CS",
-        "long": "Carbon Steel Ring"
+        "short": "Aramid Fiber+NBR",
+        "long": "Aramid Fiber + NBR Binder"
       },
       {
-        "short": "SS304",
-        "long": "SS304 Ring"
+        "short": "Aramid Fiber+SBR",
+        "long": "Aramid Fiber + SBR Binder"
       },
       {
-        "short": "SS316",
-        "long": "SS316 Ring"
+        "short": "Aramid Fiber+EPDM",
+        "long": "Aramid Fiber + EPDM Binder"
+      },
+      {
+        "short": "Glass Fiber+NBR",
+        "long": "Glass Fiber + NBR Binder"
+      },
+      {
+        "short": "IR-SS304 OR-CS",
+        "long": "Inner Ring SS304 / Outer Ring Carbon Steel"
+      },
+      {
+        "short": "IR-SS304 OR-SS304",
+        "long": "Inner Ring SS304 / Outer Ring SS304"
+      },
+      {
+        "short": "IR-SS316 OR-CS",
+        "long": "Inner Ring SS316 / Outer Ring Carbon Steel"
+      },
+      {
+        "short": "IR-SS316 OR-SS316",
+        "long": "Inner Ring SS316 / Outer Ring SS316"
+      },
+      {
+        "short": "IR-CS OR-CS",
+        "long": "Inner Ring Carbon Steel / Outer Ring Carbon Steel"
       }
     ],
     "Rating": [
@@ -1079,19 +1143,19 @@
     ],
     "Thickness": [
       {
-        "short": "1.5T",
+        "short": "1.5mm",
         "long": "1.5 mm thick"
       },
       {
-        "short": "3.0T",
+        "short": "3.0mm",
         "long": "3.0 mm thick"
       },
       {
-        "short": "4.5T",
+        "short": "4.5mm",
         "long": "4.5 mm thick"
       },
       {
-        "short": "6.0T",
+        "short": "6.0mm",
         "long": "6.0 mm thick"
       }
     ],

@@ -493,6 +493,23 @@ _DESCRIPTION_SPECS: dict[str, list[dict]] = {
         {"field": "Rating"},
         {"field": "Remarks"},
     ],
+    "Wrought_Fitting_Group": [
+        {"item_name": True},
+        {"field": "Matl_Code"},
+        {"field": "Manufacturing_Method"},
+        {"field": "End_Type"},
+        {"field": "Remarks"},
+    ],
+    "Gasket_Group": [
+        {"item_name": True},
+        {"field": "Gasket_Type"},
+        {"field": "Material_Primary"},
+        {"field": "Material_Secondary"},
+        {"field": "Rating"},
+        {"field": "Facing"},
+        {"field": "Thickness"},
+        {"field": "Remarks"},
+    ],
     "Flange_Group": [
         {"item_name": True},
         {"field": "Matl_Code"},

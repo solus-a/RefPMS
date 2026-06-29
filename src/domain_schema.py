@@ -1824,7 +1824,7 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
             " Gasket_Type=SW 일 때만 활성화."
         ),
         unit=None,
-        conditional_required_when={"field": "Gasket_Type", "values": ["SW"]},
+        conditional_required_when={"field": "Gasket_Type", "values": ["SPIRAL WOUND"]},
     ),
     FieldDefinition(
         name="Rating",
