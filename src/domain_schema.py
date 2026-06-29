@@ -195,7 +195,7 @@ PIPE_GROUP_FIELDS: list[FieldDefinition] = [
         name="Matl_Std",
         meaning=(
             "재질 표준 발행 기관 (ASTM / ASME / JIS / KS / EN / DIN / API)."
-            " 구체 표준 코드(예: A106)는 Matl_Code 의 short / long 에 담기고,"
+            " 구체 표준 코드(예: A106)는 Matl_Code 의 abbr / full 에 담기고,"
             " 이 필드는 그 코드가 속한 표준 체계를 식별한다."
             " ASME 는 ASTM 의 압력부품 채택판(SA-접두) 표시용으로 별도 등록."
         ),
@@ -2637,7 +2637,7 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve trim 재질 조합. Seat / disc / stem 의 재질 세트를 하나의 값으로"
             " 표현하며, API 600 trim number 표준 세트(전 번호 수록)를 재질조합"
-            " 문자열(short, 예: '13Cr+STL', 'F316', 'Alloy20+STL')로 저장한다."
+            " 문자열(abbr, 예: '13CR+STL', 'SS316', 'ALLOY20+STL')로 저장한다."
             " Seat_Matl 전용 필드는 폐지 — trim 값 하나가 seat/disc/stem 조합을 담는다."
         ),
         data_type="string (재질조합 문자열)",
@@ -3755,9 +3755,9 @@ CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #     달리 Ball valve 는 소구경 (≤ 4\") forged body 가 흔함 (A105, A350-LF2,
 #     A182-F316 포함).
 #   - Seat_Matl 풀이 **soft seat 위주** (PTFE / RPTFE / Devlon / Nylon) +
-#     metal seat (F316 / Stellite-6) 일부. Ball valve 표준은 "floating ball +
+#     metal seat (SS316 / Stellite-6) 일부. Ball valve 표준은 "floating ball +
 #     soft seat" 가 많음.
-#   - Trim_Matl 5종 (F316/F304/13Cr/Inconel-625/Monel-400) — Gate/Globe 의 7종
+#   - Trim_Matl 5종 (SS316/SS304/13Cr/Inconel-625/Monel-400) — Gate/Globe 의 7종
 #     보다 좁은 풀 (Stellite-6 / Hastelloy 제외; Ball stem 은 hardfacing 덜
 #     필요).
 #
@@ -3966,7 +3966,7 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Trim_Matl",
         meaning=(
-            "Valve trim (stem / ball / 내부 부품) 재질. 5종: F316, F304, 13Cr,"
+            "Valve trim (stem / ball / 내부 부품) 재질. 5종: SS316, SS304, 13Cr,"
             " Inconel-625, Monel-400 — Gate/Globe 의 7종 보다 좁은 풀"
             " (Stellite-6 / Hastelloy-C276 미포함). Ball stem 은 ball 의 회전"
             " 동작 특성상 sliding wear 가 적어 hardfacing 덜 필요."
@@ -3995,9 +3995,9 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         name="Seat_Matl",
         meaning=(
             "Valve seat (ball 과 접촉하는 면) 재질. **Soft seat 위주** 6종:"
-            " PTFE, RPTFE (Reinforced PTFE), Devlon, Nylon, F316, Stellite-6."
+            " PTFE, RPTFE (Reinforced PTFE), Devlon, Nylon, SS316, Stellite-6."
             " Ball valve 표준은 'floating ball + soft seat' 가 많아 polymer"
-            " seat (PTFE 계열) 이 표준; metal seat (F316 / Stellite-6) 는 고온"
+            " seat (PTFE 계열) 이 표준; metal seat (SS316 / Stellite-6) 는 고온"
             " 또는 hard service 용 — Gate/Globe 의 metal-only seat 와 차이."
         ),
         data_type="string (short code)",
@@ -4239,7 +4239,7 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #   - **Matl_Code 풀에 A126-B / A395 포함** — 각각 gray iron / ductile iron"
 #     cast (저압 cast iron grade).
 #   - **Seat_Matl 풀이 soft seat 중심** (EPDM / NBR / PTFE / RPTFE) + metal
-#     일부 (F316 / Stellite-6). EPDM/NBR 은 Butterfly 만의 옵션 (다른 valve
+#     일부 (SS316 / Stellite-6). EPDM/NBR 은 Butterfly 만의 옵션 (다른 valve
 #     에 없음).
 #   - **Rating 11종만** (다른 valve 의 20종 보다 좁음) — ASTM: 150# / 300# /
 #     600# 만 (900# 이상 없음). JIS/KS: 5K ~ 20K 만 (30K 이상 없음).
@@ -4470,7 +4470,7 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Butterfly Valve disc 재질. **Butterfly 고유 컬럼** — 다른 valve 의"
             " Trim_Matl 자리에 대응 (Butterfly 의 핵심 부품은 disc). 5종:"
-            " F316, F304, 13Cr, Inconel-625, Bronze (Aluminum Bronze). Body 와"
+            " SS316, SS304, 13Cr, Inconel-625, Bronze (Aluminum Bronze). Body 와"
             " 다른 재질 선택 — 저압 cast iron body + SS316 disc 가 흔함."
         ),
         data_type="string (short code)",
@@ -4496,9 +4496,9 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         name="Seat_Matl",
         meaning=(
             "Valve seat (disc 와 접촉하는 면) 재질. **Soft seat 중심** 6종:"
-            " EPDM (Rubber), NBR, PTFE, RPTFE (Reinforced PTFE), F316,"
+            " EPDM (Rubber), NBR, PTFE, RPTFE (Reinforced PTFE), SS316,"
             " Stellite-6. EPDM/NBR 은 Butterfly 만의 옵션 — Concentric"
-            " (Resilient Seated) 형식에 흔함. Metal seat (F316 / Stellite-6)"
+            " (Resilient Seated) 형식에 흔함. Metal seat (SS316 / Stellite-6)"
             " 는 Triple Offset 의 고온·고압 용."
         ),
         data_type="string (short code)",
@@ -4643,7 +4643,7 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unique=None,
         relations=[
             "Seat_Matl 과 호환 관행: Concentric → EPDM/NBR/PTFE, TripleOffset"
-            " → metal seat (F316 / Stellite-6) 가 통상 — 강제 검증 없음",
+            " → metal seat (SS316 / Stellite-6) 가 통상 — 강제 검증 없음",
             "Rating 과 호환 관행: TripleOffset 은 600#+ 고압 영역이 흔함",
             "PMS description 에 합성 (빈 값이면 토큰 생략)",
         ],
@@ -4730,7 +4730,7 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #         시트에서 Non-Lubricated 와 동의어로 통합.)
 #     Eccentric / Expanding plug valve 는 현재 미고려 (특수 변종 — slurry / DBB"
 #     용; 추후 도메인 합의 시 옵션 확장).
-#   - **Seat_Matl 풀이 sleeve material 위주** — PTFE / Viton / F316 / Stellite-6"
+#   - **Seat_Matl 풀이 sleeve material 위주** — PTFE / Viton / SS316 / Stellite-6"
 #     4종. Non-Lubricated 의 경우 PTFE sleeve 가 표준 (도메인 정의: sleeve =\
 #     soft seat). Lubricated 의 경우 metal seat 가 흔함.
 #   - **Matl_Category 6종** — SDSS 제외 (다른 valve 의 7종 중). Plug valve 는"
@@ -4942,8 +4942,8 @@ PLUG_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Plug Valve plug (회전부) 재질. **Plug valve 고유 컬럼** — 다른"
             " valve 의 Trim_Matl 자리에 대응 (Plug valve 의 핵심 부품은 plug)."
-            " 5종: F316, F304, 13Cr, Inconel-625, Monel-400. Body 와 다른 재질"
-            " 선택 가능 — body 는 cast carbon steel, plug 는 F316 흔함."
+            " 5종: SS316, SS304, 13Cr, Inconel-625, Monel-400. Body 와 다른 재질"
+            " 선택 가능 — body 는 cast carbon steel, plug 는 SS316 흔함."
         ),
         data_type="string (short code)",
         required=True,
@@ -4969,7 +4969,7 @@ PLUG_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve seat (plug 와 body 사이 sealing 면) 재질. 4종:"
             " PTFE (Non-Lubricated 의 sleeve 표준), Viton (rubber sleeve),"
-            " F316 (metal seat, Lubricated 에 흔함), Stellite-6 (hardfacing"
+            " SS316 (metal seat, Lubricated 에 흔함), Stellite-6 (hardfacing"
             " metal seat). Non-Lubricated 의 경우 sleeve material 이 seat 역할"
             " (도메인 정의: sleeve = soft seat); Lubricated 의 경우 윤활제 film"
             " 이 일부 seat 역할 + metal seat 결합."
@@ -5182,7 +5182,7 @@ PLUG_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 # Globe_Valve_Group 과의 주요 차이:
 #   - **Matl_Code = Forged grades** — Needle valve 는 instrumentation 영역이라
 #     forged body 가 표준 (Globe valve 의 Cast grade A216-WCB 등과 다름).
-#     ASTM: A105 / A350-LF2 / A182-F304/F316/F304L/F316L / A182-F11 / A182-F22
+#     ASTM: A105 / A350-LF2 / A182-F304/SS316/F304L/F316L / A182-F11 / A182-F22
 #     (Forged_Fitting_Group 과 동일 패턴). JIS: SF440A / SUS304-F / SUS316-F.
 #   - **Disc_Type 컬럼은 Needle 1종 고정** — needle disc geometry 가 시트 자체
 #     의 정체성. optional + 빈 값 허용 (Globe Disc_Type 패턴과 동일).
@@ -5193,7 +5193,7 @@ PLUG_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #     Trim_Matl/Seat_Matl → Rating → End_Type → Bonnet_Stem → Operation →
 #     Disc_Type → Option_Code → Remarks).
 #   - Matl_Category 7종 (CS/LTCS/AS/SS/DSS/SDSS/Ni-Alloy).
-#   - Trim_Matl 5종, Seat_Matl 4종 (PTFE/Viton/F316/Stellite-6 — PTFE seat 가
+#   - Trim_Matl 5종, Seat_Matl 4종 (PTFE/Viton/SS316/Stellite-6 — PTFE seat 가
 #     needle valve 에 흔함).
 #   - Rating std-aware 20종 (ASTM 6 + JIS 7 + KS 7) — Globe 와 동일.
 #   - End_Type 4종 (BW/SW/TH/FLG — TH 가 instrumentation 표준 흔함).
@@ -5369,7 +5369,7 @@ NEEDLE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
             "Needle valve body 의 구체 재질 규격 코드. **Forged grade** —"
             " instrumentation 영역의 needle valve 표준 (Globe valve 의 Cast"
             " grade A216-WCB 등과 다름). ASTM (8): A105, A350-LF2, A182-F304/"
-            "F316/F304L/F316L, A182-F11/F22. JIS (3): SF440A, SUS304-F,"
+            "SS316/F304L/F316L, A182-F11/F22. JIS (3): SF440A, SUS304-F,"
             " SUS316-F. KS/EN 항목은 추후 추가."
         ),
         data_type="string (short code; e.g. A105 / A182-F316)",
@@ -5398,8 +5398,8 @@ NEEDLE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         name="Trim_Matl",
         meaning=(
             "Needle valve trim (stem/seat ring 등 내부 부품) 재질. 5종 (Globe"
-            " 와 동일): F316 / F304 / 13Cr / Inconel-625 / Monel-400. Body 와"
-            " 다른 재질 선택 가능 — body 는 forged carbon steel, trim 은 F316"
+            " 와 동일): SS316 / SS304 / 13Cr / Inconel-625 / Monel-400. Body 와"
+            " 다른 재질 선택 가능 — body 는 forged carbon steel, trim 은 SS316"
             " 흔함."
         ),
         data_type="string (short code)",
@@ -5426,7 +5426,7 @@ NEEDLE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve seat (needle 과 body 사이 sealing 면) 재질. 4종 (Globe 와"
             " 동일): PTFE (soft seat, instrumentation 흔함), Viton (rubber"
-            " seat), F316 (metal seat), Stellite-6 (hardfacing metal seat)."
+            " seat), SS316 (metal seat), Stellite-6 (hardfacing metal seat)."
             " Needle valve 는 PTFE seat 가 일반적이지만 고온·고압엔 metal"
             " seat 가 선호."
         ),
