@@ -906,7 +906,7 @@
       },
       {
         "short": "SOLID",
-        "long": "Solid (machined, single material)"
+        "long": "Solid"
       }
     ],
     "Material_Primary": [
@@ -1169,11 +1169,11 @@
   "Bolt_Group": {
     "Bolt_Type": [
       {
-        "short": "Stud",
+        "short": "STUD BOLT",
         "long": "Stud Bolt"
       },
       {
-        "short": "Machine",
+        "short": "MACHINE BOLT",
         "long": "Machine Bolt"
       }
     ],
@@ -1249,12 +1249,12 @@
     ],
     "Nut_Type": [
       {
-        "short": "Hex",
-        "long": "Hex Nut"
+        "short": "HEX NUTS",
+        "long": "Hex Nuts"
       },
       {
-        "short": "HHex",
-        "long": "Heavy Hex Nut"
+        "short": "HEAVY HEX NUTS",
+        "long": "Heavy Hex Nuts"
       }
     ],
     "Nut_Matl_Std": [

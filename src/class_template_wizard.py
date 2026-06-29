@@ -591,6 +591,14 @@ _DESCRIPTION_SPECS: dict[str, list[dict]] = {
         {"field": "Operation"},
         {"field": "Remarks"},
     ],
+    # Bolt 는 item_name(code_name "BOLT & NUT") 대신 Bolt_Type 으로 시작 (set name 성격).
+    "Bolt_Group": [
+        {"field": "Bolt_Type"},
+        {"field": "Bolt_Matl_Code"},
+        {"field": "Nut_Matl_Code", "sep": " / "},
+        {"field": "Nut_Type"},
+        {"field": "Remarks"},
+    ],
 }
 
 
