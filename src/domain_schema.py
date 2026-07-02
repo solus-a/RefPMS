@@ -349,18 +349,21 @@ PIPE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Item_Code 와 조건부 호환: Nipple (JN) 행에서는 빈 값이 아닌 값이"
-            " 필요. Pipe (P 등) 행에서는 빈 값."
-            " 강제 검증은 두지 않고 wizard 콤보박스가 빈 값 옵션 제공 — 사용자 판단.",
+            "Item_Code 와 조건부 종속 (강제): JN 이면 필수"
+            " (conditional_required_when → DEFAULT_COMPONENT_MAPPING 도출,"
+            " 저장 시 검증), JN 이 아니면 wizard 가 비우고 잠금"
+            " (_apply_pipe_length_lock).",
             "PMS 출력: _try_nipple_pipe_output 의 description 토큰 및"
             " _apply_length_to_catalog_nipple_name 의 catalog name 변형.",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + 빈 값)."
+            "wizard 콤보 (closed set) + JN 조건부 필수 (도출 규칙, 저장 시)"
+            " + 비-JN 잠금 (_apply_pipe_length_lock)."
             " PMS 엔진은 Nipple item code 분기에서만 사용."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만, 빈 값 포함)"
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만;"
+            " Item_Code=JN 일 때만 활성화)"
         ),
         unit=(
             "mm (실제 길이 — Pipe Size 시스템 NPS/DN 과 무관하게 mm 일관)"
@@ -665,7 +668,7 @@ WROUGHT_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
             "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 표시 — 콤보박스"
             " 가 std/category 별 필터링",
             "Matl_Code DB 의 'std' 키로 Matl_Std 와 강제 정합 (Pipe_Group 패턴 동일)",
-            "PMS description 에 그대로 합성 (예: 'ELBOW A234-WPB SMLS BW')",
+            "PMS description 에 그대로 합성 (예: 'ELBOW 90 DEG LR A234-WPB SMLS BW')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
@@ -693,7 +696,7 @@ WROUGHT_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
         relations=[
             "Matl_Code 와의 호환 관행: A234-WPB 등 SMLS/WLD 둘 다 가능;"
             " WP304/316 도 둘 다 — 강제 검증 없음, 사용자 판단",
-            "PMS description 에 합성 (예: 'ELBOW A234-WPB SMLS BW')",
+            "PMS description 에 합성 (예: 'ELBOW 90 DEG LR A234-WPB SMLS BW')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
@@ -1001,7 +1004,7 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
         relations=[
             "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 표시 — 콤보박스"
             " 가 std/category 별 필터링",
-            "PMS description 에 그대로 합성 (예: 'ELBOW A105 SW CL3000')",
+            "PMS description 에 그대로 합성 (예: 'ELBOW 90 DEG A105 SW CL3000')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
@@ -1041,7 +1044,7 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
             "   ASTM CL3000/CL6000 ↔ SW · threaded 공통,"
             "   JIS/KS Sch80 ↔ SW · threaded 공통 (B 2316 / B 2316S)"
             " — 강제 검증은 별도 작업, 현재 wizard 는 자유 조합 허용",
-            "PMS description 에 합성 (예: 'ELBOW A105 SW CL3000')",
+            "PMS description 에 합성 (예: 'ELBOW 90 DEG A105 SW CL3000')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
@@ -1073,7 +1076,7 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
             "Rating 과 호환 관행 (위 Rating.relations 참조 — 강제 검증 없음)",
             "Item_Code 에 따른 End_Type 제약 관행: union (JU) / plug (JP) /"
             " bushing (JB) 은 threaded 일색이 보통, 강제는 아님",
-            "PMS description 에 합성 (예: 'ELBOW A105 SW CL3000')",
+            "PMS description 에 합성 (예: 'ELBOW 90 DEG A105 SW CL3000')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
@@ -1414,7 +1417,7 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         relations=[
             "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 필터링",
             "Forged_Fitting_Group.Matl_Code 와 옵션 풀 동일 — 동일 forged grade 사용",
-            "PMS description 에 그대로 합성 (예: 'FLANGE A105 RF CL150 WN')",
+            "PMS description 에 그대로 합성 (예: 'FLANGE A105 WN CL150 RF')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
@@ -1446,7 +1449,7 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
             "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
             "Facing 과 호환 관행: CL600+ 는 RTJ 가 흔함, CL150-CL300 는 RF/FF —"
             " 강제 검증 없음, 사용자 판단",
-            "PMS description 에 합성 (예: 'FLANGE A105 RF CL150 WN')",
+            "PMS description 에 합성 (예: 'FLANGE A105 WN CL150 RF')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
@@ -1478,7 +1481,7 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
             "Rating 과 호환 관행 (위 Rating.relations 참조)",
             "Gasket_Group 의 Facing 과 짝 — flange face 와 gasket face 는 일치해야"
             " 정합 (별도 검증 영역)",
-            "PMS description 에 합성 (예: 'FLANGE A105 RF CL150 WN')",
+            "PMS description 에 합성 (예: 'FLANGE A105 WN CL150 RF')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
@@ -2001,8 +2004,8 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
 #       에 "TBD: separate length table file" 로 표기되어 있음.
 #     · LT-A / LT-B 같은 표기를 사용자가 정함; 본 도메인 검증은 별도 작업.
 #   - Bolt_Type / Nut_Type: 형식 구분
-#     · Bolt_Type: Stud / Machine (Hex Cap Screw 등은 현재 미고려)
-#     · Nut_Type: Hex / Heavy Hex (HHex)
+#     · Bolt_Type: STUD BOLT / MACHINE BOLT (Hex Cap Screw 등은 현재 미고려)
+#     · Nut_Type: HEX NUTS / HEAVY HEX NUTS
 #   - Matl_Std: ASTM/JIS/KS 3종 (Pipe/Flange 와 달리 EN 없음)
 #     · 현재 옵션 풀에 EN 항목 없어 단순화. 추후 EN 추가 시 옵션 풀에만 추가.
 #
@@ -2063,7 +2066,7 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Bolt_Group 의 component 종류 식별자. 현재 'B' (BOLT & NUT) 하나만"
             " 정의 — bolt 와 nut 를 한 set 로 묶어 한 component 로 취급."
-            " Stud / Machine 의 형식 차이는 Item_Code 가 아니라 Bolt_Type 컬럼."
+            " Stud/Machine 의 형식 차이는 Item_Code 가 아니라 Bolt_Type 컬럼(STUD BOLT/MACHINE BOLT)."
         ),
         data_type="string (short code)",
         required=True,
@@ -2139,8 +2142,9 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
         name="Bolt_Type",
         meaning=(
             "Bolt 의 형식 분류. 2종:"
-            " Stud (Stud Bolt — 양 끝 나사 가공, flange 결합에 가장 흔함),"
-            " Machine (Machine Bolt — Hex 머리 + 한 끝 나사)."
+            " STUD BOLT (양 끝 나사 가공, flange 결합에 가장 흔함),"
+            " MACHINE BOLT (Hex 머리 + 한 끝 나사)."
+            " description 의 선두 토큰 (set name 성격 — item_name 대신 사용)."
             " Hex Cap Screw / Square Head 등은 현재 미고려."
         ),
         data_type="string (short code)",
@@ -2255,8 +2259,8 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
         name="Nut_Type",
         meaning=(
             "Nut 의 형식 분류. 2종:"
-            " Hex (Hex Nut — 일반 6각 너트),"
-            " HHex (Heavy Hex Nut — 두꺼운 6각 너트, stud 짝)."
+            " HEX NUTS (일반 6각 너트),"
+            " HEAVY HEX NUTS (두꺼운 6각 너트, stud 짝)."
             " Square / Coupling / Lock / Self-Locking 등은 현재 미고려."
         ),
         data_type="string (short code)",
@@ -2453,7 +2457,7 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
 #   - End_Type: BW/SW/TH/FLG 4종.
 #   - Bonnet_Stem: BB OS&Y / BB NRS / BB ISRS / WB OS&Y / PSB OS&Y / SB ISRS /
 #     SB NRS 7조합 (bonnet + stem 통합).
-#   - Operation: Manual (Handwheel) / Lever / Wrench / Gear / Chain 5종 — Motor
+#   - Operation: HW / LO / WO / GO / CO 5종 (Handwheel/Lever/Wrench/Gear/Chain) — Motor
 #     / Pneumatic / Hydraulic 등 actuator 류는 현재 미고려 (별도 actuator 시트
 #     로 분리 검토).
 #
@@ -2802,9 +2806,9 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve 조작 방식. 5종:"
             " Manual (Handwheel — 가장 흔함),"
-            " Lever (소구경 ball/butterfly 흔함; Gate 에선 드묾),"
-            " Wrench (Wrench Operated), Gear (Gear Operated — 대구경),"
-            " Chain (Chain Operated — 높은 위치)."
+            " LO (소구경 ball/butterfly 흔함; Gate 에선 드묾),"
+            " WO (Wrench Operated), GO (Gear Operated — 대구경),"
+            " CO (Chain Operated — 높은 위치)."
             " Motor / Pneumatic / Hydraulic 등 actuator 는 현재 미고려 (별도"
             " actuator 시트로 분리 검토)."
         ),
@@ -3234,8 +3238,8 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve 조작 방식. 5종:"
             " Manual (Handwheel — 가장 흔함),"
-            " Lever (Globe 에선 드묾), Wrench (Wrench Operated),"
-            " Gear (Gear Operated — 대구경), Chain (Chain Operated — 높은 위치)."
+            " LO (Globe 에선 드묾), WO (Wrench Operated),"
+            " GO (Gear Operated — 대구경), CO (Chain Operated — 높은 위치)."
             " Motor / Pneumatic / Hydraulic 등 actuator 는 현재 미고려 (별도"
             " actuator 시트로 분리 검토)."
         ),
@@ -4125,9 +4129,9 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Ball valve body 분리 방식 (cover 형식). **Ball Valve 고유 컬럼** —"
             " 3종 + 빈 값:"
-            " Top (Top Entry — body 상단 cover, in-line maintenance 가능),"
-            " Side (Side Entry — body 가 두 조각, Split Body; 가장 흔함),"
-            " End (End Entry — body 가 두 조각, end 쪽 분리)."
+            " TOP ENTRY (body 상단 cover, in-line maintenance 가능),"
+            " SIDE ENTRY (body 가 두 조각, Split Body; 가장 흔함),"
+            " END ENTRY (body 가 두 조각, end 쪽 분리)."
             " 빈 값 허용 — 대구경 valve 는 명시, 소구경 표준 valve 는 생략하는"
             " 관행."
         ),
@@ -4156,9 +4160,9 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve 조작 방식. 5종:"
             " Manual (Handwheel — 대구경 ball 에 흔함),"
-            " Lever (소구경 ball valve 의 표준),"
-            " Wrench (Wrench Operated), Gear (Gear Operated — 대구경),"
-            " Chain (Chain Operated — 높은 위치)."
+            " LO (소구경 ball valve 의 표준),"
+            " WO (Wrench Operated), GO (Gear Operated — 대구경),"
+            " CO (Chain Operated — 높은 위치)."
             " Motor / Pneumatic / Hydraulic 등 actuator 는 현재 미고려 (별도"
             " actuator 시트로 분리 검토)."
         ),
@@ -4266,9 +4270,9 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #     핵심. 3종 + 빈 값:
 #       · Concentric (Zero Offset / Resilient Seated): stem 이 disc 중심,
 #         소프트 seat 와 짝. 저압 일반.
-#       · DoubleOffset (High Performance): stem 이 disc 면에서 오프셋, metal/
+#       · Double Offset (High Performance): stem 이 disc 면에서 오프셋, metal/
 #         PTFE seat 가능. 중압.
-#       · TripleOffset (TOV — Triple Offset Valve): 추가 conical seat offset,
+#       · Triple Offset (TOV — Triple Offset Valve): 추가 conical seat offset,
 #         metal seat tight closure. 고압·고온, ASME B16.34 적용.
 #       · (빈 값): Procurement Description 에 명시 안 하는 케이스.
 #   - **Body_Type 컬럼 (Butterfly 고유) = 연결 방식 겸함** — body 형태 (API 609
@@ -4331,7 +4335,7 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Butterfly_Valve_Group 의 component 종류 식별자. 현재 'VU'"
             " (BUTTERFLY VALVE) 하나만 정의 — Disc geometry 차이 (Concentric/"
-            "DoubleOffset/TripleOffset) 는 Disc_Type 컬럼으로 구분."
+            "Double Offset/Triple Offset) 는 Disc_Type 컬럼으로 구분."
         ),
         data_type="string (short code)",
         required=True,
@@ -4525,7 +4529,7 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         unique=None,
         relations=[
             "Disc_Matl 와 호환 관행 (위 Disc_Matl.relations 참조)",
-            "Disc_Type 과 호환 관행: Concentric → soft seat, TripleOffset →"
+            "Disc_Type 과 호환 관행: Concentric → soft seat, Triple Offset →"
             " metal seat 가 통상 — 강제 검증 없음",
             "PMS description 에 합성",
         ],
@@ -4611,9 +4615,9 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         name="Operation",
         meaning=(
             "Valve 조작 방식. 5종:"
-            " Manual (Handwheel), Lever (소구경 표준),"
-            " Wrench (Wrench Operated), Gear (Gear Operated — 대구경),"
-            " Chain (Chain Operated — 높은 위치)."
+            " HW (Handwheel — manual), LO (소구경 표준),"
+            " WO (Wrench Operated), GO (Gear Operated — 대구경),"
+            " CO (Chain Operated — 높은 위치)."
             " Motor / Pneumatic / Hydraulic 등 actuator 는 현재 미고려 (별도"
             " actuator 시트로 분리 검토). Butterfly 는 자동 actuator 적용이"
             " 흔하지만 현재 PMS 단계에선 manual 조작만 등록."
@@ -4644,8 +4648,8 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
             "Butterfly Valve disc geometry. **Butterfly 고유 컬럼** — Gate 의"
             " Wedge_Type, Globe 의 Disc_Type, Ball 의 Bore 자리에 대응. 3종:"
             " Concentric (Zero Offset, Resilient Seated — 저압 표준),"
-            " DoubleOffset (High Performance — 중압, PTFE/metal seat),"
-            " TripleOffset (TOV, conical seat — 고압·고온, metal seat,"
+            " Double Offset (High Performance — 중압, PTFE/metal seat),"
+            " Triple Offset (TOV, conical seat — 고압·고온, metal seat,"
             " ASME B16.34)."
             " 빈 값 허용 — Procurement description 에 명시 안 하는 케이스."
         ),
@@ -4657,9 +4661,9 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Seat_Matl 과 호환 관행: Concentric → EPDM/NBR/PTFE, TripleOffset"
+            "Seat_Matl 과 호환 관행: Concentric → EPDM/NBR/PTFE, Triple Offset"
             " → metal seat (SS316 / Stellite-6) 가 통상 — 강제 검증 없음",
-            "Rating 과 호환 관행: TripleOffset 은 CL600+ 고압 영역이 흔함",
+            "Rating 과 호환 관행: Triple Offset 은 CL600+ 고압 영역이 흔함",
             "PMS description 에 합성 (빈 값이면 토큰 생략)",
         ],
         validation_location=(
@@ -5071,9 +5075,9 @@ PLUG_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         name="Operation",
         meaning=(
             "Valve 조작 방식. 5종:"
-            " Manual (Handwheel), Lever (소구경 plug 의 표준),"
-            " Wrench (Wrench Operated), Gear (Gear Operated — 대구경),"
-            " Chain (Chain Operated — 높은 위치)."
+            " HW (Handwheel — manual), LO (소구경 plug 의 표준),"
+            " WO (Wrench Operated), GO (Gear Operated — 대구경),"
+            " CO (Chain Operated — 높은 위치)."
             " Plug valve 는 90° 회전 조작이라 lever 가 흔하며, 대구경은 gear."
             " Motor / Pneumatic / Hydraulic 등 actuator 는 현재 미고려 (별도"
             " actuator 시트로 분리 검토)."
@@ -5815,6 +5819,192 @@ CLASS_DEFINE_FIELDS: list[FieldDefinition] = [
             "무차원 호칭 (NPS=inch 계 호칭 / DN=mm 계 호칭 — Nominal_Size_System"
             " 에 종속)"
         ),
+    ),
+    FieldDefinition(
+        name="Design_Code",
+        meaning=(
+            "이 class 가 따르는 배관 설계 코드 (예: ASME B31.3 Process Piping)."
+            " class 의 기술적 근거 문서를 식별하며, 생성 시 출력에 그대로 전달"
+            " 된다 (pms_generator._class_design_code_for)."
+        ),
+        data_type="string (enum)",
+        required=True,
+        format_constraint=(
+            "closed set — 현재 config.design_codes_allowed 2개 (ASME B31.3 /"
+            " ASME B31.4). 값 확장(B31.1 Power Piping 등) 및 field_values."
+            "Class_Define 으로의 SSOT 이전은 추후 작업."
+        ),
+        unique=None,
+        relations=[
+            "component 의 치수 표준(B16.9/B16.11 등) 선택 관행의 상위 근거 —"
+            " 강제 연동 없음",
+            "PMS 출력에 class 별 Design_Code 로 전달",
+        ],
+        validation_location="wizard 콤보 (closed set).",
+        input_method="wizard Class detail 콤보박스 (readonly)",
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Class_Base_Material",
+        meaning=(
+            "이 class 의 대표(기저) 재질 그룹 키 (예: KCS=탄소강 계열, SS304)."
+            " component 재질의 상위 가이드 — data/class_material_mapping.json 의"
+            " base_material_allowlist[키] 토큰이 component Matl_Code 에 부분"
+            " 문자열로 포함되는지로 정합 힌트를 낸다 (경고 로그, 강제 아님)."
+        ),
+        data_type="string (enum — allowlist 그룹 키)",
+        required=True,
+        format_constraint=(
+            "closed set — class_material_mapping.json 의 키 (현재 2개: KCS /"
+            " SS304). 키·allowlist 확장(LTCS/DSS 계 등) 및 SSOT 통합은 추후"
+            " 작업."
+        ),
+        unique=None,
+        relations=[
+            "component Matl_Code 와 allowlist 토큰 부분일치 검사 —"
+            " class_spec.base_material_hint_message (생성 경로의 warning 로그;"
+            " 차단 아님)",
+            "component 의 Matl_Category/std/code 3단 체계와는 별개 표현 —"
+            " 그룹 키 하나로 class 대표 재질만 지칭",
+        ],
+        validation_location=(
+            "wizard 콤보 (closed set); allowlist 힌트는 생성 경로"
+            " (class_spec.base_material_hint_message)."
+        ),
+        input_method="wizard Class detail 콤보박스 (readonly)",
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Class_Rating",
+        meaning=(
+            "이 class 의 대표 압력 등급 (예: CL150). **component Rating 을"
+            " 제약하지 않는다** — 한 class 안에 다른 rating(CL300 연결부) 이나"
+            " 이종 규격(JIS/KS) component 가 있는 것이 정상이라는 도메인 결정"
+            " 에 따라 rating 정합 검사는 폐지됨."
+        ),
+        data_type="string (abbr; CL 접두 ASME 또는 JIS/KS prefix+NK)",
+        required=True,
+        format_constraint=(
+            "field_values.json 의 Class_Define.Class_Rating 옵션 (closed set,"
+            " 21개: ASME B16.5 CL150-CL2500 7 + JIS 5K-63K 7 + KS 5K-63K 7,"
+            " std 태그) — domain_schema.field_value_options 로 접근 (SSOT)."
+        ),
+        unique=None,
+        relations=[
+            "component Rating 과 같은 토큰 언어(CL/JIS/KS)를 공유하나 제약"
+            " 관계 없음 (대표 등급)",
+            "Design_Temperature/Pressure 와 함께 class 의 설계 조건 요약",
+        ],
+        validation_location="wizard 콤보 (closed set).",
+        input_method="wizard Class detail 콤보박스 (readonly)",
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Corrosion_Allowance",
+        meaning=(
+            "부식 여유 두께. thickness 산정의 입력이 되는 class 대표값."
+            " 단위는 Project unit_system 에 종속 — SI 면 mm, US Customary 면"
+            " inch (저장값은 숫자 문자열, 단위 표기는 xlsx 헤더 [mm]/[inch])."
+        ),
+        data_type="string (unsigned decimal 숫자 텍스트)",
+        required=True,
+        format_constraint=(
+            "숫자여야 함 (class_level_model.validate / class_spec."
+            "corrosion_allowance_validation_messages). 참조값 목록은"
+            " validation_policy.corrosion_allowance.reference_values 의"
+            " metric_mm / imperial_inch 키 (config/generator 정책) — 자유"
+            " 입력도 허용."
+        ),
+        unique=None,
+        relations=[
+            "Project unit_system 에 단위 종속 (mm ↔ inch) — 참조값 목록도 함께"
+            " 전환",
+            "빈 값이면 wizard 가 기본값 자동 주입 (_corrosion_default_value)",
+        ],
+        validation_location=(
+            "wizard focus-out 표기 정규화 + class_level_model.validate (숫자);"
+            " xlsx 경로는 class_spec.corrosion_allowance_validation_messages."
+        ),
+        input_method=(
+            "wizard Class detail 의 **편집 가능 콤보박스** (state=normal —"
+            " 참조값 제시 + 자유 타이핑 허용; Class detail 중 유일)"
+        ),
+        unit="mm (SI) / inch (US Customary) — Project unit_system 종속",
+    ),
+    FieldDefinition(
+        name="Design_Temperature_From",
+        meaning=(
+            "설계 온도 범위의 하한. 저장값은 단위 무관 숫자 — 단위는 Project"
+            " 의 design_temperature_unit (SI: °C / US: °F) 이며 xlsx 헤더에"
+            " [°C] 식으로만 표기 (units_notation_headers)."
+        ),
+        data_type="string (signed decimal 숫자 텍스트 — 음수 허용)",
+        required=True,
+        format_constraint=(
+            "부호 있는 소수 (키 입력 필터 _is_signed_decimal_proposal)."
+            " Design_Temperature_From <= Design_Temperature_To"
+            " (class_define_value_errors)."
+        ),
+        unique=None,
+        relations=[
+            "Design_Temperature_To 와 짝 (From <= To)",
+            "단위는 Project global_settings.design_temperature_unit 소유",
+        ],
+        validation_location=(
+            "키 입력 필터 + focus-out 표기 정규화 (wizard);"
+            " From <= To 는 class_level_model.class_define_value_errors."
+        ),
+        input_method="wizard Class detail 숫자 입력 (Entry + 키 필터)",
+        unit="Project design_temperature_unit 종속 (°C / °F) — 헤더 표기 전용",
+    ),
+    FieldDefinition(
+        name="Design_Temperature_To",
+        meaning="설계 온도 범위의 상한. Design_Temperature_From 의 짝.",
+        data_type="string (signed decimal 숫자 텍스트)",
+        required=True,
+        format_constraint="Design_Temperature_From 과 동일 (From <= To 의 상한).",
+        unique=None,
+        relations=["Design_Temperature_From 과 짝"],
+        validation_location="Design_Temperature_From 과 동일 패턴.",
+        input_method="wizard Class detail 숫자 입력 (Entry + 키 필터)",
+        unit="Project design_temperature_unit 종속 (°C / °F) — 헤더 표기 전용",
+    ),
+    FieldDefinition(
+        name="Design_Pressure_From",
+        meaning=(
+            "설계 압력 범위의 하한. 저장값은 단위 무관 숫자 — 단위는 Project"
+            " 의 design_pressure_unit (SI: bar/barg/kg/cm²/kPa/MPa, US:"
+            " psig/psi/psia) 이며 xlsx 헤더에 [barg] 식으로만 표기."
+        ),
+        data_type="string (signed decimal 숫자 텍스트 — 진공(음압) 허용)",
+        required=True,
+        format_constraint=(
+            "부호 있는 소수 (키 입력 필터). Design_Pressure_From <="
+            " Design_Pressure_To (class_define_value_errors)."
+        ),
+        unique=None,
+        relations=[
+            "Design_Pressure_To 와 짝 (From <= To)",
+            "단위는 Project global_settings.design_pressure_unit 소유",
+        ],
+        validation_location=(
+            "키 입력 필터 + focus-out 표기 정규화 (wizard);"
+            " From <= To 는 class_level_model.class_define_value_errors."
+        ),
+        input_method="wizard Class detail 숫자 입력 (Entry + 키 필터)",
+        unit="Project design_pressure_unit 종속 (barg/psig 등) — 헤더 표기 전용",
+    ),
+    FieldDefinition(
+        name="Design_Pressure_To",
+        meaning="설계 압력 범위의 상한. Design_Pressure_From 의 짝.",
+        data_type="string (signed decimal 숫자 텍스트)",
+        required=True,
+        format_constraint="Design_Pressure_From 과 동일 (From <= To 의 상한).",
+        unique=None,
+        relations=["Design_Pressure_From 과 짝"],
+        validation_location="Design_Pressure_From 과 동일 패턴.",
+        input_method="wizard Class detail 숫자 입력 (Entry + 키 필터)",
+        unit="Project design_pressure_unit 종속 (barg/psig 등) — 헤더 표기 전용",
     ),
 ]
 
