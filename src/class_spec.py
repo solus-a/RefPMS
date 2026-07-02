@@ -62,11 +62,6 @@ class ClassSpec(TypedDict, total=False):
     remarks: str
 
 
-# ASME B16.5 플랜지 P-T Class (Class_Rating과 동계열)
-_B16_5_PRESSURE_CLASSES = frozenset({150, 300, 400, 600, 900, 1500, 2500})
-# ASME B16.11 단조 이음관 등급 (소켓·나사, 3000#·CL3000 등)
-_B16_11_FORGED_RATING_CLASSES = frozenset({2000, 3000, 6000, 9000})
-
 _material_allowlist_cache: Optional[dict[str, list[str]]] = None
 
 
@@ -239,64 +234,10 @@ def corrosion_allowance_validation_messages(workbook) -> tuple[list[str], list[s
     return errors, warnings
 
 
-def _normalize_rating_token(raw: str) -> str:
-    t = to_text(raw).upper().replace(" ", "")
-    if t.startswith("CL"):
-        t = t[2:]
-    if t.endswith("#"):
-        t = t[:-1]
-    return t
-
-
-def _rating_class_number(raw: str) -> Optional[int]:
-    """숫자만 있는 Class(150, 3000 등) 파싱. PN 등은 None."""
-    t = _normalize_rating_token(raw)
-    if t.isdigit():
-        return int(t)
-    return None
-
-
-def _rating_family(raw: str) -> Optional[str]:
-    """rating 토큰의 규격 체계(family) 분류.
-
-    'ASME-B16.5' / 'ASME-B16.11' / 'JIS' / 'KS' / None(미분류 — SCH80 등).
-    CL/# 표기는 정규화로 흡수 (CL150 ≡ 150# ≡ 150).
-    """
-    t = _normalize_rating_token(raw)
-    if t.startswith("JIS"):
-        return "JIS"
-    if t.startswith("KS"):
-        return "KS"
-    if t.isdigit():
-        n = int(t)
-        if n in _B16_5_PRESSURE_CLASSES:
-            return "ASME-B16.5"
-        if n in _B16_11_FORGED_RATING_CLASSES:
-            return "ASME-B16.11"
-    return None
-
-
-def rating_mismatch_message(row_rating: str, class_rating: str) -> Optional[str]:
-    """
-    행 Rating vs Class_Define Class_Rating.
-    **같은 규격 체계(family) 안에서만** '불일치'로 본다:
-    - 서로 다른 체계(예: KS class 에 ASME/JIS component)는 현실적으로 정상 혼용
-      (특정 equipment/instrument 연결용 이종 규격 component) — 에러 아님.
-    - ASME B16.5(플랜지 P-T class) vs B16.11(단조 이음관 등급)도 별개 체계.
-    - 미분류 토큰(SCH80 등)은 비교하지 않음.
-    """
-    rr = to_text(row_rating)
-    cr = to_text(class_rating)
-    if not rr or not cr:
-        return None
-    if _normalize_rating_token(rr) == _normalize_rating_token(cr):
-        return None
-
-    rf = _rating_family(rr)
-    cf = _rating_family(cr)
-    if rf is None or cf is None or rf != cf:
-        return None  # 다른 체계 혼용 또는 미분류 — 정상
-    return f"Rating {rr!r} does not match class Class_Rating {cr!r}"
+# (Rating 정합 검사는 폐지 — 도메인 결정: 한 Piping Class 안에 다른 rating 의
+#  component 가 있는 것은 정상이다. 예: CL150 class 에 CL300 component —
+#  CL300 class 배관과의 연결부용. 이종 규격(ASME/JIS/KS) 혼용도 마찬가지로 정상.
+#  Class_Rating 은 class 의 대표 등급일 뿐 component rating 을 제약하지 않는다.)
 
 
 def base_material_hint_message(
@@ -326,22 +267,6 @@ def base_material_hint_message(
     if cb in pm or pm in cb:
         return None
     return f"Material {pm!r} may not align with Class_Base_Material {cb!r}"
-
-
-def row_rating_for_constraint_check(
-    sheet_name: str,
-    ws,
-    row_idx: int,
-    header_to_col: dict[str, int],
-) -> str:
-    """부품 시트에서 클래스 등급 대비 검사에 쓸 Rating 문자열."""
-    if sheet_name == "Flange_Group":
-        return get_cell_text(ws, row_idx, header_to_col, "Rating")
-    if sheet_name in VALVE_SHEET_NAMES:
-        return get_cell_text(ws, row_idx, header_to_col, "Rating")
-    if sheet_name == "Forged_Fitting_Group":
-        return get_cell_text(ws, row_idx, header_to_col, "Rating")
-    return ""
 
 
 def matl_code_for_constraint(
@@ -407,12 +332,7 @@ def log_class_constraint_warnings_for_row(
     if not spec:
         return
 
-    if sheet_name not in VALVE_SHEET_NAMES:
-        class_rating = spec.get("class_rating", "")
-        row_rating = _row_rating_for_constraint_check_dict(sheet_name, row)
-        rmsg = rating_mismatch_message(row_rating, class_rating)
-        if rmsg:
-            logger.warning(f"{sheet_name} row {row_idx} Class {class_name}: {rmsg}")
+    # Rating 비교 없음 — class 내 이종 rating/규격 component 는 정상 (연결부).
 
     class_base = spec.get("class_base_material", "")
     if sheet_name in VALVE_SHEET_NAMES:
@@ -430,16 +350,6 @@ def log_class_constraint_warnings_for_row(
     mmsg = base_material_hint_message(part_mat, class_base, _load_base_material_allowlist())
     if mmsg:
         logger.warning(f"{sheet_name} row {row_idx} Class {class_name}: {mmsg}")
-
-
-def _row_rating_for_constraint_check_dict(sheet_name: str, row: dict[str, str]) -> str:
-    if sheet_name == "Flange_Group":
-        return to_text(row.get("Rating") or "")
-    if sheet_name in VALVE_SHEET_NAMES:
-        return to_text(row.get("Rating") or "")
-    if sheet_name == "Forged_Fitting_Group":
-        return to_text(row.get("Rating") or "")
-    return ""
 
 
 def _matl_code_for_constraint_dict(row: dict[str, str]) -> str:
@@ -467,14 +377,7 @@ def log_class_constraint_warnings(
     spec = class_specs.get(class_name)
     if not spec:
         return
-    # Valve rating은 설계 규격(B16.34/API 602 등) 기반으로 운용하므로
-    # Class_Define Class_Rating(B16.5)과 직접 비교하지 않는다.
-    if sheet_name not in VALVE_SHEET_NAMES:
-        class_rating = spec.get("class_rating", "")
-        row_rating = row_rating_for_constraint_check(sheet_name, ws, row_idx, header_to_col)
-        rmsg = rating_mismatch_message(row_rating, class_rating)
-        if rmsg:
-            logger.warning(f"{sheet_name} row {row_idx} Class {class_name}: {rmsg}")
+    # Rating 비교 없음 — class 내 이종 rating/규격 component 는 정상 (연결부).
 
     class_base = spec.get("class_base_material", "")
     if sheet_name in VALVE_SHEET_NAMES:
@@ -504,4 +407,4 @@ def class_base_material_group_keys() -> list[str]:
 
 
 # (Class_Rating 콤보 옵션은 domain_schema.field_value_options("Class_Define",
-#  "Class_Rating") 로 이동 — SSOT. 여기엔 mismatch 분류용 상수만 남긴다.)
+#  "Class_Rating") 로 이동 — SSOT. rating 정합 검사도 폐지되어 관련 상수 없음.)
