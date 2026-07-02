@@ -1224,6 +1224,59 @@ class ClassLevelWizard(tk.Toplevel):
         if cur != up:
             v.set(up)
 
+    def _apply_class_rename(self, idx: int, new_name: str) -> None:
+        """Class_Name 변경의 유일한 적용 경로 — 소속 행 cascade 포함.
+
+        기존 이름이 있고 소속 component/schedule 행이 있으면 확인 대화를 띄우고,
+        승인 시 그 행들의 Class_Name 을 함께 갱신한다 (고아화 방지). 거절 시
+        입력값을 기존 이름으로 되돌린다.
+        """
+        if idx < 0 or idx >= len(self._bundle.class_define_rows):
+            return
+        row = self._bundle.class_define_rows[idx]
+        old = (row.get("Class_Name") or "").strip()
+        new = (new_name or "").strip()
+        if new == old:
+            return
+        if not old:
+            row["Class_Name"] = new  # 최초 명명 — 참조 행 없음
+            return
+
+        n_comp = sum(
+            1
+            for rows in self._bundle.component_rows.values()
+            for r in rows
+            if (r.get("Class_Name") or "").strip() == old
+        )
+        n_sched = sum(
+            1
+            for r in self._bundle.schedule_rows
+            if (r.get("Class_Name") or "").strip() == old
+        )
+        if n_comp or n_sched:
+            ok = messagebox.askyesno(
+                "Rename Class",
+                f"클래스 이름 변경: '{old}' → '{new}'\n\n"
+                f"소속 component {n_comp}행 / schedule {n_sched}행이 함께 이동합니다.\n"
+                "변경하시겠습니까?",
+                parent=self,
+            )
+            if not ok:
+                var = self._class_entries.get("Class_Name")
+                if var is not None:
+                    var.set(old)
+                return
+        row["Class_Name"] = new
+        for rows in self._bundle.component_rows.values():
+            for r in rows:
+                if (r.get("Class_Name") or "").strip() == old:
+                    r["Class_Name"] = new
+        for r in self._bundle.schedule_rows:
+            if (r.get("Class_Name") or "").strip() == old:
+                r["Class_Name"] = new
+        if self._comp_working_class == old:
+            self._comp_working_class = new
+
     def _on_class_name_focus_out(self, _event: tk.Event | None = None) -> None:
         try:
             if not self.winfo_exists():
@@ -1236,9 +1289,7 @@ class ClassLevelWizard(tk.Toplevel):
         name_var = self._class_entries.get("Class_Name")
         if name_var is None:
             return
-        row = self._bundle.class_define_rows[idx]
-        new_name = name_var.get() or ""
-        row["Class_Name"] = new_name
+        self._apply_class_rename(idx, name_var.get() or "")
         self._refresh_class_listbox()
         self._class_list.selection_clear(0, "end")
         self._class_list.selection_set(idx)
@@ -1978,7 +2029,13 @@ class ClassLevelWizard(tk.Toplevel):
         if idx < 0 or idx >= len(self._bundle.class_define_rows):
             return
         row = self._bundle.class_define_rows[idx]
+        # Class_Name 은 blind flush 금지 — cascade/확인 로직을 가진 rename 경로로만.
+        name_var = self._class_entries.get("Class_Name")
+        if name_var is not None:
+            self._apply_class_rename(idx, name_var.get() or "")
         for h, v in self._class_entries.items():
+            if h == "Class_Name":
+                continue
             row[h] = v.get() or ""
         for h, cb in self._class_combos.items():
             row[h] = cb.get() or ""

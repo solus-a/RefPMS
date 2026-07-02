@@ -5665,6 +5665,160 @@ NEEDLE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 ]
 
 
+# ── Class_Define (Class layer) ─────────────────────────────────────────────────
+#
+# Class layer 의 필드 카탈로그 — component 13 그룹과 동일한 메타스키마 9측면.
+# 필드 순서 = units_notation_headers.CLASS_DEFINE_STORAGE_KEYS (xlsx 컬럼 순서).
+# component 와 달리 시트가 하나뿐이므로 GROUPS 레지스트리가 아닌 단일 상수.
+#
+# 층 관통 특성 (필드별 산문에 개별 기술 — 전역 규칙로 추상화하지 않음, 실전
+# customizing 여지 때문):
+#   - 온도/압력 값은 단위 무관 숫자로 저장, 단위는 xlsx 헤더 표기([°C] 등)로만
+#     (units_notation_headers). 단위 자체는 Project(global_settings) 소유.
+#   - Size 는 nps_catalog ∩ Project size_selection ∩ Class 범위의 교집합 체계.
+#   - Class_Rating/component Rating 은 같은 토큰 언어(CL/JIS/KS)를 쓰지만
+#     제약 관계는 없음 (class 는 대표 등급 — 이종 rating/규격 혼용 정상).
+
+CLASS_DEFINE_FIELDS: list[FieldDefinition] = [
+    FieldDefinition(
+        name="Revision_No",
+        meaning=(
+            "Class 정의의 개정(revision) 식별자. 발행/개정 이력 추적용 —"
+            " 프로젝트 문서 관리 관행을 따르는 라벨이며 프로그램 로직은 값을"
+            " 해석하지 않는다 (정렬·비교 없음)."
+        ),
+        data_type="string (자유 텍스트; focus-out 시 자동 대문자화)",
+        required=False,
+        format_constraint=(
+            "자유 입력 (도메인 결정 — closed set 화하지 않음). 입력 후"
+            " focus-out 에서 대문자로 정규화 (_on_revision_no_focus_out)."
+        ),
+        unique=None,
+        relations=[
+            "Class_Name 과 함께 class 정의의 식별 라벨 (로직 참조 없음)",
+        ],
+        validation_location="검증 없음 (자유 입력).",
+        input_method=(
+            "wizard Class detail 의 자유 텍스트 입력 (Entry) — focus-out 시"
+            " 자동 대문자화"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Class_Name",
+        meaning=(
+            "Piping Class 의 이름 — Class layer 의 PK. 모든 하위 데이터"
+            " (component rows / schedule rows / reducing·branch 참조) 가 이"
+            " 이름을 FK 로 참조한다. 예: 'A1CS150' 같은 프로젝트 명명 관행."
+        ),
+        data_type="string (자유 텍스트)",
+        required=True,
+        format_constraint=(
+            "공백 trim 후 비어 있으면 안 됨 (class_level_model.validate)."
+            " 명명 규칙 강제는 없음 (프로젝트 관행)."
+        ),
+        unique=True,
+        relations=[
+            "component_rows[*].Class_Name (FK) — 각 그룹 행이 소속 class 참조",
+            "schedule_rows[*].Class_Name (FK)",
+            "active_sizes_for_class 의 조회 키 (Size 범위 ∩ selection)",
+            "rename 은 _apply_class_rename 단일 경로 — 소속 component/schedule"
+            " 행이 있으면 확인 대화 후 함께 이동 (cascade, 고아화 방지)."
+            " 동명 class 가 여럿이면 그 이름의 행 전부가 이동 (이름 중복 자체가"
+            " 비정상 — uniqueness 는 xlsx 검증)",
+        ],
+        validation_location=(
+            "비어 있음: class_level_model.validate."
+            " 중복: validator.validate_class_define_uniqueness (xlsx 경로)."
+        ),
+        input_method=(
+            "wizard Class detail 의 자유 텍스트 입력 (Entry) — focus-out 시"
+            " 목록 라벨 갱신"
+        ),
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Nominal_Size_System",
+        meaning=(
+            "이 class 의 호칭경 체계 — NPS(inch 계) 또는 DN(mm 계). Size_From/"
+            "Size_To 및 component Size 드롭다운의 후보 집합(카탈로그 모드)을"
+            " 결정하고, 참조하는 Reducing/Branch table 의 nominal_mode 와"
+            " 일치해야 한다."
+        ),
+        data_type="string (enum: NPS / DN)",
+        required=True,
+        format_constraint=(
+            "closed set 2개 (NPS/DN). 옵션 소스는 config.nominal_size_systems"
+            "_allowed — field_values.Class_Define 으로의 SSOT 이전은 추후 작업."
+        ),
+        unique=None,
+        relations=[
+            "Size_From/Size_To 후보 = nps_catalog 의 해당 모드 목록",
+            "Project size_selection 의 모드별 활성 사이즈와 교집합",
+            "Reducing/Branch table 참조 시 table.nominal_mode 와 일치 검증"
+            " (class_level_model.validate)",
+            "모드 변경 시 기존 Size_From/To 가 새 모드에 없으면 비움 (wizard)",
+        ],
+        validation_location=(
+            "wizard 콤보 (closed set); table nominal_mode 정합은"
+            " class_level_model.validate."
+        ),
+        input_method="wizard Class detail 콤보박스 (readonly)",
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Size_From",
+        meaning=(
+            "이 class 가 적용되는 호칭경 범위의 시작(inclusive). component 의"
+            " Size 선택지는 [Size_From..Size_To] ∩ Project size_selection 으로"
+            " 산출된다 (active_sizes_for_class)."
+        ),
+        data_type="string (catalog NPS or DN value)",
+        required=True,
+        format_constraint=(
+            "data/nps_catalog.json 의 해당 모드(closed set) 값."
+            " Size_From <= Size_To (카탈로그 순서 기준)."
+        ),
+        unique=None,
+        relations=[
+            "Size_To 와 짝 (범위)",
+            "Nominal_Size_System 이 후보 집합 결정",
+            "component 각 그룹의 Size_From/To 드롭다운 상한·하한의 원천",
+        ],
+        validation_location=(
+            "wizard 콤보 (카탈로그 값만); 범위·membership 은"
+            " class_level_model.validate."
+        ),
+        input_method="wizard Class detail 콤보박스 (readonly — 카탈로그 모드별)",
+        unit=(
+            "무차원 호칭 (NPS=inch 계 호칭 / DN=mm 계 호칭 — Nominal_Size_System"
+            " 에 종속)"
+        ),
+    ),
+    FieldDefinition(
+        name="Size_To",
+        meaning="이 class 가 적용되는 호칭경 범위의 끝(inclusive). Size_From 의 짝.",
+        data_type="string (catalog NPS or DN value)",
+        required=True,
+        format_constraint=(
+            "data/nps_catalog.json 의 해당 모드(closed set) 값."
+            " Size_From <= Size_To."
+        ),
+        unique=None,
+        relations=[
+            "Size_From 과 짝 (범위)",
+            "Nominal_Size_System 이 후보 집합 결정",
+        ],
+        validation_location="Size_From 과 동일 패턴.",
+        input_method="wizard Class detail 콤보박스 (readonly — 카탈로그 모드별)",
+        unit=(
+            "무차원 호칭 (NPS=inch 계 호칭 / DN=mm 계 호칭 — Nominal_Size_System"
+            " 에 종속)"
+        ),
+    ),
+]
+
+
 # ── 그룹 레지스트리 + 도출 헬퍼 (SSOT 진입점) ─────────────────────────────────
 # 다른 모듈(template_generator.COMPONENT_GROUP_DEFS, data_defaults.DEFAULT_COMPONENT_MAPPING)
 # 은 이 레지스트리에서 헤더/필수 필드를 도출한다. 헤더·필수의 정의는 오직 여기(SSOT).
