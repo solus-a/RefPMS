@@ -256,12 +256,34 @@ def _rating_class_number(raw: str) -> Optional[int]:
     return None
 
 
+def _rating_family(raw: str) -> Optional[str]:
+    """rating 토큰의 규격 체계(family) 분류.
+
+    'ASME-B16.5' / 'ASME-B16.11' / 'JIS' / 'KS' / None(미분류 — SCH80 등).
+    CL/# 표기는 정규화로 흡수 (CL150 ≡ 150# ≡ 150).
+    """
+    t = _normalize_rating_token(raw)
+    if t.startswith("JIS"):
+        return "JIS"
+    if t.startswith("KS"):
+        return "KS"
+    if t.isdigit():
+        n = int(t)
+        if n in _B16_5_PRESSURE_CLASSES:
+            return "ASME-B16.5"
+        if n in _B16_11_FORGED_RATING_CLASSES:
+            return "ASME-B16.11"
+    return None
+
+
 def rating_mismatch_message(row_rating: str, class_rating: str) -> Optional[str]:
     """
     행 Rating vs Class_Define Class_Rating.
-    동일 규격 체계에서만 '불일치'로 본다.
-    - Class_Rating은 보통 ASME B16.5 플랜지 P-T Class(150, 300, …).
-    - CL3000·3000# 등은 ASME B16.11 단조 이음관 등급이므로 B16.5 Class와 직접 비교하지 않음.
+    **같은 규격 체계(family) 안에서만** '불일치'로 본다:
+    - 서로 다른 체계(예: KS class 에 ASME/JIS component)는 현실적으로 정상 혼용
+      (특정 equipment/instrument 연결용 이종 규격 component) — 에러 아님.
+    - ASME B16.5(플랜지 P-T class) vs B16.11(단조 이음관 등급)도 별개 체계.
+    - 미분류 토큰(SCH80 등)은 비교하지 않음.
     """
     rr = to_text(row_rating)
     cr = to_text(class_rating)
@@ -270,20 +292,10 @@ def rating_mismatch_message(row_rating: str, class_rating: str) -> Optional[str]
     if _normalize_rating_token(rr) == _normalize_rating_token(cr):
         return None
 
-    rn = _rating_class_number(rr)
-    cn = _rating_class_number(cr)
-    if rn is not None and cn is not None:
-        r_b5 = rn in _B16_5_PRESSURE_CLASSES
-        r_b11 = rn in _B16_11_FORGED_RATING_CLASSES
-        c_b5 = cn in _B16_5_PRESSURE_CLASSES
-        c_b11 = cn in _B16_11_FORGED_RATING_CLASSES
-        if (r_b5 and c_b11) or (r_b11 and c_b5):
-            return None
-        if r_b5 and c_b5 and rn != cn:
-            return f"Rating {rr!r} does not match class Class_Rating {cr!r}"
-        if r_b11 and c_b11 and rn != cn:
-            return f"Rating {rr!r} does not match class Class_Rating {cr!r}"
-
+    rf = _rating_family(rr)
+    cf = _rating_family(cr)
+    if rf is None or cf is None or rf != cf:
+        return None  # 다른 체계 혼용 또는 미분류 — 정상
     return f"Rating {rr!r} does not match class Class_Rating {cr!r}"
 
 
@@ -491,6 +503,5 @@ def class_base_material_group_keys() -> list[str]:
     return sorted(_load_base_material_allowlist().keys())
 
 
-def flange_pt_class_rating_options() -> list[str]:
-    """ASME B16.5 flange pressure–temperature class numbers as strings (150, 300, …)."""
-    return [str(x) for x in sorted(_B16_5_PRESSURE_CLASSES)]
+# (Class_Rating 콤보 옵션은 domain_schema.field_value_options("Class_Define",
+#  "Class_Rating") 로 이동 — SSOT. 여기엔 mismatch 분류용 상수만 남긴다.)

@@ -806,7 +806,7 @@ WROUGHT_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
 #
 # Wrought_Fitting_Group 과의 핵심 차이:
 #   - Manufacturing_Method 컬럼 없음 (forging 이 단일 공정 — 별도 필드 불요)
-#   - Rating 컬럼 신설 (std-aware: ASTM 은 Class designation 2000-9000#;
+#   - Rating 컬럼 신설 (std-aware: ASTM 은 Class designation 2000-CL9000;
 #     JIS/KS 는 Sch80 schedule 표기)
 #   - End_Type = SW / PT / NPT 3개 (small-bore 의 socket weld / threaded)
 #   - Item_Code 12종: E/E4 (90°/45° elbow), T (tee), RCS/RES (concentric/
@@ -1001,7 +1001,7 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
         relations=[
             "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 표시 — 콤보박스"
             " 가 std/category 별 필터링",
-            "PMS description 에 그대로 합성 (예: 'ELBOW A105 SW 3000#')",
+            "PMS description 에 그대로 합성 (예: 'ELBOW A105 SW CL3000')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
@@ -1016,15 +1016,15 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Forged fitting 의 압력 등급 (pressure class / schedule)."
             " std-aware 필드 — 표준별로 표기 체계가 다름:"
-            "\n - ASTM (ASME B16.11): Class 2000# / 3000# / 6000# / 9000#."
-            "   2000# 는 threaded only, 9000# 는 socket weld only;"
-            "   3000# / 6000# 는 SW · threaded 공통."
+            "\n - ASTM (ASME B16.11): Class CL2000 / CL3000 / CL6000 / CL9000."
+            "   CL2000 는 threaded only, CL9000 는 socket weld only;"
+            "   CL3000 / CL6000 는 SW · threaded 공통."
             "\n - JIS (JIS B 2316) / KS: Class designation 미사용 — Schedule"
             "   표기 (Sch80) 만 사용. 라벨/표기는 'Sch80' 단일."
-            " 다른 시트의 Rating (Flange 의 150#/300#/..., wrought 에는 컬럼 자체"
+            " 다른 시트의 Rating (Flange 의 CL150/CL300/..., wrought 에는 컬럼 자체"
             " 없음) 과 의미·옵션 풀 모두 독립."
         ),
-        data_type="string (short code; ASTM 은 NNNN# 형식, JIS/KS 는 SchNN 형식)",
+        data_type="string (short code; ASTM 은 CLNNNN 형식, JIS/KS 는 SchNN 형식)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Forged_Fitting_Group.Rating 옵션"
@@ -1036,12 +1036,12 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
         relations=[
             "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
             "End_Type 과 호환 관행:"
-            "   ASTM 2000# ↔ threaded (PT/NPT) only,"
-            "   ASTM 9000# ↔ SW only,"
-            "   ASTM 3000#/6000# ↔ SW · threaded 공통,"
+            "   ASTM CL2000 ↔ threaded (PT/NPT) only,"
+            "   ASTM CL9000 ↔ SW only,"
+            "   ASTM CL3000/CL6000 ↔ SW · threaded 공통,"
             "   JIS/KS Sch80 ↔ SW · threaded 공통 (B 2316 / B 2316S)"
             " — 강제 검증은 별도 작업, 현재 wizard 는 자유 조합 허용",
-            "PMS description 에 합성 (예: 'ELBOW A105 SW 3000#')",
+            "PMS description 에 합성 (예: 'ELBOW A105 SW CL3000')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
@@ -1073,7 +1073,7 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
             "Rating 과 호환 관행 (위 Rating.relations 참조 — 강제 검증 없음)",
             "Item_Code 에 따른 End_Type 제약 관행: union (JU) / plug (JP) /"
             " bushing (JB) 은 threaded 일색이 보통, 강제는 아님",
-            "PMS description 에 합성 (예: 'ELBOW A105 SW 3000#')",
+            "PMS description 에 합성 (예: 'ELBOW A105 SW CL3000')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
@@ -1154,7 +1154,7 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
 #   - Size 시스템: Size1_From/To + Size2_From/To (Reducing flange 용 두 번째 size)
 #     · Size2 는 Item_Code=FR (Reducing flange) 행에서만 의미; 다른 Item_Code 는 빈 값
 #   - Rating 옵션 풀 20개 (ASTM 6 + JIS 7 + KS 7), std-aware (Forged Rating 패턴 따름)
-#     · ASTM (ASME B16.5): 150 / 300 / 600 / 900 / 1500 / 2500#
+#     · ASTM (ASME B16.5): CL150 / CL300 / CL600 / CL900 / CL1500 / CL2500
 #     · JIS (JIS B 2220):  5K / 10K / 16K / 20K / 30K / 40K / 63K
 #     · KS  (KS B 1503):   5K / 10K / 16K / 20K / 30K / 40K / 63K
 #     · short 값에 "JIS5K", "KS5K" 식 prefix 포함 — std 키 없어도 식별 가능하지만
@@ -1414,7 +1414,7 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         relations=[
             "Matl_Std (FK), Matl_Category (의미적 정합) 와 함께 필터링",
             "Forged_Fitting_Group.Matl_Code 와 옵션 풀 동일 — 동일 forged grade 사용",
-            "PMS description 에 그대로 합성 (예: 'FLANGE A105 RF 150# WN')",
+            "PMS description 에 그대로 합성 (예: 'FLANGE A105 RF CL150 WN')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
@@ -1428,14 +1428,14 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         name="Rating",
         meaning=(
             "Flange 의 압력 등급. std-aware 필드 — 표준별 표기 체계가 다름:"
-            "\n - ASTM (ASME B16.5): Class 150 / 300 / 600 / 900 / 1500 / 2500#."
+            "\n - ASTM (ASME B16.5): CL150 / CL300 / CL600 / CL900 / CL1500 / CL2500."
             "\n - JIS (JIS B 2220): 5K / 10K / 16K / 20K / 30K / 40K / 63K."
             "\n - KS (KS B 1503): 5K / 10K / 16K / 20K / 30K / 40K / 63K (JIS 호환)."
             " short 값에 'JIS5K' / 'KS5K' 식 prefix 가 이미 포함되어 있어 두 표준의"
             " 5K 가 별개 short 로 식별됨. std 키는 콤보박스 필터링용 보조."
             " Forged_Fitting_Group.Rating (Sch80) 과는 의미·옵션 풀 모두 독립."
         ),
-        data_type="string (short code; ASTM 은 NNN# 형식, JIS/KS 는 prefix+NK 형식)",
+        data_type="string (short code; ASTM 은 CLNNN 형식, JIS/KS 는 prefix+NK 형식)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Flange_Group.Rating 옵션 (closed set, 20개)."
@@ -1444,9 +1444,9 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         unique=None,
         relations=[
             "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
-            "Facing 과 호환 관행: 600#+ 는 RTJ 가 흔함, 150#-300# 는 RF/FF —"
+            "Facing 과 호환 관행: CL600+ 는 RTJ 가 흔함, CL150-CL300 는 RF/FF —"
             " 강제 검증 없음, 사용자 판단",
-            "PMS description 에 합성 (예: 'FLANGE A105 RF 150# WN')",
+            "PMS description 에 합성 (예: 'FLANGE A105 RF CL150 WN')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
@@ -1478,7 +1478,7 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
             "Rating 과 호환 관행 (위 Rating.relations 참조)",
             "Gasket_Group 의 Facing 과 짝 — flange face 와 gasket face 는 일치해야"
             " 정합 (별도 검증 영역)",
-            "PMS description 에 합성 (예: 'FLANGE A105 RF 150# WN')",
+            "PMS description 에 합성 (예: 'FLANGE A105 RF CL150 WN')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
@@ -1753,7 +1753,7 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
         unique=None,
         relations=[
             "Material_Primary / Material_Secondary 의 의미·옵션 풀 결정",
-            "Rating 과 호환 관행: RTJ 는 600#+ 고압용이 흔함",
+            "Rating 과 호환 관행: RTJ 는 CL600+ 고압용이 흔함",
             "Facing 과 호환 관행: RTJ gasket 은 Facing=RTJ 와 짝",
             "PMS description 에 합성 (gasket type 토큰)",
         ],
@@ -1845,12 +1845,12 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Gasket 의 압력 등급. Flange_Group.Rating 과 옵션 풀 완전 동일 (20개)"
             " — gasket 은 flange 와 짝이므로 같은 rating 체계 사용."
-            " std-aware: ASTM 6 (150-2500#) + JIS 7 (5K-63K) + KS 7 (5K-63K)."
+            " std-aware: ASTM 6 (CL150-CL2500) + JIS 7 (5K-63K) + KS 7 (5K-63K)."
             " short 값에 'JIS5K'/'KS5K' 식 prefix 포함 — 두 표준의 5K 가 별개 short"
             " 로 식별. Gasket 은 별도 Matl_Std 필드 없음 — std 필터링은 Class_Define"
             " 의 std 로 처리 (별도 작업)."
         ),
-        data_type="string (short code; ASTM 은 NNN# 형식, JIS/KS 는 prefix+NK 형식)",
+        data_type="string (short code; ASTM 은 CLNNN 형식, JIS/KS 는 prefix+NK 형식)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Gasket_Group.Rating 옵션 (closed set, 20개)."
@@ -1858,11 +1858,11 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
         unique=None,
         relations=[
             "Flange_Group.Rating 과 옵션 풀 동일 — gasket 은 flange 와 짝",
-            "Gasket_Type 과 호환 관행: RTJ gasket 은 600#+ 고압이 흔함 — 강제 검증"
+            "Gasket_Type 과 호환 관행: RTJ gasket 은 CL600+ 고압이 흔함 — 강제 검증"
             " 없음, 사용자 판단",
             "Class_Define.std 와 std-aware 필터링 (별도 작업)",
             "PMS description 에 합성 (예: 'GASKET SPIRAL WOUND SS316+GRAPHITE"
-            " IR-SS316 OR-CS 150# RF 4.5mm')",
+            " IR-SS316 OR-CS CL150 RF 4.5mm')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set + Class std 필터)."
@@ -2448,7 +2448,7 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
 #     대부분의 구조 정보가 표현됨.
 #   - Size 시스템: Size1_From / Size1_To 한 짝 (Flange Size1 패턴; Valve 는
 #     Reducing 없음).
-#   - Rating: std-aware (ASTM 7 + JIS 7 + KS 7 = 21개; ASTM 에 800# 추가) —
+#   - Rating: std-aware (ASTM 7 + JIS 7 + KS 7 = 21개; ASTM 에 CL800 추가) —
 #     ASTM 기준 표준은 ASME B16.5 (Flange) 가 아닌 ASME B16.34 (Valve).
 #   - End_Type: BW/SW/TH/FLG 4종.
 #   - Bonnet_Stem: BB OS&Y / BB NRS / BB ISRS / WB OS&Y / PSB OS&Y / SB ISRS /
@@ -2679,16 +2679,16 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve 의 압력 등급. std-aware 필드 — ASTM 기준 표준은 ASME **B16.34**"
             " (Valve), Flange 의 ASME B16.5 와 구분."
-            "\n - ASTM: 150# / 300# / 600# / 800# / 900# / 1500# / 2500#"
-            " (800# 은 forged valve 용으로 추가)."
+            "\n - ASTM: CL150 / CL300 / CL600 / CL800 / CL900 / CL1500 / CL2500"
+            " (CL800 은 forged valve 용으로 추가)."
             "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
             "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
         ),
-        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        data_type="string (short code; ASTM CLNNN 형식 / JIS·KS prefix+NK 형식)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Gate_Valve_Group.Rating 옵션"
-            " (closed set, 21개 — 800# 포함)."
+            " (closed set, 21개 — CL800 포함)."
         ),
         unique=None,
         relations=[
@@ -2755,7 +2755,7 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Rating 과 호환 관행: PSB 는 600#+ 고압이 흔함 — 강제 검증 없음",
+            "Rating 과 호환 관행: PSB 는 CL600+ 고압이 흔함 — 강제 검증 없음",
             "PMS description 에 합성",
         ],
         validation_location=(
@@ -2917,7 +2917,7 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #     와 다른 옵션 풀.
 #   - Trim_Matl 단일 컬럼 (API 600 trim 조합): Gate 와 동일 옵션 풀. Seat_Matl 폐지.
 #   - Size 시스템: Size1_From / Size1_To 한 짝 (Reducing 없음).
-#   - Rating: std-aware (ASTM 7 + JIS 7 + KS 7 = 21개; 800# 포함) — Gate 와
+#   - Rating: std-aware (ASTM 7 + JIS 7 + KS 7 = 21개; CL800 포함) — Gate 와
 #     동일 옵션 풀 + std 키 부여. ASTM 기준 표준은 ASME B16.34.
 #   - End_Type 4종, Bonnet_Stem 4종, Operation 5종.
 #   - Stem_Type / Bore / Actuator 종류 컬럼 미고려 (Gate 와 동일 정책).
@@ -3144,15 +3144,15 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve 의 압력 등급. std-aware 필드 — Gate 와 옵션 풀 동일,"
             " ASTM 기준 표준은 ASME **B16.34** (Valve)."
-            "\n - ASTM: 150# / 300# / 600# / 800# / 900# / 1500# / 2500#."
+            "\n - ASTM: CL150 / CL300 / CL600 / CL800 / CL900 / CL1500 / CL2500."
             "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
             "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
         ),
-        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        data_type="string (short code; ASTM CLNNN 형식 / JIS·KS prefix+NK 형식)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Globe_Valve_Group.Rating 옵션"
-            " (closed set, 21개 — 800# 포함)."
+            " (closed set, 21개 — CL800 포함)."
         ),
         unique=None,
         relations=[
@@ -3218,7 +3218,7 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Rating 과 호환 관행: PSB 는 600#+ 고압이 흔함 — 강제 검증 없음",
+            "Rating 과 호환 관행: PSB 는 CL600+ 고압이 흔함 — 강제 검증 없음",
             "PMS description 에 합성",
         ],
         validation_location=(
@@ -3381,7 +3381,7 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #   - Trim_Matl 단일 컬럼 (API 600 trim 조합): Gate/Globe 와 동일 옵션 풀.
 #     Seat_Matl 폐지. data/field_values.json 의 Check_Valve_Group 참조.
 #   - Size 시스템: Size1_From / Size1_To 한 짝 (Reducing 없음).
-#   - Rating: std-aware (ASTM 7 + JIS 7 + KS 7 = 21개; 800# 포함) — Gate/Globe 와
+#   - Rating: std-aware (ASTM 7 + JIS 7 + KS 7 = 21개; CL800 포함) — Gate/Globe 와
 #     동일 옵션 풀 + std 키 부여. ASTM 기준 표준은 ASME B16.34.
 #   - End_Type 4종.
 #
@@ -3604,15 +3604,15 @@ CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve 의 압력 등급. std-aware 필드 — Gate/Globe 와 옵션 풀 동일,"
             " ASTM 기준 표준은 ASME **B16.34** (Valve)."
-            "\n - ASTM: 150# / 300# / 600# / 800# / 900# / 1500# / 2500#."
+            "\n - ASTM: CL150 / CL300 / CL600 / CL800 / CL900 / CL1500 / CL2500."
             "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
             "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
         ),
-        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        data_type="string (short code; ASTM CLNNN 형식 / JIS·KS prefix+NK 형식)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Check_Valve_Group.Rating 옵션"
-            " (closed set, 21개 — 800# 포함)."
+            " (closed set, 21개 — CL800 포함)."
         ),
         unique=None,
         relations=[
@@ -4040,11 +4040,11 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve 의 압력 등급. std-aware 필드 — Flange/Gasket/Gate/Globe/Check"
             " 와 옵션 풀 동일 (20개), ASTM 기준 표준은 ASME **B16.34** (Valve)."
-            "\n - ASTM: 150# / 300# / 600# / 900# / 1500# / 2500#."
+            "\n - ASTM: CL150 / CL300 / CL600 / CL900 / CL1500 / CL2500."
             "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
             "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
         ),
-        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        data_type="string (short code; ASTM CLNNN 형식 / JIS·KS prefix+NK 형식)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Ball_Valve_Group.Rating 옵션"
@@ -4250,14 +4250,14 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
 #   - **Trim_Matl 대신 Disc_Matl** — Butterfly 의 핵심 부품은 disc 이며 stem
 #     trim 보다 disc 재질이 중요 (Gate/Globe/Check/Ball 의 Trim_Matl 자리).
 #   - **Matl_Category 6종** — AS / SDSS 제외, **CI (Cast Iron) 추가**. Butterfly
-#     는 저압 일반 (≤ 600#) 이라 cast iron body 가 흔함.
+#     는 저압 일반 (≤ CL600) 이라 cast iron body 가 흔함.
 #   - **Matl_Code 풀에 A126-B / A395 포함** — 각각 gray iron / ductile iron"
 #     cast (저압 cast iron grade).
 #   - **Seat_Matl 풀이 soft seat 중심** (EPDM / NBR / PTFE / RPTFE) + metal
 #     일부 (SS316 / Stellite-6). EPDM/NBR 은 Butterfly 만의 옵션 (다른 valve
 #     에 없음).
-#   - **Rating 11종만** (다른 valve 의 20종 보다 좁음) — ASTM: 150# / 300# /
-#     600# 만 (900# 이상 없음). JIS/KS: 5K ~ 20K 만 (30K 이상 없음).
+#   - **Rating 11종만** (다른 valve 의 20종 보다 좁음) — ASTM: CL150 / CL300 /
+#     CL600 만 (CL900 이상 없음). JIS/KS: 5K ~ 20K 만 (30K 이상 없음).
 #   - **End_Type 컬럼 없음** — Butterfly 는 body 형태(Body_Type) 자체가 연결
 #     방식을 결정하므로 일반 valve 의 End_Type(BW/SW/TH/FLGD) 체계를 두지 않는다.
 #   - **Bonnet_Stem / Bore 없음** — Butterfly 는 bonnet 개념 약하고 (top cover
@@ -4405,7 +4405,7 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
             "Valve body 재질의 대분류 카테고리. **6종** (Butterfly 고유 풀) —"
             " CS / LTCS / SS / DSS / Ni-Alloy / **CI (Cast Iron)**. 다른 valve"
             " 의 7종에서 AS / SDSS 제외 + CI 추가. Butterfly 는 저압 일반 (≤"
-            " 600#) 이라 cast iron body 가 흔함."
+            " CL600) 이라 cast iron body 가 흔함."
         ),
         data_type="string (short code)",
         required=True,
@@ -4542,13 +4542,13 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve 의 압력 등급. std-aware 필드 — 다른 valve 의 20종 보다 좁은"
             " **11종** 풀 (Butterfly 는 저압 일반):"
-            "\n - ASTM: 150# / 300# / 600# (900# 이상 없음)."
+            "\n - ASTM: CL150 / CL300 / CL600 (CL900 이상 없음)."
             "\n - JIS: 5K / 10K / 16K / 20K (30K 이상 없음)."
             "\n - KS: 5K / 10K / 16K / 20K (30K 이상 없음)."
             "\n ASTM 기준 표준은 ASME B16.34 (Triple Offset 이상의 metal seat"
             " 형식)."
         ),
-        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        data_type="string (short code; ASTM CLNNN 형식 / JIS·KS prefix+NK 형식)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Butterfly_Valve_Group.Rating 옵션"
@@ -4595,7 +4595,7 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
             " 상대 flange 와 짝이 되어야 정합 (별도 검증 영역)",
             "Body_Type=Wafer 일 때 dead-end service 금지 — 도메인 관행, 강제"
             " 검증 없음",
-            "Body_Type=Double-Flanged 일 때 Rating 고압 (300# 이상) 흔함 —"
+            "Body_Type=Double-Flanged 일 때 Rating 고압 (CL300 이상) 흔함 —"
             " 강제 검증 없음",
             "PMS description 에 합성",
         ],
@@ -4659,7 +4659,7 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         relations=[
             "Seat_Matl 과 호환 관행: Concentric → EPDM/NBR/PTFE, TripleOffset"
             " → metal seat (SS316 / Stellite-6) 가 통상 — 강제 검증 없음",
-            "Rating 과 호환 관행: TripleOffset 은 600#+ 고압 영역이 흔함",
+            "Rating 과 호환 관행: TripleOffset 은 CL600+ 고압 영역이 흔함",
             "PMS description 에 합성 (빈 값이면 토큰 생략)",
         ],
         validation_location=(
@@ -5016,11 +5016,11 @@ PLUG_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
             "Valve 의 압력 등급. std-aware 필드 — Flange/Gasket/Gate/Globe/"
             "Check/Ball 과 옵션 풀 동일 (20개), ASTM 기준 표준은 ASME"
             " **B16.34** (Valve)."
-            "\n - ASTM: 150# / 300# / 600# / 900# / 1500# / 2500#."
+            "\n - ASTM: CL150 / CL300 / CL600 / CL900 / CL1500 / CL2500."
             "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
             "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
         ),
-        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        data_type="string (short code; ASTM CLNNN 형식 / JIS·KS prefix+NK 형식)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Plug_Valve_Group.Rating 옵션"
@@ -5469,13 +5469,13 @@ NEEDLE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         meaning=(
             "Valve 의 압력 등급. std-aware 필드 — Globe 와 옵션 풀 동일 (20개),"
             " ASTM 기준 표준은 ASME **B16.34**."
-            "\n - ASTM: 150# / 300# / 600# / 900# / 1500# / 2500#."
+            "\n - ASTM: CL150 / CL300 / CL600 / CL900 / CL1500 / CL2500."
             "\n - JIS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
             "\n - KS: 5K / 10K / 16K / 20K / 30K / 40K / 63K."
             " Instrumentation needle valve 는 PSI 표기 (6000~20000 PSI) 가"
             " 흔하나 본 시트는 ASME Class 통일 (별도 PSI 단위 옵션 미신설)."
         ),
-        data_type="string (short code; ASTM NNN# 형식 / JIS·KS prefix+NK 형식)",
+        data_type="string (short code; ASTM CLNNN 형식 / JIS·KS prefix+NK 형식)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Needle_Valve_Group.Rating 옵션"
@@ -5543,7 +5543,7 @@ NEEDLE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Bonnet_Stem=PSB OS&Y 일 때 Rating 고압 (1500# 이상) 흔함 — 강제"
+            "Bonnet_Stem=PSB OS&Y 일 때 Rating 고압 (CL1500 이상) 흔함 — 강제"
             " 검증 없음",
             "PMS description 에 합성",
         ],

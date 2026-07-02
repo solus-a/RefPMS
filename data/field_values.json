@@ -379,22 +379,22 @@
     ],
     "Rating": [
       {
-        "abbr": "2000#",
+        "abbr": "CL2000",
         "std": "ASTM",
         "full": "Class 2000"
       },
       {
-        "abbr": "3000#",
+        "abbr": "CL3000",
         "std": "ASTM",
         "full": "Class 3000"
       },
       {
-        "abbr": "6000#",
+        "abbr": "CL6000",
         "std": "ASTM",
         "full": "Class 6000"
       },
       {
-        "abbr": "9000#",
+        "abbr": "CL9000",
         "std": "ASTM",
         "full": "Class 9000"
       },
@@ -731,32 +731,32 @@
     ],
     "Rating": [
       {
-        "abbr": "150#",
+        "abbr": "CL150",
         "std": "ASTM",
         "full": "Class 150"
       },
       {
-        "abbr": "300#",
+        "abbr": "CL300",
         "std": "ASTM",
         "full": "Class 300"
       },
       {
-        "abbr": "600#",
+        "abbr": "CL600",
         "std": "ASTM",
         "full": "Class 600"
       },
       {
-        "abbr": "900#",
+        "abbr": "CL900",
         "std": "ASTM",
         "full": "Class 900"
       },
       {
-        "abbr": "1500#",
+        "abbr": "CL1500",
         "std": "ASTM",
         "full": "Class 1500"
       },
       {
-        "abbr": "2500#",
+        "abbr": "CL2500",
         "std": "ASTM",
         "full": "Class 2500"
       },
@@ -1027,32 +1027,32 @@
     ],
     "Rating": [
       {
-        "abbr": "150#",
+        "abbr": "CL150",
         "std": "ASTM",
         "full": "Class 150"
       },
       {
-        "abbr": "300#",
+        "abbr": "CL300",
         "std": "ASTM",
         "full": "Class 300"
       },
       {
-        "abbr": "600#",
+        "abbr": "CL600",
         "std": "ASTM",
         "full": "Class 600"
       },
       {
-        "abbr": "900#",
+        "abbr": "CL900",
         "std": "ASTM",
         "full": "Class 900"
       },
       {
-        "abbr": "1500#",
+        "abbr": "CL1500",
         "std": "ASTM",
         "full": "Class 1500"
       },
       {
-        "abbr": "2500#",
+        "abbr": "CL2500",
         "std": "ASTM",
         "full": "Class 2500"
       },
@@ -1525,37 +1525,37 @@
     ],
     "Rating": [
       {
-        "abbr": "150#",
+        "abbr": "CL150",
         "std": "ASTM",
         "full": "Class 150"
       },
       {
-        "abbr": "300#",
+        "abbr": "CL300",
         "std": "ASTM",
         "full": "Class 300"
       },
       {
-        "abbr": "600#",
+        "abbr": "CL600",
         "std": "ASTM",
         "full": "Class 600"
       },
       {
-        "abbr": "800#",
+        "abbr": "CL800",
         "std": "ASTM",
         "full": "Class 800"
       },
       {
-        "abbr": "900#",
+        "abbr": "CL900",
         "std": "ASTM",
         "full": "Class 900"
       },
       {
-        "abbr": "1500#",
+        "abbr": "CL1500",
         "std": "ASTM",
         "full": "Class 1500"
       },
       {
-        "abbr": "2500#",
+        "abbr": "CL2500",
         "std": "ASTM",
         "full": "Class 2500"
       },
@@ -1964,37 +1964,37 @@
     ],
     "Rating": [
       {
-        "abbr": "150#",
+        "abbr": "CL150",
         "std": "ASTM",
         "full": "Class 150"
       },
       {
-        "abbr": "300#",
+        "abbr": "CL300",
         "std": "ASTM",
         "full": "Class 300"
       },
       {
-        "abbr": "600#",
+        "abbr": "CL600",
         "std": "ASTM",
         "full": "Class 600"
       },
       {
-        "abbr": "800#",
+        "abbr": "CL800",
         "std": "ASTM",
         "full": "Class 800"
       },
       {
-        "abbr": "900#",
+        "abbr": "CL900",
         "std": "ASTM",
         "full": "Class 900"
       },
       {
-        "abbr": "1500#",
+        "abbr": "CL1500",
         "std": "ASTM",
         "full": "Class 1500"
       },
       {
-        "abbr": "2500#",
+        "abbr": "CL2500",
         "std": "ASTM",
         "full": "Class 2500"
       },
@@ -2399,37 +2399,37 @@
     ],
     "Rating": [
       {
-        "abbr": "150#",
+        "abbr": "CL150",
         "std": "ASTM",
         "full": "Class 150"
       },
       {
-        "abbr": "300#",
+        "abbr": "CL300",
         "std": "ASTM",
         "full": "Class 300"
       },
       {
-        "abbr": "600#",
+        "abbr": "CL600",
         "std": "ASTM",
         "full": "Class 600"
       },
       {
-        "abbr": "800#",
+        "abbr": "CL800",
         "std": "ASTM",
         "full": "Class 800"
       },
       {
-        "abbr": "900#",
+        "abbr": "CL900",
         "std": "ASTM",
         "full": "Class 900"
       },
       {
-        "abbr": "1500#",
+        "abbr": "CL1500",
         "std": "ASTM",
         "full": "Class 1500"
       },
       {
-        "abbr": "2500#",
+        "abbr": "CL2500",
         "std": "ASTM",
         "full": "Class 2500"
       },
@@ -2740,32 +2740,32 @@
     ],
     "Rating": [
       {
-        "abbr": "150#",
+        "abbr": "CL150",
         "std": "ASTM",
         "full": "Class 150"
       },
       {
-        "abbr": "300#",
+        "abbr": "CL300",
         "std": "ASTM",
         "full": "Class 300"
       },
       {
-        "abbr": "600#",
+        "abbr": "CL600",
         "std": "ASTM",
         "full": "Class 600"
       },
       {
-        "abbr": "900#",
+        "abbr": "CL900",
         "std": "ASTM",
         "full": "Class 900"
       },
       {
-        "abbr": "1500#",
+        "abbr": "CL1500",
         "std": "ASTM",
         "full": "Class 1500"
       },
       {
-        "abbr": "2500#",
+        "abbr": "CL2500",
         "std": "ASTM",
         "full": "Class 2500"
       },
@@ -3068,17 +3068,17 @@
     ],
     "Rating": [
       {
-        "abbr": "150#",
+        "abbr": "CL150",
         "std": "ASTM",
         "full": "Class 150"
       },
       {
-        "abbr": "300#",
+        "abbr": "CL300",
         "std": "ASTM",
         "full": "Class 300"
       },
       {
-        "abbr": "600#",
+        "abbr": "CL600",
         "std": "ASTM",
         "full": "Class 600"
       },
@@ -3319,32 +3319,32 @@
     ],
     "Rating": [
       {
-        "abbr": "150#",
+        "abbr": "CL150",
         "std": "ASTM",
         "full": "Class 150"
       },
       {
-        "abbr": "300#",
+        "abbr": "CL300",
         "std": "ASTM",
         "full": "Class 300"
       },
       {
-        "abbr": "600#",
+        "abbr": "CL600",
         "std": "ASTM",
         "full": "Class 600"
       },
       {
-        "abbr": "900#",
+        "abbr": "CL900",
         "std": "ASTM",
         "full": "Class 900"
       },
       {
-        "abbr": "1500#",
+        "abbr": "CL1500",
         "std": "ASTM",
         "full": "Class 1500"
       },
       {
-        "abbr": "2500#",
+        "abbr": "CL2500",
         "std": "ASTM",
         "full": "Class 2500"
       },
@@ -3643,32 +3643,32 @@
     ],
     "Rating": [
       {
-        "abbr": "150#",
+        "abbr": "CL150",
         "std": "ASTM",
         "full": "Class 150"
       },
       {
-        "abbr": "300#",
+        "abbr": "CL300",
         "std": "ASTM",
         "full": "Class 300"
       },
       {
-        "abbr": "600#",
+        "abbr": "CL600",
         "std": "ASTM",
         "full": "Class 600"
       },
       {
-        "abbr": "900#",
+        "abbr": "CL900",
         "std": "ASTM",
         "full": "Class 900"
       },
       {
-        "abbr": "1500#",
+        "abbr": "CL1500",
         "std": "ASTM",
         "full": "Class 1500"
       },
       {
-        "abbr": "2500#",
+        "abbr": "CL2500",
         "std": "ASTM",
         "full": "Class 2500"
       },
@@ -3831,6 +3831,115 @@
       {
         "abbr": "001",
         "full": "Default item"
+      }
+    ]
+  },
+  "Class_Define": {
+    "Class_Rating": [
+      {
+        "abbr": "CL150",
+        "std": "ASME",
+        "full": "ASME B16.5 Class 150"
+      },
+      {
+        "abbr": "CL300",
+        "std": "ASME",
+        "full": "ASME B16.5 Class 300"
+      },
+      {
+        "abbr": "CL400",
+        "std": "ASME",
+        "full": "ASME B16.5 Class 400"
+      },
+      {
+        "abbr": "CL600",
+        "std": "ASME",
+        "full": "ASME B16.5 Class 600"
+      },
+      {
+        "abbr": "CL900",
+        "std": "ASME",
+        "full": "ASME B16.5 Class 900"
+      },
+      {
+        "abbr": "CL1500",
+        "std": "ASME",
+        "full": "ASME B16.5 Class 1500"
+      },
+      {
+        "abbr": "CL2500",
+        "std": "ASME",
+        "full": "ASME B16.5 Class 2500"
+      },
+      {
+        "abbr": "JIS5K",
+        "std": "JIS",
+        "full": "JIS 5K"
+      },
+      {
+        "abbr": "JIS10K",
+        "std": "JIS",
+        "full": "JIS 10K"
+      },
+      {
+        "abbr": "JIS16K",
+        "std": "JIS",
+        "full": "JIS 16K"
+      },
+      {
+        "abbr": "JIS20K",
+        "std": "JIS",
+        "full": "JIS 20K"
+      },
+      {
+        "abbr": "JIS30K",
+        "std": "JIS",
+        "full": "JIS 30K"
+      },
+      {
+        "abbr": "JIS40K",
+        "std": "JIS",
+        "full": "JIS 40K"
+      },
+      {
+        "abbr": "JIS63K",
+        "std": "JIS",
+        "full": "JIS 63K"
+      },
+      {
+        "abbr": "KS5K",
+        "std": "KS",
+        "full": "KS 5K"
+      },
+      {
+        "abbr": "KS10K",
+        "std": "KS",
+        "full": "KS 10K"
+      },
+      {
+        "abbr": "KS16K",
+        "std": "KS",
+        "full": "KS 16K"
+      },
+      {
+        "abbr": "KS20K",
+        "std": "KS",
+        "full": "KS 20K"
+      },
+      {
+        "abbr": "KS30K",
+        "std": "KS",
+        "full": "KS 30K"
+      },
+      {
+        "abbr": "KS40K",
+        "std": "KS",
+        "full": "KS 40K"
+      },
+      {
+        "abbr": "KS63K",
+        "std": "KS",
+        "full": "KS 63K"
       }
     ]
   }

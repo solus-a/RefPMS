@@ -449,12 +449,9 @@ def _try_nipple_pipe_output(
 
 
 def _flange_rating_display(rating: str) -> str:
-    """CL150 → 150# 등 플랜지 발주 표기. 그 외는 원문 유지."""
-    raw = _to_text(rating)
-    if raw.upper().startswith("CL"):
-        tail = _to_text(raw[2:])
-        return f"{tail}#" if tail else raw
-    return raw
+    """Rating 표시 토큰. 공식 표기가 CL(CL150 등)로 통일되어 원문 그대로 사용
+    (과거에는 CL150 → 150# 역변환을 했으나 도메인 결정으로 폐지)."""
+    return _to_text(rating)
 
 
 def _normalize_flange_type_token(raw_flange_type: str) -> str:

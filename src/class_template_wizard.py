@@ -26,7 +26,7 @@ from class_level_model import (
     row_dict_for_headers,
     scheduleAllowlist,
 )
-from class_spec import class_base_material_group_keys, flange_pt_class_rating_options
+from class_spec import class_base_material_group_keys
 from size_matrix_common import normalize_nominal_mode
 from size_matrix_editor import run_size_matrix_editor
 from template_generator import (
@@ -1050,7 +1050,11 @@ class ClassLevelWizard(tk.Toplevel):
         self.grab_set()
         self._project_path: str | None = initial_project_path
         self._material_combo_values = ["", *class_base_material_group_keys()]
-        self._rating_combo_values = ["", *flange_pt_class_rating_options()]
+        # Class_Rating 옵션은 SSOT(domain_schema → field_values.Class_Define) 에서.
+        self._rating_combo_values = [
+            "",
+            *[it.get("abbr", "") for it in domain_schema.field_value_options("Class_Define", "Class_Rating")],
+        ]
         self._design_code_options: list[str] = ["", *config.design_codes_allowed()]
         self._nominal_size_options: list[str] = ["", *config.nominal_size_systems_allowed()]
         self._unit_system_options: list[str] = config.unit_systems_allowed()
