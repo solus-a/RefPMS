@@ -1589,31 +1589,39 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
 # 완전히 다름 (forged grade 가 아니라 시트·필러·링 재질 조합). 따라서:
 #   - Matl_Category / Matl_Std / Matl_Code 일반 필드 사용하지 않음 — 대신
 #     Gasket 전용 Material_Primary / Material_Secondary 두 필드로 구조 재질 표현
-#   - Item_Code 는 'G' 하나만; 종류는 Gasket_Type 컬럼으로 구분 (SHEET/SW/RTJ)
+#   - Item_Code 는 'G' 하나만; 종류는 Gasket_Type 컬럼으로 구분 (5종)
 #   - Size 는 단일 짝 (Size_From/Size_To) — Reducing gasket 은 거의 없음
 #
 # Gasket_Type 별 의미·재질 사용 패턴 (Material_Primary / Material_Secondary):
-#   - SHEET (Sheet Gasket, Non-metallic):
-#       Primary  = sheet 본체 재질 (Non-Asbestos / PTFE / Graphite)
-#       Secondary = 빈 값 (단일 재질)
-#   - SW (Spiral Wound, Semi-metallic):
-#       Primary  = 'metal+filler' 합쳐진 표기 (SS304+Graphite, SS316+PTFE 등)
-#       Secondary = SW 의 outer/inner ring 재질 (CS / SS304 / SS316)
-#       · Winding 과 Filler 를 별도 필드로 분리하지 않고 Primary 한 토큰에 합침
-#         (도메인 결정 — '+' 로 구분 표기)
-#   - RTJ (Ring Type Joint, Metallic):
-#       Primary  = ring 재질 (Soft-Iron / SS304 / SS316)
-#       Secondary = 빈 값 (단일 재질)
+#   - SHEET (Sheet Gasket, Non-metallic — 시트에서 절단):
+#       Primary  = sheet 본체 재질 대분류 (COMPRESSED NON-ASBESTOS / PTFE /
+#                  GRAPHITE / EPDM / NBR / SBR)
+#       Secondary = CNAF 의 fiber+binder 세부 조합 (ARAMID FIBER+NBR 등,
+#                  '+' 결합). rubber/PTFE 단일 재질이면 빈 값
+#   - SPIRAL WOUND (Semi-metallic):
+#       Primary  = 'winding금속+filler' 한 토큰 (SS304+GRAPHITE, SS316+PTFE 등)
+#       Secondary = inner/outer ring 재질 조합 — 'IR-SS304 OR-CS' 식 표기
+#                  (IR=inner, OR=outer; 조건부 필수)
+#   - RTJ (Ring Type Joint, Metallic — R/RX/BX ring):
+#       Primary  = ring 재질 (SOFT-IRON / SS304 / SS316 / MONEL-400 / INCONEL-625)
+#       Secondary = 빈 값
+#   - PTFE ENVELOPED (PTFE jacket + insert):
+#       Primary  = insert 재질 (NON-ASBESTOS INSERT / GRAPHITE INSERT / SS INSERT)
+#                  — jacket 이 PTFE 인 것은 type 명에 포함되므로 별도 표기 없음
+#       Secondary = 빈 값
+#   - SOLID (단일 재료 일체 가공 — metal 전용 아님, PTFE/GRAPHITE 도 가능):
+#       Primary  = 단일 재질 (metal 또는 PTFE/GRAPHITE)
+#       Secondary = 빈 값
 #
 # 미고려 항목 (추후 도메인 합의 시 확장):
 #   - Gasket_Type: Metal Jacketed (MJ), Kammprofile / Camprofile (CMG)
-#   - Sheet 재질: Aramid Fiber, Glass Fiber, Mica, Ceramic
-#   - SW Winding 재질: SS321, Inconel-600/625, Monel-400, Hastelloy-C276
+#   - Sheet 재질: Mica, Ceramic; SW Winding: SS321, Inconel-600/625, Hastelloy
+#   - RTJ ring style/number (R/RX/BX + R20 등) 별도 필드 — 현재 미표현
 #   - Reducing gasket (Size2 컬럼) — 거의 사용 안 함
 #   - Facing 옵션: MF/FM/TG/LM/LF/SM/SF — Gasket 은 flange face 짝이므로
 #     RF/FF/RTJ 3개로 시작 (Flange Facing 의 부분집합)
 #   - Item_Code 분리: GR (RTJ 전용) 등 — 현재 G 하나로 유지, Type 컬럼으로 구분
-#   - Thickness: 0.5/0.8/1.0/2.0/5.0mm 등 — 현재 1.5/3.0/4.5/6.0 4개로 시작
+#   - Thickness: 0.5/0.8/1.0/2.0/5.0mm 등 — 현재 1.5/3.0/4.5/6.0mm 4개로 시작
 #
 # 다른 시트와의 차이:
 #   - Pipe/Fitting/Flange: forged grade Matl_Code 11종 std-aware
@@ -1651,9 +1659,10 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
         name="Item_Code",
         meaning=(
             "Gasket_Group 의 component 종류 식별자. 현재 'G' (GASKET) 하나만 정의."
-            " Gasket 종류 (SHEET/SW/RTJ) 는 Item_Code 가 아니라 Gasket_Type 컬럼으로"
-            " 구분 — Flange_Group 의 line-blank 류 (FB/F8/FBS) 같은 의미 차이가"
-            " gasket 류에서는 크지 않기 때문."
+            " Gasket 종류 (SHEET / SPIRAL WOUND / RTJ / PTFE ENVELOPED / SOLID) 는"
+            " Item_Code 가 아니라 Gasket_Type 컬럼으로 구분 — Flange_Group 의"
+            " line-blank 류 (FB/F8/FBS) 같은 의미 차이가 gasket 류에서는 크지 않기"
+            " 때문."
         ),
         data_type="string (short code)",
         required=True,
@@ -1723,21 +1732,23 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Gasket_Type",
         meaning=(
-            "Gasket 의 구조적 분류. 3종:"
-            " SHEET (Sheet Gasket — non-metallic 단일 시트),"
-            " SW (Spiral Wound — semi-metallic, metal winding + filler + outer/inner ring),"
-            " RTJ (Ring Type Joint — metallic, 고압용 solid metal ring)."
+            "Gasket 의 구조적 분류. 5종:"
+            " SHEET (non-metallic 시트에서 절단 — CNAF/rubber/PTFE/graphite),"
+            " SPIRAL WOUND (semi-metallic, metal winding + filler + inner/outer ring),"
+            " RTJ (Ring Type Joint — metallic, 고압용 solid metal ring; R/RX/BX),"
+            " PTFE ENVELOPED (PTFE jacket + insert — jacket 재질이 type 명에 포함),"
+            " SOLID (단일 재료 일체 가공 — metal 전용 아님, PTFE/graphite 도 가능)."
             " 이 필드가 Material_Primary / Material_Secondary 의 의미를 결정."
             " Item_Code 가 아니라 별도 컬럼으로 분리한 이유: gasket 의 의미 자체는"
             " 동일 (밀봉)하고 구조만 다르기 때문 — line-blank 류처럼 의미가 완전히"
             " 다른 변종이 아님."
             " Metal Jacketed (MJ), Camprofile (CMG) 등은 현재 미고려."
         ),
-        data_type="string (short code)",
+        data_type="string (abbr)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Gasket_Group.Gasket_Type 옵션"
-            " (closed set, 3개)."
+            " (closed set, 5개)."
         ),
         unique=None,
         relations=[
@@ -1759,27 +1770,30 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
         name="Material_Primary",
         meaning=(
             "Gasket 의 주(primary) 재질. Gasket_Type 별로 의미가 다름:"
-            "\n - SHEET: 시트 본체 재질 (Non-Asbestos / PTFE / Graphite)."
-            "\n - SW: Winding 금속 + Filler 비금속의 조합 한 토큰"
-            " (SS304+Graphite, SS304+PTFE, SS316+Graphite, SS316+PTFE 4종)."
-            "\n - RTJ: solid metal ring 재질 (Soft-Iron / SS304 / SS316)."
-            " 통합 풀 (10개) 에서 Gasket_Type 별로 일부만 의미 — 콤보박스 필터링은"
+            "\n - SHEET: 시트 본체 재질 대분류 (COMPRESSED NON-ASBESTOS / PTFE /"
+            " GRAPHITE / EPDM / NBR / SBR — rubber 계 포함)."
+            "\n - SPIRAL WOUND: Winding 금속 + Filler 비금속의 조합 한 토큰"
+            " (SS304+GRAPHITE, SS304+PTFE, SS316+GRAPHITE, SS316+PTFE 4종)."
+            "\n - PTFE ENVELOPED: insert 재질 (NON-ASBESTOS INSERT / GRAPHITE"
+            " INSERT / SS INSERT) — jacket(PTFE) 은 type 명에 포함되어 별도 표기 없음."
+            "\n - RTJ / SOLID: 단일 재질 (SOFT-IRON / SS304 / SS316 / MONEL-400 /"
+            " INCONEL-625; SOLID 는 PTFE / GRAPHITE 도 가능)."
+            " 통합 풀 (18개) 에서 Gasket_Type 별로 일부만 의미 — 콤보박스 필터링은"
             " 별도 작업 (Gasket_Type 종속). Pipe/Fitting/Flange 의 Matl_Code 와"
             " 완전히 별개의 옵션 풀."
         ),
-        data_type="string (short code; SW 일 때 'A+B' 형식)",
+        data_type="string (abbr; SPIRAL WOUND 일 때 'A+B' 형식)",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Gasket_Group.Material_Primary 옵션"
-            " (closed set, 10개)."
+            " (closed set, 18개)."
         ),
         unique=None,
         relations=[
             "Gasket_Type 과 조건부 호환 — Gasket_Type 별로 의미 있는 옵션이 다름"
-            " (Sheet 시 'Non-Asbestos'/'PTFE'/'Graphite', SW 시 'SS304+Graphite' 등,"
-            " RTJ 시 'Soft-Iron'/'SS304'/'SS316'). 강제 검증은 별도 작업.",
-            "Material_Secondary 와 종속: Gasket_Type=SW 일 때만 Secondary 가 의미"
-            " (outer/inner ring 재질). Sheet/RTJ 시 Secondary 는 빈 값.",
+            " (위 meaning 의 type 별 목록 참조). 강제 검증은 별도 작업.",
+            "Material_Secondary 와 종속: SPIRAL WOUND 시 ring 조합(필수),"
+            " SHEET(CNAF) 시 fiber+binder 조합(선택). 그 외 type 은 빈 값.",
             "PMS description 에 합성 (gasket material 토큰)",
         ],
         validation_location=(
@@ -1794,34 +1808,34 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Material_Secondary",
         meaning=(
-            "Gasket 의 부(secondary) 재질 — Spiral Wound 의 outer/inner ring 재질"
-            " 전용 필드 (4종: 빈 값 / CS / SS304 / SS316)."
-            " Gasket_Type 별 사용 패턴:"
-            "\n - SW: outer/inner ring 재질 (CS / SS304 / SS316). 두 ring 재질을"
-            " 같다고 가정 — 다를 경우는 추후 분리 (현재 미고려)."
-            "\n - SHEET / RTJ: 빈 값 (단일 재질이므로 secondary 없음)."
+            "Gasket 의 부(secondary) 재질 — Gasket_Type 별 세부 조합 필드:"
+            "\n - SPIRAL WOUND: inner/outer ring 재질 조합, 'IR-SS304 OR-CS' 식"
+            " 표기 (IR=inner ring, OR=outer/centering ring; 5조합). 조건부 필수."
+            "\n - SHEET (CNAF): fiber+binder 세부 조합 ('ARAMID FIBER+NBR' 등"
+            " 4조합, '+' 결합). rubber/PTFE 단일 재질 sheet 면 빈 값."
+            "\n - RTJ / PTFE ENVELOPED / SOLID: 빈 값 (secondary 없음)."
         ),
-        data_type="string (short code; 빈 값 허용 — 조건부)",
+        data_type="string (abbr; 빈 값 허용 — 조건부)",
         required=False,
         format_constraint=(
             "data/field_values.json 의 Gasket_Group.Material_Secondary 옵션"
-            " (closed set, 4개 — 빈 값 포함)."
-            " Gasket_Type=SW 일 때만 required; Sheet/RTJ 시 빈 값 (조건부 검증은"
-            " 별도 작업)."
+            " (closed set, 9개 + 빈 값 — sheet 조합 4 + SW ring 조합 5)."
+            " Gasket_Type=SPIRAL WOUND 일 때만 required (conditional_required_when"
+            " 으로 도출·강제); 그 외 type 은 빈 값 허용."
         ),
         unique=None,
         relations=[
-            "Gasket_Type 과 조건부 호환 — SW 일 때만 의미",
-            "Material_Primary 와 함께 SW 의 재질 조합 표현",
-            "PMS description 에 합성 (SW 일 때 ring 재질 토큰)",
+            "Gasket_Type 과 조건부 호환 — SPIRAL WOUND 는 ring 조합 필수,"
+            " SHEET(CNAF) 는 fiber+binder 선택, 그 외 빈 값",
+            "Material_Primary 와 함께 재질 조합 표현 (대분류=Primary, 세부=Secondary)",
+            "PMS description 에 합성 (빈 값이면 토큰 생략)",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
-            " Gasket_Type=SW 일 때만 활성화 (별도 작업)."
+            " SPIRAL WOUND 필수 검증은 DEFAULT_COMPONENT_MAPPING 도출 규칙."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)."
-            " Gasket_Type=SW 일 때만 활성화."
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
         ),
         unit=None,
         conditional_required_when={"field": "Gasket_Type", "values": ["SPIRAL WOUND"]},
@@ -1847,7 +1861,8 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
             "Gasket_Type 과 호환 관행: RTJ gasket 은 600#+ 고압이 흔함 — 강제 검증"
             " 없음, 사용자 판단",
             "Class_Define.std 와 std-aware 필터링 (별도 작업)",
-            "PMS description 에 합성 (예: 'GASKET SW SS316+Graphite RF 150#')",
+            "PMS description 에 합성 (예: 'GASKET SPIRAL WOUND SS316+GRAPHITE"
+            " IR-SS316 OR-CS 150# RF 4.5mm')",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set + Class std 필터)."
@@ -1891,14 +1906,14 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Thickness",
         meaning=(
-            "Gasket 두께. 콤보박스 (closed set, 4개): 1.5T / 3.0T / 4.5T / 6.0T"
-            " (mm). 'T' 접미사는 thickness 의 산업 관행 표기."
+            "Gasket 두께. 콤보박스 (closed set, 4개): 1.5mm / 3.0mm / 4.5mm /"
+            " 6.0mm. 단위(mm)는 소문자 보존 — abbr 대문자화 예외 (unit 필드)."
             " Gasket_Type 별 일반 두께 관행:"
-            " SHEET 는 3.0T/4.5T 흔함, SW 는 4.5T 표준, RTJ 는 ring 직경으로 결정"
-            " 되므로 thickness 의미 작음 — 그래도 일관성 위해 채움."
+            " SHEET 는 3.0/4.5mm 흔함, SPIRAL WOUND 는 4.5mm 표준, RTJ 는 ring"
+            " 직경으로 결정되므로 thickness 의미 작음 — 그래도 일관성 위해 채움."
             " 0.5/0.8/1.0/2.0/5.0mm 등은 현재 미고려."
         ),
-        data_type="string (short code; '1.5T' / '3.0T' / '4.5T' / '6.0T')",
+        data_type="string (abbr; '1.5mm' / '3.0mm' / '4.5mm' / '6.0mm')",
         required=True,
         format_constraint=(
             "data/field_values.json 의 Gasket_Group.Thickness 옵션"
@@ -1915,7 +1930,7 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
         input_method=(
             "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
         ),
-        unit="mm (T 접미사로 표기)",
+        unit="mm (abbr 에 mm 접미사 포함 — 소문자 보존)",
     ),
     FieldDefinition(
         name="Option_Code",
