@@ -149,6 +149,19 @@ try:
 except Exception as e:
     issues["G"].append(f"domain_schema 로드 실패: {e}")
 
+# ---- G(계속): Class_Define 카탈로그 드리프트 ----
+try:
+    cd_names = [fd.name for fd in DS.CLASS_DEFINE_FIELDS]
+    from units_notation_headers import CLASS_DEFINE_STORAGE_KEYS as _CD_KEYS
+    if cd_names != list(_CD_KEYS):
+        issues["G"].append("Class_Define: 카탈로그 필드 순서가 CLASS_DEFINE_STORAGE_KEYS 와 불일치")
+    # field_values 의 Class_Define 섹션 키는 카탈로그 필드명이어야 함 (오타 가드)
+    for f in (FV.get("Class_Define") or {}):
+        if f not in cd_names:
+            issues["G"].append(f"Class_Define: field_values 키 '{f}' 가 카탈로그에 없음")
+except Exception as e:
+    issues["G"].append(f"Class_Define 검사 실패: {e}")
+
 # ---- 리포트 ----
 TITLES = {
     "A": "A. 헤더 필드인데 값 소스 없음",

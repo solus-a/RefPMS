@@ -86,18 +86,13 @@ class SizeSelection:
         return list(self.dn) if m == "DN" else list(self.nps)
 
 
-CLASS_DEFINE_REQUIRED_FIELDS: tuple[str, ...] = (
-    "Nominal_Size_System",
-    "Size_From",
-    "Size_To",
-    "Design_Code",
-    "Class_Base_Material",
-    "Class_Rating",
-    "Corrosion_Allowance",
-    "Design_Temperature_From",
-    "Design_Temperature_To",
-    "Design_Pressure_From",
-    "Design_Pressure_To",
+# 필수 필드의 SSOT 는 domain_schema.CLASS_DEFINE_FIELDS 의 required 플래그.
+# Class_Name 은 제외 — class_define_missing_fields 가 이름으로 행을 찾는 구조라
+# 별도 경로(validate 의 비어있음 검사)에서 다룬다.
+import domain_schema as _domain_schema
+
+CLASS_DEFINE_REQUIRED_FIELDS: tuple[str, ...] = tuple(
+    f for f in _domain_schema.class_define_required_fields() if f != "Class_Name"
 )
 
 

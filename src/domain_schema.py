@@ -6006,6 +6006,138 @@ CLASS_DEFINE_FIELDS: list[FieldDefinition] = [
         input_method="wizard Class detail 숫자 입력 (Entry + 키 필터)",
         unit="Project design_pressure_unit 종속 (barg/psig 등) — 헤더 표기 전용",
     ),
+    FieldDefinition(
+        name="Fluid_Service",
+        meaning=(
+            "이 class 가 다루는 유체/서비스의 서술 (예: 'Cooling Water',"
+            " 'Instrument Air'). 사람이 읽는 기록용 — 프로그램 로직은 값을"
+            " 해석·소비하지 않는다 (엔진 미참조)."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint="형식 강제 없음 (자유 입력).",
+        unique=None,
+        relations=[
+            "Class_Base_Material / Design 조건 선택의 사람측 근거 — 로직 연동"
+            " 없음",
+        ],
+        validation_location="검증 없음 (자유 입력).",
+        input_method="wizard Class detail 의 자유 텍스트 입력 (Entry)",
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Branch_Table_1",
+        meaning=(
+            "이 class 가 사용하는 Branch table(분기 조합표)의 Table_Code 참조."
+            " 최대 2개 슬롯(_1/_2) — 사이즈 구간별로 다른 표를 쓰는 관행 수용."
+            " 빈 값 허용 (분기 정의 없는 class)."
+        ),
+        data_type="string (Table_Code 참조; 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "bundle.branch_tables 에 존재하는 Table_Code 여야 하고, 그 table 의"
+            " nominal_mode 가 이 class 의 Nominal_Size_System 과 일치해야 함"
+            " (class_level_model.validate)."
+        ),
+        unique=None,
+        relations=[
+            "branch_tables[*].table_code (FK)",
+            "Nominal_Size_System 과 table.nominal_mode 정합 — wizard 는 불일치"
+            " 시 '⚠ mode mismatch' 라벨 표시, validate 가 에러",
+            "pms_generator 의 branch 조합 생성 입력",
+        ],
+        validation_location=(
+            "wizard 콤보 (branch table 코드 목록) + 불일치 경고 라벨;"
+            " 참조 존재·mode 정합은 class_level_model.validate."
+        ),
+        input_method="wizard Class detail 콤보박스 (readonly — branch table 코드)",
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Branch_Table_2",
+        meaning="두 번째 Branch table 참조 슬롯. Branch_Table_1 과 동일 의미.",
+        data_type="string (Table_Code 참조; 빈 값 허용)",
+        required=False,
+        format_constraint="Branch_Table_1 과 동일.",
+        unique=None,
+        relations=["Branch_Table_1 과 동일 (독립 슬롯)"],
+        validation_location="Branch_Table_1 과 동일 패턴.",
+        input_method="wizard Class detail 콤보박스 (readonly — branch table 코드)",
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Reducing_Table_1",
+        meaning=(
+            "이 class 가 사용하는 Reducing table(축소 조합표)의 Table_Code 참조."
+            " 최대 2개 슬롯(_1/_2). 빈 값 허용 (reducing 정의 없는 class)."
+        ),
+        data_type="string (Table_Code 참조; 빈 값 허용)",
+        required=False,
+        format_constraint=(
+            "bundle.reducing_tables 에 존재하는 Table_Code 여야 하고, 그 table"
+            " 의 nominal_mode 가 이 class 의 Nominal_Size_System 과 일치해야 함"
+            " (class_level_model.validate)."
+        ),
+        unique=None,
+        relations=[
+            "reducing_tables[*].table_code (FK)",
+            "Nominal_Size_System 과 table.nominal_mode 정합 — wizard 불일치"
+            " 경고 라벨 + validate 에러",
+            "pms_generator 의 reducer/swage 조합 생성 입력",
+        ],
+        validation_location=(
+            "wizard 콤보 (reducing table 코드 목록) + 불일치 경고 라벨;"
+            " 참조 존재·mode 정합은 class_level_model.validate."
+        ),
+        input_method="wizard Class detail 콤보박스 (readonly — reducing table 코드)",
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Reducing_Table_2",
+        meaning="두 번째 Reducing table 참조 슬롯. Reducing_Table_1 과 동일 의미.",
+        data_type="string (Table_Code 참조; 빈 값 허용)",
+        required=False,
+        format_constraint="Reducing_Table_1 과 동일.",
+        unique=None,
+        relations=["Reducing_Table_1 과 동일 (독립 슬롯)"],
+        validation_location="Reducing_Table_1 과 동일 패턴.",
+        input_method="wizard Class detail 콤보박스 (readonly — reducing table 코드)",
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Global_Special_Req",
+        meaning=(
+            "이 class 전체에 걸리는 특수 요구사항 서술 (예: 'NACE MR0175',"
+            " 'IGC test required'). 사람이 읽는 기록용 — 프로그램 로직은 값을"
+            " 해석·소비하지 않는다 (엔진 미참조)."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint="형식 강제 없음 (자유 입력).",
+        unique=None,
+        relations=[
+            "행 단위 특수사항은 component Remarks 가 담당 — 이 필드는 class"
+            " 전역 수준",
+        ],
+        validation_location="검증 없음 (자유 입력).",
+        input_method="wizard Class detail 의 자유 텍스트 입력 (Entry)",
+        unit=None,
+    ),
+    FieldDefinition(
+        name="Remarks",
+        meaning=(
+            "class 행 단위 비고 자유 텍스트. component 시트들의 Remarks 와 동일"
+            " 관행 — 표준 필드로 담기 어려운 보조 정보."
+        ),
+        data_type="string (자유 텍스트, 빈 값 허용)",
+        required=False,
+        format_constraint="형식 강제 없음 (자유 입력).",
+        unique=None,
+        relations=["로직 참조 없음 (기록 전용)"],
+        validation_location="검증 없음 (자유 입력).",
+        input_method="wizard Class detail 의 자유 텍스트 입력 (Entry)",
+        unit=None,
+    ),
 ]
 
 
@@ -6144,3 +6276,15 @@ def category_family(category: str) -> str:
     """카테고리 short → 큰 분류 family. 미등록은 자기 자신(보수적)."""
     c = (category or "").strip()
     return _CATEGORY_FAMILY.get(c, c)
+
+
+def class_define_headers() -> list[str]:
+    """Class_Define 의 storage 컬럼명 목록 — 컬럼 순서대로 (SSOT).
+    units_notation_headers.CLASS_DEFINE_STORAGE_KEYS 가 이를 도출한다."""
+    return [fd.name for fd in CLASS_DEFINE_FIELDS]
+
+
+def class_define_required_fields() -> list[str]:
+    """required=True 인 Class_Define 필드명 목록 (Class_Name 포함).
+    class_level_model.CLASS_DEFINE_REQUIRED_FIELDS 가 이를 도출한다."""
+    return [fd.name for fd in CLASS_DEFINE_FIELDS if fd.required]

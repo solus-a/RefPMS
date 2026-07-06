@@ -2,29 +2,10 @@
 
 from __future__ import annotations
 
+import domain_schema as _domain_schema
 
-CLASS_DEFINE_STORAGE_KEYS: tuple[str, ...] = (
-    "Revision_No",
-    "Class_Name",
-    "Nominal_Size_System",
-    "Size_From",
-    "Size_To",
-    "Design_Code",
-    "Class_Base_Material",
-    "Class_Rating",
-    "Corrosion_Allowance",
-    "Design_Temperature_From",
-    "Design_Temperature_To",
-    "Design_Pressure_From",
-    "Design_Pressure_To",
-    "Fluid_Service",
-    "Branch_Table_1",
-    "Branch_Table_2",
-    "Reducing_Table_1",
-    "Reducing_Table_2",
-    "Global_Special_Req",
-    "Remarks",
-)
+# 컬럼명·순서의 SSOT 는 domain_schema.CLASS_DEFINE_FIELDS — 여기서 도출한다.
+CLASS_DEFINE_STORAGE_KEYS: tuple[str, ...] = tuple(_domain_schema.class_define_headers())
 
 
 _TEMPERATURE_KEYS: frozenset[str] = frozenset({
