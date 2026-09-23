@@ -460,6 +460,13 @@ def _flange_rating_display(rating: str) -> str:
     return _to_text(rating)
 
 
+# 보어를 연결 배관의 두께에 맞추는 Flange 형식 — Schedule 이 의미 있는 경우는 이 둘뿐.
+# SO·LJ 는 배관 외경에 끼우는 형식(ASME B16.5 §7.7.1 보어 공차), THRD 는 나사,
+# Blind(FB·F8·FBS)는 보어가 없다. Description 의 SCH 토큰과 Thickness 칸이 같은 기준을 쓴다.
+# Flange_Type 선택지에 보어를 배관에 맞추는 형식(예: LWN)을 추가하면 여기에도 추가할 것.
+FLANGE_BORE_MATCHED_TYPES = frozenset({"WN", "SW"})
+
+
 def _normalize_flange_type_token(raw_flange_type: str) -> str:
     """
     Flange 타입 표기 정규화.
@@ -794,7 +801,7 @@ def _build_item_description_by_rule(
         rating_raw = _get_cell_text(ws, row_idx, header_to_col, "Rating")
         rating_disp = _flange_rating_display(rating_raw)
         # SW/WN만 조인트 파이프와 보어 매칭이 필요하므로 SCH를 설명에 표기.
-        show_sch = flange_type in {"SW", "WN"}
+        show_sch = flange_type in FLANGE_BORE_MATCHED_TYPES
         sch_from_table = sch1 if show_sch else ""
         title = description_lead if _to_text(description_lead) else "FLANGE"
         return _join_tokens(
@@ -1043,6 +1050,12 @@ def _iter_output_rows(
             description_prefix = catalog_item_name
             desc_lead = description_prefix
             rating_cell = _get_cell_text(ws, row_idx, header_to_col, "Rating")
+            should_blank_flange_thickness = (
+                sheet_name == "Flange_Group"
+                and _normalize_flange_type_token(
+                    _get_cell_text(ws, row_idx, header_to_col, "Flange_Type")
+                ) not in FLANGE_BORE_MATCHED_TYPES
+            )
 
             size_from_1 = _get_cell_text(ws, row_idx, header_to_col, size_from_1_header)
             size_to_1 = _get_cell_text(ws, row_idx, header_to_col, size_to_1_header)
@@ -1082,6 +1095,10 @@ def _iter_output_rows(
                         th2 = lookup_schedule_thickness(
                             schedule_rows, class_name, part, nominal_mode_cls
                         )
+
+                if should_blank_flange_thickness:
+                    # WN·SW 외 Flange(SO·LJ·THRD·Blind 류)는 배관 Schedule 과 무관.
+                    th1 = th2 = ""
 
                 nip = (
                     _try_nipple_pipe_output(
@@ -1153,6 +1170,10 @@ def _iter_output_rows(
                         th2 = lookup_schedule_thickness(
                             schedule_rows, class_name, part, nominal_mode_cls
                         )
+
+                if should_blank_flange_thickness:
+                    # WN·SW 외 Flange(SO·LJ·THRD·Blind 류)는 배관 Schedule 과 무관.
+                    th1 = th2 = ""
 
                 nip = (
                     _try_nipple_pipe_output(

@@ -125,6 +125,13 @@ def test_blind_flange_has_no_flange_type_or_schedule_in_description(generated):
     assert descs == {"BLIND FLANGE A105 CL150 RF"}
 
 
+def test_flange_thickness_only_for_bore_matched_types(generated):
+    # 3-8 (F13): Schedule 은 보어를 배관에 맞추는 WN·SW 에만. Blind(FB)는 보어가 없어 빈 값.
+    flanges = [r for r in generated.rows if r["Item_Code"] in ("F", "FB")]
+    assert all(r["Thickness1"] for r in flanges if r["Item_Code"] == "F")  # 샘플 F 는 WN
+    assert all(r["Thickness1"] is None for r in flanges if r["Item_Code"] == "FB")
+
+
 def test_wrought_fitting_thickness_is_schedule(generated):
     wrought = [
         r for r in generated.rows

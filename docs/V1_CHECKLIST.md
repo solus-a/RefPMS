@@ -40,7 +40,7 @@
 | F10 ✅ | 중 | Blind Flange(FB)·Spectacle 등에도 `Flange_Type`(WN/SO/LJ/SW/THRD)이 필수 → `BLIND FLANGE A105 WN …`, 생성기는 WN이면 Schedule까지 붙임 | 필수 규칙이 Item_Code를 구분하지 않음 |
 | ~~F11~~ | — | **오판 정정:** Gate·Globe·Check에는 CL800이 이미 있었음 (1번 실측 때 Needle 선택지만 보고 일반화). 사용자 결정(API 602 범위 Gate·Globe·Check만)과 현 데이터가 일치 → 변경 없음, 테스트로 고정 | — |
 | F12 ✅ | 중 | GUI가 Forged Fitting에 SW + CL2000 조합을 허용 — ASME B16.11 §2.1상 SW는 Class 3000/6000/9000, 2000은 나사식 전용 | End_Type↔Rating 규칙 없음 |
-| F13 | 작음 | Blind Flange(FB) 행의 `Thickness1`에 배관 Schedule(SCH80/STD)이 들어감 — Blind는 맞물릴 배관 보어가 없어 의미가 불분명 | Flange 두께 = Schedule 일괄 적용 |
+| F13 ✅ | 작음 | Blind Flange(FB) 행의 `Thickness1`에 배관 Schedule(SCH80/STD)이 들어감 — Blind는 맞물릴 배관 보어가 없어 의미가 불분명 | Flange 두께 = Schedule 일괄 적용 |
 
 정상 확인: Pipe·Flange·Gasket·Valve는 이름과 두께(Schedule 연동)가 기대대로 나옴. Pipe·Flange에 Schedule 토큰이 붙는 것은 의도된 차이 (미리보기는 Class 연동 토큰 제외).
 
@@ -50,9 +50,9 @@
 
 ## 2. 안전망 — pytest ✅
 
-실행: `python -m pytest` (설치: `pip install -r requirements-dev.txt`). 현재 **93 passed, 2 xfailed** (F5·F6).
+실행: `python -m pytest` (설치: `pip install -r requirements-dev.txt`). 현재 **99 passed, 2 xfailed** (F5·F6).
 
-xfail 대응: F5·F6 → `test_generator_e2e.py` (F1·F2/F3·F4·F7·F8·F10·F12는 3번에서 해결되어 일반 테스트로 전환). F9·F13은 아직 테스트 없음 — 고칠 때 추가.
+xfail 대응: F5·F6 → `test_generator_e2e.py` (F1·F2/F3·F4·F7·F8·F10·F12는 3번에서 해결되어 일반 테스트로 전환). F9는 아직 테스트 없음 — 고칠 때 추가.
 
 - [x] 2-1. pytest 골격: `pytest.ini`(testpaths, pythonpath=src, xfail_strict), `tests/conftest.py`, `tests/sample_data.py`(리터럴 샘플 — Class A1 + 13그룹)
 - [x] 2-2. `tests/test_generator_e2e.py`: 템플릿 왕복·Item Code 누락 없음은 통과. F1·F2/F3·F4·F5·F6·F7은 `xfail(strict)` — 고치면 XPASS로 실패하므로 그때 마커 제거
@@ -78,8 +78,10 @@ xfail 대응: F5·F6 → `test_generator_e2e.py` (F1·F2/F3·F4·F7·F8·F10·F1
   - 규칙 변경에 따른 기존 데이터: 프로젝트·템플릿을 불러올 때 conditional_empty 필드를 비움 (`component_row_clear_conditional_empty`) → GUI에서 내보낸 템플릿은 항상 현행 규칙. 목록에 없는 옛 저장값은 선택 입력 필드에서만 편집 창에 보존 (필수 필드는 빈칸으로 보여 다시 고르게 함)
   - 주의: 엑셀을 직접 고쳐 CLI 생성기에 넣은 규칙 위반 행은 로그 경고만 남기고 산출물에서 빠짐 → **7번(GUI 생성)에서 제외된 행을 사용자에게 보여 줄 것**
   - 주의(UX): 편집 창을 열 때 규칙에 맞지 않는 기존 값(SW+CL2000의 Rating, FB의 Flange_Type)은 안내 없이 비워짐 — 저장 시 필수 경고로는 드러남
-- [ ] 3-8. Blind Flange `Thickness1` 처리 결정 (빈 값 / Rating / 유지) → F13
+- [x] 3-8. Flange `Thickness1`은 WN·SW만 Schedule, 나머지(SO·LJ·THRD·FB·F8·FBS)는 빈 값 → F13. Description의 SCH 토큰과 같은 상수(`FLANGE_BORE_MATCHED_TYPES`) 사용
+  - 근거: WN은 용접 끝 보어를 배관 두께에 맞춤(B16.5 §7.7), SO·LJ는 배관 외경에 끼우는 형식(§7.7.1 보어 공차), Blind는 보어 없음
 - [ ] 3-10. closed set 소속 검사: GUI 저장·엔진 모두 필드값이 field_values 목록에 있는지 검사하지 않음 (옛 값 보존 때문에 목록 밖 값이 다시 저장될 수 있음). 검사 도입 여부 결정
+- [ ] 3-11. (도메인 확인) Reducing Flange(FR)+WN의 Schedule 기준 크기: 지금은 Thickness1·Description SCH가 큰 쪽(Size1) 기준. WN 허브·보어는 작은 쪽 배관에 맞추므로 Size2 기준이 맞는지 확인 필요
 - [ ] 3-9. 문서 정합: Flange·Valve Rating 정의에 "Matl_Std 와 일치하는 항목만"이라 적혀 있으나 dialog는 Rating을 std로 거르지 않음 (Forged만 이번에 정정)
 - 후보(미확정): B16.9 3D 엘보(Table 6.1-6) Item Code 추가 / SR 엘보(ES·ES4) 사용 시 경고 규칙 (SR은 Jacket Elbow 외 사용 제한 — 사용자 도메인 지식)
 

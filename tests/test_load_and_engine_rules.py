@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import copy
 
+import pytest
+
 from openpyxl import load_workbook
 
 from pms_generator import generate_piping_material_class_data
@@ -59,3 +61,29 @@ def test_engine_drops_forged_row_violating_b16_11(tmp_path):
     codes = {r["Item_Code"] for r in _generate(bundle, tmp_path)}
     assert "JF" not in codes
     assert "E" in codes  # 규칙에 맞는 단조 행은 그대로
+
+
+@pytest.mark.parametrize("flange_type", ["SO", "LJ", "THRD", "so"])
+def test_non_bore_matched_flange_has_no_schedule(tmp_path, flange_type):
+    # SO·LJ 는 배관 외경에 끼우는 형식 (ASME B16.5 §7.7.1), THRD 는 나사 — Schedule 과 무관.
+    bundle = build_sample_bundle()
+    bundle.component_rows["Flange_Group"] = [
+        dict(r, Flange_Type=flange_type) if r["Item_Code"] == "F" else r
+        for r in bundle.component_rows["Flange_Group"]
+    ]
+    rows = [r for r in _generate(bundle, tmp_path) if r["Item_Code"] == "F"]
+    assert rows
+    assert {r["Thickness1"] for r in rows} == {None}
+    assert all("SCH" not in r["Item_Description"] and "STD" not in r["Item_Description"] for r in rows)
+
+
+def test_reducing_slip_on_flange_blanks_both_thicknesses(tmp_path):
+    # FR 은 Size2 두께(Thickness2)도 계산되는데, SO 면 둘 다 비어야 한다.
+    bundle = build_sample_bundle()
+    f = next(r for r in bundle.component_rows["Flange_Group"] if r["Item_Code"] == "F")
+    fr = dict(f, Item_Code="FR", Flange_Type="SO", Size1_From="2", Size1_To="4",
+              Size2_From="1", Size2_To="1.5")
+    bundle.component_rows["Flange_Group"].append(fr)
+    rows = [r for r in _generate(bundle, tmp_path) if r["Item_Code"] == "FR"]
+    assert rows
+    assert {(r["Thickness1"], r["Thickness2"]) for r in rows} == {(None, None)}
