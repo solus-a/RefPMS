@@ -111,6 +111,16 @@ xfail 대응: F5·F6 → `test_generator_e2e.py` (F1·F2/F3·F4·F7·F8·F10·F1
 - [ ] 7-1. 마법사에 "PMS 생성" 동작 연결 (검증 → 생성 → 결과 경로 안내)
 - [ ] 7-2. 생성 실패 시 사용자에게 원인 표시
 
+## 7.5 UI 지침 (7번 완료 후 착수 — 사용자 결정 2026-09-24)
+
+기준: awesome-design-md 의 IBM DESIGN.md. ttk 테마는 vista 유지.
+
+- [ ] 7.5-1. `docs/DESIGN.md` 작성 — Stitch 9섹션 형식 중 데스크톱 tkinter 에 해당하는 것만 (색 역할·간격·규칙·Do/Don't) + 표(Treeview/Listbox) 규칙 추가
+  - IBM 값: canvas `#ffffff`, surface `#f4f4f4`, hairline `#e0e0e0`, ink `#161616`, muted `#525252`, primary `#0f62fe`, success `#24a148`, warning `#f1c21b`, error `#da1e28`, 간격 4/8/12/16/24/32, 모서리 0·그림자 없음
+  - 글꼴은 맑은 고딕 유지 (IBM Plex 미설치·한글 미지원). 웹 전용 섹션(반응형·히어로·푸터) 제외
+- [ ] 7.5-2. `src/ui_theme.py` 토큰 모듈 — 코드에 흩어진 16진수 색(약 30종) 교체
+- [ ] 7.5-3. vista 테마에서 무시되는 스타일 확인 (예: 콤보박스 경고 배경 `Warn.TCombobox`) — 화면 확인 필요
+
 ## 8. Commodity Code (별도 트랙)
 
 - [ ] 8-1. `Piping Commodity Numbering System(250827_NPJT용).xlsx` 분석 → 자릿수별 규칙 정리
