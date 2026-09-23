@@ -13,6 +13,9 @@ build-output/
 docs/chat/
 .specstory/
 
+# Copyrighted standards — keep locally, commit only docs/standards/README.md
+docs/standards/**/*.pdf
+
 # Project-config save backups
 config/project/*.bak
 
