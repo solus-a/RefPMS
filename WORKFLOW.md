@@ -60,6 +60,28 @@ When a coding request comes in:
 
 The flow is a default, not a mandate. Use judgment.
 
+## Using oh-my-claudecode (OMC) inside this flow
+
+This flow stays in charge of coding requests. OMC agents and skills are **tools used inside its steps**, not a replacement for it.
+The user-confirmation gate at step 3 always holds: nothing that implements code autonomously may skip it.
+
+| Step | Default | Add OMC when | OMC tool |
+|---|---|---|---|
+| 1. WHY | `intent-clarifier` | Requirement is large and vague (e.g. Commodity Code rules) | `deep-interview` skill (keyword: "deep interview") — its spec feeds step 2 |
+| 2. WHAT | `impact-tracer` | Impact spans many modules or naming is inconsistent | `oh-my-claudecode:explore` agent for the fan-out search |
+| 3. HOW | `implementation-planner` | Design-level change (module moves, logic unification, data model change) | `ralplan` skill (planner → architect → critic consensus). The resulting plan is still shown to the user for approval |
+| 4. DO | main Claude | Root cause of a bug is unclear | `oh-my-claudecode:tracer` / `oh-my-claudecode:debugger` agents for diagnosis only; the fix is still written by main Claude |
+| 4. DO (tests) | main Claude | New test strategy or hard-to-test path | `oh-my-claudecode:test-engineer` agent |
+| 5. CHECK | `domain-reviewer` | Every non-trivial change | Run `oh-my-claudecode:code-reviewer` in parallel with `domain-reviewer` (domain rules vs. code quality); `oh-my-claudecode:verifier` before claiming completion |
+| 6. VERIFY | `ui-checklist` | — | — |
+
+Rules:
+- **Do not use `autopilot` / `ralph` for coding requests.** They implement end-to-end without the step-3 user gate. They may be used only when the user explicitly invokes them for a task and accepts skipping the gate.
+- Domain decisions still come from the user and from `docs/standards/` (quote the clause). OMC agents may propose, not decide.
+- Subagents report back to main Claude; main Claude relays results to the user in Korean.
+
+Keyword triggers the user can type in any message: `ultrathink` (deep reasoning), `deep interview`, `ralplan`, `deepsearch` (codebase search), `tdd` (test-first mode).
+
 ## Off-flow tools
 
 These are user-invoked only, not part of the auto flow:
