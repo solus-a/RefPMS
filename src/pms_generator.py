@@ -336,15 +336,32 @@ def _get_cell_text_any(ws, row_idx: int, header_to_col: dict[str, int], fields: 
     return ""
 
 
-# B16.9 BW 엘보는 설명에 LR/SR 유지. 소켓·나사 단조(전형적으로 ASME B16.11 치수)는 LR/SR 생략.
-# B16.11 적용은 Fitting_Group 의 Dim_Standard 컬럼이 아니라 프로젝트 설계코드(B31.3/B31.4) + End_Type 으로 전제.
-# 발주 Item_Name 은 엘보 코드(E/ES/E4/ES4) 전부에서 LR/SR 접미사 제거.
-ELBOW_LR_SR_ITEM_CODES = frozenset({"E", "ES", "E4", "ES4"})
+# 단조 피팅은 ASME B16.11 §2.1 에 따라 Class(CL2000/3000/6000/9000)로 식별 → Thickness 칸에 Rating.
+# Plug·Bushing 은 class 로 식별하지 않음 (B16.11 Table 주석) → 빈 값.
+# Swage 는 MSS SP-95 로 Schedule 기준 → Schedule 유지.
+FORGED_UNRATED_ITEM_CODES = frozenset({"JP", "JB"})
+SWAGE_ITEM_CODES = frozenset({"RCS", "RES"})
 
 
-def _strip_trailing_lr_sr(label: str) -> str:
-    """문자열 끝의 ' LR' / ' SR' 토큰 제거(대소문자 무시)."""
-    return re.sub(r"\s+\b(LR|SR)\s*$", "", _to_text(label), flags=re.I).strip()
+def _forged_fitting_thickness(item_code: str, rating: str, schedule: str) -> str:
+    code = _to_text(item_code).upper()
+    if code in SWAGE_ITEM_CODES:
+        return schedule
+    if code in FORGED_UNRATED_ITEM_CODES:
+        return ""
+    return _to_text(rating)
+
+
+def _item_code_entry(sheet_name: str, item_code: str) -> dict[str, str]:
+    """data/item_code_db.json(그룹별)의 Item_Code 항목. 없으면 빈 dict.
+
+    같은 코드(E, T, CP …)가 Forged/Wrought 에 따로 있으므로 반드시 시트로 한정한다.
+    """
+    code = _to_text(item_code).upper()
+    for entry in domain_schema.item_code_entries(sheet_name):
+        if _to_text(entry.get("code")).upper() == code:
+            return entry
+    return {}
 
 
 def _class_design_code_for(class_specs: dict[str, ClassSpec], class_name: str) -> str:
@@ -360,16 +377,6 @@ def _class_nominal_mode_for(class_specs: dict[str, ClassSpec], class_name: str) 
     if not spec:
         return ""
     return _to_text(spec.get("nominal_size_system", ""))
-
-
-def _fitting_elbow_should_strip_lr_sr(
-    item_code: str, dim_standard: str, end_type_1: str, rating: str
-) -> bool:
-    """
-    When True, also strip LR/SR from Description_Prefix (Fitting_Group elbows). Reserved; currently always off.
-    """
-    _ = (item_code, dim_standard, end_type_1, rating)
-    return False
 
 
 def _reducer_description_dim_standard(dim_standard: str) -> str:
@@ -425,10 +432,10 @@ def _try_nipple_pipe_output(
 ) -> Optional[tuple[str, str, str]]:
     """
     Pipe_Group 니플 (JN): End_Type 단일 컬럼 (양 끝 동일 가정 — dual-end nipple
-    의 다른 한쪽 표현은 Remarks 우회). Item_Description 선두는 Item_Code_DB 의
-    Description_Prefix. 길이는 Length 열만 사용 (Remarks 에서 길이 폴백 없음).
-    특수 조건은 Remarks 를 설명·출력에 반영. Item_Name 은 Catalog_Item_Name 을
-    기준으로 길이 열을 반영해 정리합니다.
+    의 다른 한쪽 표현은 Remarks 우회). Item_Description 선두는 item_code_db.json 의
+    code_name. 길이는 Length 열만 사용 (Remarks 에서 길이 폴백 없음).
+    특수 조건은 Remarks 를 설명·출력에 반영. Item_Name 은 code_name 에 길이 열을
+    반영해 정리합니다.
     """
     code = _to_text(item_code).upper()
     if code not in NIPPLE_PIPE_CODES:
@@ -502,60 +509,6 @@ def _normalize_gasket_thickness(gasket_type: str, thickness: str) -> str:
     raw = _to_text(thickness).strip()
     # 가스켓 두께는 템플릿 입력값을 그대로 출력한다.
     return raw
-
-
-def _load_item_code_db(logger: logging.Logger) -> dict[str, dict[str, str]]:
-    """
-    data/Item_Code_DB.xlsx → {Item_Code: {Item_Name, Description_Prefix, Group}}
-    - Item_Name: Catalog_Item_Name(없으면 레거시 Item_Name) → PMS 출력 Item_Name 기준
-    - Description_Prefix: 설명 문자열 선두(없으면 카탈로그명과 동일)
-    """
-    path = config.item_code_db_path()
-    if not path.exists():
-        logger.warning(f"Item_Code DB not found (continuing without DB): {path}")
-        return {}
-
-    try:
-        wb = load_workbook(path, data_only=True)
-    except Exception as exc:
-        logger.warning(f"Could not load Item_Code DB (continuing): {path} — {exc}")
-        return {}
-
-    if "Item_Code_DB" not in wb.sheetnames:
-        logger.warning("Item_Code_DB sheet missing in Item_Code DB workbook")
-        return {}
-
-    ws = wb["Item_Code_DB"]
-    header_row: Optional[int] = None
-    for req in (["Item_Code", "Group"], ["Item_Code", "Item_Name"]):
-        try:
-            header_row = _detect_header_row(ws, req)
-            break
-        except ValueError:
-            continue
-    if header_row is None:
-        logger.warning("Could not detect Item_Code_DB header row")
-        return {}
-
-    header_to_col = _build_header_index(ws, header_row)
-    out: dict[str, dict[str, str]] = {}
-    for row_idx in range(header_row + 1, ws.max_row + 1):
-        code = _get_cell_text(ws, row_idx, header_to_col, "Item_Code")
-        if not code:
-            continue
-        catalog = _get_cell_text(ws, row_idx, header_to_col, "Catalog_Item_Name")
-        if not catalog:
-            catalog = _get_cell_text(ws, row_idx, header_to_col, "Item_Name")
-        prefix = _get_cell_text(ws, row_idx, header_to_col, "Description_Prefix")
-        if not prefix:
-            prefix = catalog
-        group = _get_cell_text(ws, row_idx, header_to_col, "Group")
-        out[code] = {
-            "Item_Name": catalog,
-            "Description_Prefix": prefix,
-            "Group": group,
-        }
-    return out
 
 
 def _build_size_table_data(
@@ -743,7 +696,6 @@ def _build_item_description_by_rule(
     description_lead: str,
     thickness1: str,
     thickness2: str,
-    db_group: Optional[str] = None,
     reducer_size1: Optional[str] = None,
     reducer_size2: Optional[str] = None,
     fitting_dual_schedule: bool = False,
@@ -770,25 +722,18 @@ def _build_item_description_by_rule(
         )
 
     if sheet_name == "Forged_Fitting_Group":
-        if db_group and db_group.strip() != "Forged_Fitting_Group":
-            return ""
         mat = _get_cell_text(ws, row_idx, header_to_col, "Matl_Code")
         end_type = _get_cell_text(ws, row_idx, header_to_col, "End_Type")
         rating_cell = _get_cell_text(ws, row_idx, header_to_col, "Rating")
         remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
-        is_plug_item = item_code.upper() == "JP"
-        # ASME B16.11 PLUG는 class/rating으로 식별하지 않으므로 설명 토큰에서 등급을 생략.
-        if is_plug_item:
-            rating_token = ""
-        else:
-            rating_token = rating_cell
-            if rating_token.strip().upper().startswith("CL"):
-                converted = rating_token.strip()[2:].strip()
-                rating_token = f"{converted}#" if converted else ""
+        # ASME B16.11: Plug·Bushing 은 class 로 식별하지 않으므로 등급 토큰 생략.
+        # 그 외는 공식 표기 CL(CL3000 등) 그대로.
+        is_unrated = item_code.upper() in FORGED_UNRATED_ITEM_CODES
+        rating_token = "" if is_unrated else rating_cell
 
-        # Reducer / Swage / Bushing / Reducing Coupling (RCS/RES/JFR/JB 등) —
-        # Reducing_Table 의 양쪽 두께 활용. item_code_db.json 의 reducing 메타로 판별.
-        if item_code in REDUCER_ITEM_CODES_FROM_TABLE:
+        # Swage (RCS/RES, MSS SP-95) 만 Schedule 기준 — Reducing_Table 양쪽 Schedule 표기.
+        # Reducing Coupling·Bushing (JFR/JB) 은 B16.11 품목이라 아래 일반 경로(등급 토큰만).
+        if item_code.upper() in SWAGE_ITEM_CODES:
             if thickness1 and thickness2 and thickness1 != thickness2:
                 thickness_pair = f"{sch1} x {thickness2}"
             else:
@@ -808,8 +753,6 @@ def _build_item_description_by_rule(
         )
 
     if sheet_name == "Wrought_Fitting_Group":
-        if db_group and db_group.strip() != "Wrought_Fitting_Group":
-            return ""
         mat = _get_cell_text(ws, row_idx, header_to_col, "Matl_Code")
         end_type = _get_cell_text(ws, row_idx, header_to_col, "End_Type")
         remarks = _get_cell_text(ws, row_idx, header_to_col, "Remarks")
@@ -964,7 +907,6 @@ def _iter_output_rows(
     schedule_rows: list[dict[str, str]],
     reducing_data: dict[str, dict[tuple[str, str], str]],
     class_reducing_codes: dict[str, str],
-    item_code_db: dict[str, dict[str, str]],
     class_specs: dict[str, ClassSpec],
     logger: logging.Logger,
     component_mapping: Optional[dict[str, Any]] = None,
@@ -1091,34 +1033,17 @@ def _iter_output_rows(
                 logger, sheet_name, class_name, row_idx, ws, header_to_col, class_specs
             )
 
-            db_row: Optional[dict[str, str]] = None
-            if item_code:
-                db_row = item_code_db.get(item_code)
-                if not db_row:
-                    logger.warning(
-                        f"Item_Code not in DB (Item_Name left empty): {item_code!r}"
-                    )
-
-            catalog_item_name = db_row["Item_Name"] if db_row else ""
-            description_prefix = (
-                (db_row.get("Description_Prefix") or catalog_item_name) if db_row else ""
-            )
-            db_group = db_row.get("Group") if db_row else None
-
-            code_u = _to_text(item_code).upper()
-            if sheet_name == "Wrought_Fitting_Group" and code_u in ELBOW_LR_SR_ITEM_CODES:
-                catalog_item_name = _strip_trailing_lr_sr(catalog_item_name)
-                dim_std = _get_cell_text(ws, row_idx, header_to_col, "Dim_Standard")
-                end_t = _get_cell_text(ws, row_idx, header_to_col, "End_Type")
-                rating_c = _get_cell_text(ws, row_idx, header_to_col, "Rating")
-                if _fitting_elbow_should_strip_lr_sr(code_u, dim_std, end_t, rating_c):
-                    description_prefix = _strip_trailing_lr_sr(description_prefix)
-
-            desc_lead = description_prefix
-            if _is_valve_sheet(sheet_name) and not desc_lead:
-                desc_lead = _join_tokens(
-                    sheet_name.removesuffix("_Valve_Group").upper(), "VALVE"
+            entry = _item_code_entry(sheet_name, item_code) if item_code else {}
+            if item_code and not entry:
+                logger.warning(
+                    f"{sheet_name}: Item_Code {item_code!r} not in item_code_db.json "
+                    "(Item_Name left empty)"
                 )
+            # Item_Name 과 Description 선두 모두 json code_name (LR/SR 포함 — ASME B16.9 상 별개 부품).
+            catalog_item_name = _to_text(entry.get("code_name"))
+            description_prefix = catalog_item_name
+            desc_lead = description_prefix
+            rating_cell = _get_cell_text(ws, row_idx, header_to_col, "Rating")
 
             size_from_1 = _get_cell_text(ws, row_idx, header_to_col, size_from_1_header)
             size_to_1 = _get_cell_text(ws, row_idx, header_to_col, size_to_1_header)
@@ -1132,6 +1057,11 @@ def _iter_output_rows(
             nominal_mode_cls = _class_nominal_mode_for(class_specs, class_name)
             class_design_code_cls = _class_design_code_for(class_specs, class_name)
             exploded_sizes = _explode_size_range(size_from_1, size_to_1, nominal_mode_cls)
+            # 상위 제약: Class 범위 ∩ Global Size Selection 밖의 크기는 전개하지 않는다.
+            # (From/To 자체는 validate_size_range_for_row 가 active 목록 안으로 검증 → 필터 후에도 비지 않음)
+            active_sizes = set(class_size_ranges.get(class_name) or [])
+            if exploded_sizes and active_sizes:
+                exploded_sizes = [s for s in exploded_sizes if s in active_sizes]
             if not exploded_sizes:
                 size1_out = size_from_1 or size_to_1
                 th1 = lookup_schedule_thickness(
@@ -1141,6 +1071,8 @@ def _iter_output_rows(
                 if sheet_name == "Bolt_Group" or _is_valve_sheet(sheet_name):
                     th1 = ""
                     th2 = ""
+                if sheet_name == "Forged_Fitting_Group":
+                    th1 = _forged_fitting_thickness(item_code, rating_cell, th1)
                 if size2_display:
                     if "-" not in size2_display:
                         th2 = lookup_schedule_thickness(
@@ -1182,16 +1114,10 @@ def _iter_output_rows(
                         desc_lead,
                         th1,
                         th2,
-                        db_group=db_group,
                         size1_value=size1_out,
                         class_design_code=class_design_code_cls,
                     )
                     out_item_name = catalog_item_name
-                    if sheet_name == "Bolt_Group" and not out_item_name:
-                        out_item_name = "BOLT&NUT"
-                    if _is_valve_sheet(sheet_name) and not out_item_name:
-                        valve_type = sheet_name.removesuffix("_Valve_Group").upper()
-                        out_item_name = _join_tokens(valve_type, "VALVE")
                     out_remarks = remarks
                 yield {
                     "Class_Name": class_name,
@@ -1216,6 +1142,8 @@ def _iter_output_rows(
                 if sheet_name == "Bolt_Group" or _is_valve_sheet(sheet_name):
                     th1 = ""
                     th2 = ""
+                if sheet_name == "Forged_Fitting_Group":
+                    th1 = _forged_fitting_thickness(item_code, rating_cell, th1)
                 if size2_display:
                     if "-" not in size2_display:
                         th2 = lookup_schedule_thickness(
@@ -1257,16 +1185,10 @@ def _iter_output_rows(
                         desc_lead,
                         th1,
                         th2,
-                        db_group=db_group,
                         size1_value=exploded_size,
                         class_design_code=class_design_code_cls,
                     )
                     out_item_name = catalog_item_name
-                    if sheet_name == "Bolt_Group" and not out_item_name:
-                        out_item_name = "BOLT&NUT"
-                    if _is_valve_sheet(sheet_name) and not out_item_name:
-                        valve_type = sheet_name.removesuffix("_Valve_Group").upper()
-                        out_item_name = _join_tokens(valve_type, "VALVE")
                     out_remarks = remarks
                 yield {
                     "Class_Name": class_name,
@@ -1362,12 +1284,11 @@ def _iter_output_rows(
                             class_specs,
                         )
 
-                    db_row = item_code_db.get(mapped_code, {})
-                    catalog_out = _to_text(db_row.get("Item_Name", ""))
-                    desc_lead_red = _to_text(
-                        db_row.get("Description_Prefix") or db_row.get("Item_Name", "")
+                    catalog_out = _to_text(
+                        _item_code_entry(target_sheet, mapped_code).get("code_name")
                     )
-                    db_group = _to_text(db_row.get("Group", ""))
+                    desc_lead_red = catalog_out
+                    # Reducer(B16.9)·Swage(MSS SP-95) 모두 Schedule 기준 두께.
                     th1 = lookup_schedule_thickness(
                         schedule_rows, class_name, size1, nominal_mode_cls
                     )
@@ -1383,7 +1304,6 @@ def _iter_output_rows(
                         desc_lead_red,
                         th1,
                         th2,
-                        db_group=db_group,
                         reducer_size1=size1,
                         reducer_size2=size2,
                         class_design_code=_class_design_code_for(class_specs, class_name),
@@ -1528,15 +1448,18 @@ def _iter_output_rows(
                         class_specs,
                     )
 
-                db_row_b = item_code_db.get(mapped_code, {})
-                catalog_b = _to_text(db_row_b.get("Item_Name", ""))
-                desc_lead_b = _to_text(
-                    db_row_b.get("Description_Prefix") or db_row_b.get("Item_Name", "")
+                catalog_b = _to_text(
+                    _item_code_entry(target_sheet, mapped_code).get("code_name")
                 )
-                db_group_b = _to_text(db_row_b.get("Group", ""))
+                desc_lead_b = catalog_b
                 if mapped_code == "TH":
-                    th1b = lookup_schedule_thickness(
-                        schedule_rows, class_name, th_output_size, nominal_mode_cls
+                    # Half Coupling 은 단조(B16.11) — 두께 칸은 Rating.
+                    th1b = _forged_fitting_thickness(
+                        mapped_code,
+                        _get_cell_text(target_ws, template_row_idx, target_htc, "Rating"),
+                        lookup_schedule_thickness(
+                            schedule_rows, class_name, th_output_size, nominal_mode_cls
+                        ),
                     )
                     th2b = ""
                 else:
@@ -1556,7 +1479,6 @@ def _iter_output_rows(
                     desc_lead_b,
                     th1b,
                     th2b,
-                    db_group=db_group_b,
                     fitting_dual_schedule=use_dual,
                     class_design_code=_class_design_code_for(class_specs, class_name),
                 )
@@ -1597,7 +1519,6 @@ def generate_piping_material_class_data(
     )
 
     ensure_all_program_data_files()
-    item_code_db = _load_item_code_db(logger)
     component_mapping = load_component_mapping()
     matl_code_categories = load_matl_code_category_lookup()
 
@@ -1715,7 +1636,6 @@ def generate_piping_material_class_data(
             schedule_rows,
             reducing_data,
             class_reducing_codes,
-            item_code_db,
             class_specs,
             logger,
             component_mapping,

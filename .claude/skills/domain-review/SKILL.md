@@ -61,7 +61,7 @@ description: >-
 - UI를 변경했다면 → 대응 엔진/서비스 로직도 변경되었는지 확인.
 - DB 스키마나 JSON 구조를 변경했다면 → 읽기/쓰기 양쪽 모두 업데이트되었는지 확인.
 - 새 필드를 추가했다면 → `validator.py`, `pms_generator.py`, template 파일 모두 반영되었는지 확인.
-- 새 컴포넌트 그룹이나 타입을 추가했다면 → `component_mapping.json`, `Item_Code_DB.xlsx` 관련 로직도 확인.
+- 새 컴포넌트 그룹이나 타입을 추가했다면 → `component_mapping.json`, `item_code_db.json` 관련 로직도 확인.
 
 ### Step 3 — 리포트 작성
 

@@ -44,7 +44,7 @@ _LARGE = ("2", "24")
 
 def component_rows() -> dict[str, list[dict[str, str]]]:
     pipe = {**_CS, "Matl_Code": "A106-B", "Manufacturing_Method": "SMLS", "End_Type": "PE"}
-    forged = {**_CS, "Matl_Code": "A105", "Rating": "CL2000", "End_Type": "SW"}
+    forged = {**_CS, "Matl_Code": "A105", "Rating": "CL3000", "End_Type": "SW"}
     wrought = {**_CS, "Matl_Code": "A234-WPB", "Manufacturing_Method": "SMLS", "End_Type": "BW"}
     flange = {**_CS, "Matl_Code": "A105", "Rating": "CL150", "Facing": "RF", "Flange_Type": "WN",
               "Size2_From": "", "Size2_To": ""}
@@ -54,7 +54,11 @@ def component_rows() -> dict[str, list[dict[str, str]]]:
             _row("P", "2", "24", Length="", **pipe),
             _row("JN", "0.5", "1.5", Length="50mm", **pipe),
         ],
-        "Forged_Fitting_Group": [_row(c, "0.5", "1.5", **forged) for c in ("E", "T", "CP")],
+        "Forged_Fitting_Group": [
+            *[_row(c, "0.5", "1.5", **forged) for c in ("E", "T", "CP", "JFR")],
+            # Bushing 은 나사식 — B16.11 상 class 로 식별하지 않음.
+            _row("JB", "0.5", "1.5", **{**forged, "End_Type": "NPT"}),
+        ],
         "Wrought_Fitting_Group": [_row(c, "2", "24", **wrought) for c in ("E", "E4", "T", "CP")],
         # Blind(FB)는 Flange_Type 강제 문제(F10) 때문에 공용 샘플에서 제외 — test_validation 참고.
         "Flange_Group": [_row("F", "0.5", "24", uses_size1=True, **flange)],

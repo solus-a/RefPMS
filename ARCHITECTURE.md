@@ -35,7 +35,7 @@ Business logic belongs in the engine modules (`pms_generator`, `class_spec`, `th
 
 - `config/project/*.json` — project-level constraints (SSOT).
 - `config/generator/*.json` — generation/validation execution policy (`output_settings.json`, `coding_rules.json`, `validation_policy.json`).
-- `data/*` — program-internal datasets: `nps_catalog.json` (size catalog), `component_mapping.json`, `class_material_mapping.json`, `Item_Code_DB.xlsx`.
+- `data/*` — program-internal datasets: `nps_catalog.json` (size catalog), `component_mapping.json`, `class_material_mapping.json`, `item_code_db.json`.
 
 Config is loaded through the `ProjectConfig` singleton in `src/config.py`. Read values via `config.config_manager.get("dotted.key")`. On load/reload, `validate_project_constraints` runs and surfaces warnings.
 
@@ -47,7 +47,7 @@ Config is loaded through the `ProjectConfig` singleton in `src/config.py`. Read 
 | Size catalog (program-internal) | `data/nps_catalog.json` |
 | Class definition | `Class_Define` sheet, `class_spec.py` |
 | Class Size Range | `Class_Size_Range` sheet, `ClassSizeRange` in `class_level_model.py` |
-| Component specification | Component sheets, `component_mapping.json`, `Item_Code_DB.xlsx` |
+| Component specification | Component sheets, `component_mapping.json`, `item_code_db.json` |
 | Rule logic | `pms_generator.py`, `class_spec.py`, mapping JSONs |
 | Validation | `validator.py`, `project_constraints.py` |
 | Defaults | `data_defaults.py`, default columns in template |

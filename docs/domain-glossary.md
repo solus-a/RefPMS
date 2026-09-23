@@ -60,7 +60,7 @@ Project  ──▶  Class  ──▶  Component
 | Korean | 컴포넌트 (개별 자재 항목) |
 | Definition | The lowest level of the hierarchy. Within a Class, a Component is a **single, fully specified item** whose shape, characteristics, and detailed specifications have been determined to make it unique. |
 | Examples | A specific elbow (type, size, schedule, rating, material), a specific gasket (type, size, class, material) |
-| In code | Rows in template component sheets, `component_mapping.json`, `Item_Code_DB.xlsx` |
+| In code | Rows in template component sheets, `component_mapping.json`, `item_code_db.json` |
 
 > **Prohibited synonym**: Do NOT use `Material` as the name of this hierarchy level. `Material` in Korean can be confused with `재질` (metallurgical material), which is only one attribute of a Component.
 
@@ -268,7 +268,7 @@ This section maps each standard term to its representation in the codebase.
 |---|---|
 | Project | `config/project/*` JSON files; `project_constraints.py`; built-in size catalog `data/nps_catalog.json` |
 | Class | `Class_Define` sheet + `Class_Size_Range` sheet in template; `class_spec.py` |
-| Component | Component sheets in template; `component_mapping.json`; `Item_Code_DB.xlsx` |
+| Component | Component sheets in template; `component_mapping.json`; `item_code_db.json` |
 | Constraint | Values in `config/project/*`; `Class_Size_Range` sheet; checks in `project_constraints.py`, `validator.py`; `validation_policy.json` |
 | Condition | Input cells in template sheets; evaluated states in Rule logic |
 | Rule | Decision logic in `pms_generator.py`, `class_spec.py`; mapping JSONs |

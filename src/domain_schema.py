@@ -82,14 +82,12 @@ PIPE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,  # 같은 Item_Code가 사이즈·재질이 다른 여러 행에 등장 가능
         relations=[
-            "item_code_db.json: Item_Code -> Item_Name / Description_Prefix / Group",
-            "시트와 item_code_db.Group 이 정합되어야 함"
-            " (Pipe_Group 시트는 Group=Pipe_Group 인 코드만 허용)",
+            "item_code_db.json[<시트>]: code -> code_name (Item_Name·Description 선두)",
+            "같은 code(E, T, CP …)가 Forged/Wrought 에 따로 있으므로 항상 시트로 한정해 조회",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog의 콤보박스가 시트별 옵션 필터링;"
-            " PMS 엔진은 'Item_Code not in DB' 경고."
-            " 시트-Group 정합 강제 검증은 추후 별도 작업."
+            " PMS 엔진은 시트별 조회 실패 시 'not in item_code_db.json' 경고."
         ),
         input_method=(
             "wizard 컴포넌트 dialog의 콤보박스 (readonly — DB의 코드만 선택 가능)"

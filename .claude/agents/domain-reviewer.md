@@ -49,7 +49,7 @@ tools: Bash, Read, Glob, Grep
 - UI 변경 → 엔진/서비스 로직 동기화 확인
 - DB/JSON 구조 변경 → 읽기/쓰기 양쪽 모두
 - 새 필드 추가 → `validator.py`, `pms_generator.py`, template 모두 반영
-- 새 컴포넌트 그룹/타입 → `component_mapping.json`, `Item_Code_DB.xlsx` 관련 로직 확인
+- 새 컴포넌트 그룹/타입 → `component_mapping.json`, `item_code_db.json` 관련 로직 확인
 
 ### Step 3 — 리포트
 

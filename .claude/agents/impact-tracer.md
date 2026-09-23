@@ -30,7 +30,7 @@ tools: Read, Glob, Grep, Bash
 - `config/project/*.json` — 프로젝트 제약
 - `config/generator/*.json` — 생성/검증 정책
 - `data/field_values.json`, `data/item_code_db.json` — Components 탭 드롭다운
-- `data/component_mapping.json`, `data/class_material_mapping.json`, `data/Item_Code_DB.xlsx` — 매핑/카탈로그
+- `data/component_mapping.json`, `data/class_material_mapping.json` — 매핑/카탈로그
 
 ## 절차
 

@@ -63,30 +63,72 @@ def test_every_output_row_maps_back_to_a_component_row(generated):
         _source_row(generated.bundle, r["Item_Code"], r["Size1"])
 
 
-# ── 알려진 결함 (체크리스트 F번호) ─────────────────────────────────────────
-
-@pytest.mark.xfail(reason="F1: 생성기가 레거시 Item_Code_DB.xlsx 를 읽어 Fitting description 이 빈 값")
 def test_every_row_has_description(generated):
+    # F1 해결: 생성기가 item_code_db.json 을 그룹별로 조회.
     empty = sorted({r["Item_Code"] for r in generated.rows if not r["Item_Description"]})
     assert empty == []
 
 
-@pytest.mark.xfail(reason="F2·F3: Item_Name 이 GUI 의 item_code_db.json(그룹별)과 다름")
 def test_item_name_matches_item_code_db_json(generated):
+    # F2·F3 해결. Wrought 엘보는 LR/SR 을 유지한다 (ASME B16.9: LR·SR 은 치수표가 다른 별개 부품).
+    # 니플(JN)만 길이로 식별하므로 code_name 뒤에 Length 가 붙는다.
     wrong = set()
     for r in generated.rows:
-        sheet, _ = _source_row(generated.bundle, r["Item_Code"], r["Size1"])
-        if r["Item_Name"] != _code_name(sheet, r["Item_Code"]):
-            wrong.add((sheet, r["Item_Code"], r["Item_Name"]))
+        sheet, row = _source_row(generated.bundle, r["Item_Code"], r["Size1"])
+        expected = _code_name(sheet, r["Item_Code"])
+        if r["Item_Code"] == "JN":
+            expected = f"{expected} {row['Length']}"
+        if r["Item_Name"] != expected:
+            wrong.add((sheet, r["Item_Code"], r["Item_Name"], expected))
     assert sorted(wrong) == []
 
 
-@pytest.mark.xfail(reason="F4: 생성기가 Global Size Selection 을 무시하고 카탈로그 전체 크기를 전개")
 def test_sizes_respect_global_size_selection(generated):
+    # F4 해결: 상위 제약(Class 범위 ∩ Global Size Selection) 밖의 크기는 전개하지 않는다.
     selection: SizeSelection = generated.bundle.global_settings.size_selection
     outside = sorted({r["Size1"] for r in generated.rows} - set(selection.nps), key=float)
     assert outside == []
 
+
+def _forged_rows(generated):
+    return [
+        r for r in generated.rows
+        if _source_row(generated.bundle, r["Item_Code"], r["Size1"])[0] == "Forged_Fitting_Group"
+    ]
+
+
+def test_forged_fitting_rating_keeps_cl_notation(generated):
+    # F7 해결: CL3000 → 3000# 역변환 없음. Bushing(JB)은 class 로 식별하지 않아 등급 없음.
+    forged = [r for r in _forged_rows(generated) if r["Item_Code"] != "JB"]
+    assert forged
+    assert all("CL3000" in r["Item_Description"] for r in forged)
+    assert not any("#" in (r["Item_Description"] or "") for r in generated.rows)
+
+
+def test_forged_fitting_thickness_is_rating(generated):
+    # ASME B16.11 §2.1: 단조 피팅은 Class 로 식별 → Thickness1 은 Schedule 이 아니라 Rating.
+    # Plug·Bushing 은 class 로 식별하지 않으므로 빈 값.
+    by_code = {(r["Item_Code"], r["Thickness1"]) for r in _forged_rows(generated)}
+    assert by_code == {("E", "CL3000"), ("T", "CL3000"), ("CP", "CL3000"), ("JFR", "CL3000"), ("JB", None)}
+
+
+def test_forged_reducing_items_do_not_repeat_rating(generated):
+    # 회귀 방지: JFR 직접 행이 Reducer 분기를 타서 "CL3000 CL3000" 이 찍히던 문제.
+    descs = {r["Item_Code"]: r["Item_Description"] for r in _forged_rows(generated)}
+    assert descs["JFR"] == "REDUCING FULL COUPLING A105 SW CL3000"
+    assert descs["JB"] == "BUSHING A105 NPT"
+
+
+def test_wrought_fitting_thickness_is_schedule(generated):
+    wrought = [
+        r for r in generated.rows
+        if _source_row(generated.bundle, r["Item_Code"], r["Size1"])[0] == "Wrought_Fitting_Group"
+    ]
+    assert wrought
+    assert {r["Thickness1"] for r in wrought} == {"STD"}
+
+
+# ── 알려진 결함 (체크리스트 F번호) ─────────────────────────────────────────
 
 @pytest.mark.xfail(reason="F5: 생성기 description 로직이 GUI _DESCRIPTION_SPECS 와 별개")
 def test_description_matches_gui_preview(generated):
@@ -104,14 +146,3 @@ def test_description_matches_gui_preview(generated):
 @pytest.mark.xfail(reason="F6: Commodity Code 미구현")
 def test_every_row_has_commodity_code(generated):
     assert [r["Item_Code"] for r in generated.rows if not r["Commodity_Code"]] == []
-
-
-@pytest.mark.xfail(reason="F1·F7: Forged Fitting rating 이 CL 표기로 나와야 함 (현재 빈 값, 코드에는 # 역변환 잔존)")
-def test_forged_fitting_rating_keeps_cl_notation(generated):
-    forged = [
-        r for r in generated.rows
-        if _source_row(generated.bundle, r["Item_Code"], r["Size1"])[0] == "Forged_Fitting_Group"
-    ]
-    assert forged
-    assert all("CL2000" in (r["Item_Description"] or "") for r in forged)
-    assert not any("#" in (r["Item_Description"] or "") for r in generated.rows)
