@@ -182,3 +182,4 @@ for k in "ABCDEFG":
     for line in lst:
         print("   -", line)
 print(f"\n==== 총 이슈: {total} ====")
+sys.exit(1 if total else 0)

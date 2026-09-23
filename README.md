@@ -9,6 +9,7 @@ A transformation engine that takes project-level piping constraints, class-level
 ## Common Commands
 
 - Run the GUI: `python run.py`
+- Run tests: `python -m pytest` (install once: `pip install -r requirements-dev.txt`). `xfail` entries are known defects tracked in `docs/V1_CHECKLIST.md`.
 
 ## Gotchas
 
