@@ -245,14 +245,14 @@ PIPE_GROUP_FIELDS: list[FieldDefinition] = [
         relations=[
             "Matl_Std -> Matl_Code 종속:"
             " 각 항목의 'std' 키가 Matl_Std 값과 일치 (wizard 콤보박스 필터)",
-            "Matl_Category -> Matl_Code 종속은 보류:"
-            " DB 항목에 'category' 키가 아직 없음 — 추가 후 wizard 필터 보강 예정",
-            "PMS 출력: _build_pipe_description 의 description 토큰",
+            "Matl_Category -> Matl_Code 종속:"
+            " 각 항목의 'category' 키가 Matl_Category 값과 일치 (code_category_consistency)",
+            "PMS 출력: Item_Description 의 재질 토큰",
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스"
-            " (선택된 Matl_Std 로 std 필터 적용 — _std_filtered_options_for)."
-            " PMS 엔진은 description 출력에만 사용 (값 검증 없음)."
+            " (선택된 Matl_Std·Matl_Category 로 필터 — _filtered_code_options)."
+            " PMS 엔진은 validator 의 code_category_consistency 로 category 일치 검사."
         ),
         input_method=(
             "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
@@ -1035,7 +1035,7 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "std 키는 데이터에 있으나 dialog 는 Rating 을 Matl_Std 로 거르지 않음 (전체 목록 표시)",
             "End_Type 호환 (Constraint — ASME B16.11-2016 §2.1,"
             " FORGED_RATING_BY_END_TYPE):"
             "   ASTM CL2000 ↔ threaded (PT/NPT) only,"
@@ -1446,17 +1446,16 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "std 키는 데이터에 있으나 dialog 는 Rating 을 Matl_Std 로 거르지 않음 (전체 목록 표시)",
             "Facing 과 호환 관행: CL600+ 는 RTJ 가 흔함, CL150-CL300 는 RF/FF —"
             " 강제 검증 없음, 사용자 판단",
             "PMS description 에 합성 (예: 'FLANGE A105 WN CL150 RF')",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
-            " 와 일치하는 항목만)"
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 전체)"
         ),
         unit=None,
     ),
@@ -1869,7 +1868,7 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
             " IR-SS316 OR-CS CL150 RF 4.5mm')",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + Class std 필터)."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set; std 필터 없음)."
         ),
         input_method=(
             "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)"
@@ -2689,17 +2688,16 @@ GATE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "std 키는 데이터에 있으나 dialog 는 Rating 을 Matl_Std 로 거르지 않음 (전체 목록 표시)",
             "Flange_Group.Rating 의 옵션 풀과 동일 — flange 와 valve 가 같은"
             " rating 체계를 공유",
             "PMS description 에 합성",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
-            " 와 일치하는 항목만)"
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 전체)"
         ),
         unit=None,
     ),
@@ -3153,16 +3151,15 @@ GLOBE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "std 키는 데이터에 있으나 dialog 는 Rating 을 Matl_Std 로 거르지 않음 (전체 목록 표시)",
             "Flange_Group.Rating / Gate_Valve_Group.Rating 과 옵션 풀 동일",
             "PMS description 에 합성",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
-            " 와 일치하는 항목만)"
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 전체)"
         ),
         unit=None,
     ),
@@ -3613,16 +3610,15 @@ CHECK_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "std 키는 데이터에 있으나 dialog 는 Rating 을 Matl_Std 로 거르지 않음 (전체 목록 표시)",
             "Flange/Gate/Globe 의 Rating 과 옵션 풀 동일",
             "PMS description 에 합성",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
-            " 와 일치하는 항목만)"
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 전체)"
         ),
         unit=None,
     ),
@@ -4049,16 +4045,15 @@ BALL_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "std 키는 데이터에 있으나 dialog 는 Rating 을 Matl_Std 로 거르지 않음 (전체 목록 표시)",
             "Flange/Gate/Globe/Check 의 Rating 과 옵션 풀 동일",
             "PMS description 에 합성",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
-            " 와 일치하는 항목만)"
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 전체)"
         ),
         unit=None,
     ),
@@ -4553,16 +4548,15 @@ BUTTERFLY_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "std 키는 데이터에 있으나 dialog 는 Rating 을 Matl_Std 로 거르지 않음 (전체 목록 표시)",
             "다른 valve Rating 풀의 부분집합 (저압 영역만)",
             "PMS description 에 합성",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
-            " 와 일치하는 항목만)"
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 전체)"
         ),
         unit=None,
     ),
@@ -5025,16 +5019,15 @@ PLUG_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "std 키는 데이터에 있으나 dialog 는 Rating 을 Matl_Std 로 거르지 않음 (전체 목록 표시)",
             "Flange/Gate/Globe/Check/Ball 의 Rating 과 옵션 풀 동일",
             "PMS description 에 합성",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
-            " 와 일치하는 항목만)"
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 전체)"
         ),
         unit=None,
     ),
@@ -5480,16 +5473,15 @@ NEEDLE_VALVE_GROUP_FIELDS: list[FieldDefinition] = [
         ),
         unique=None,
         relations=[
-            "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
+            "std 키는 데이터에 있으나 dialog 는 Rating 을 Matl_Std 로 거르지 않음 (전체 목록 표시)",
             "Globe/Gate/Check/Ball/Plug 의 Rating 과 옵션 풀 동일",
             "PMS description 에 합성",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
-            " 와 일치하는 항목만)"
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 전체)"
         ),
         unit=None,
     ),

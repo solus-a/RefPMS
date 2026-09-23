@@ -82,7 +82,7 @@ xfail 대응: F5·F6 → `test_generator_e2e.py` (F1·F2/F3·F4·F7·F8·F10·F1
   - 근거: WN은 용접 끝 보어를 배관 두께에 맞춤(B16.5 §7.7), SO·LJ는 배관 외경에 끼우는 형식(§7.7.1 보어 공차), Blind는 보어 없음
 - [ ] 3-10. closed set 소속 검사: GUI 저장·엔진 모두 필드값이 field_values 목록에 있는지 검사하지 않음 (옛 값 보존 때문에 목록 밖 값이 다시 저장될 수 있음). 검사 도입 여부 결정
 - [ ] 3-11. (도메인 확인) Reducing Flange(FR)+WN의 Schedule 기준 크기: 지금은 Thickness1·Description SCH가 큰 쪽(Size1) 기준. WN 허브·보어는 작은 쪽 배관에 맞추므로 Size2 기준이 맞는지 확인 필요
-- [ ] 3-9. 문서 정합: Flange·Valve Rating 정의에 "Matl_Std 와 일치하는 항목만"이라 적혀 있으나 dialog는 Rating을 std로 거르지 않음 (Forged만 이번에 정정)
+- [x] 3-9. 문서 정합: Flange·Gasket·Valve 9개 Rating 정의의 "Matl_Std 로 거름" 문구를 실제 동작(전체 목록 표시)으로 정정. Pipe Matl_Code 설명의 낡은 내용(category 키 없음·없는 함수명·엔진 검증 없음)도 정정
 - 후보(미확정): B16.9 3D 엘보(Table 6.1-6) Item Code 추가 / SR 엘보(ES·ES4) 사용 시 경고 규칙 (SR은 Jacket Elbow 외 사용 제한 — 사용자 도메인 지식)
 
 ## 4. Description 단일화
