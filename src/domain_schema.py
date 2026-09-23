@@ -1030,27 +1030,29 @@ FORGED_FITTING_GROUP_FIELDS: list[FieldDefinition] = [
         format_constraint=(
             "data/field_values.json 의 Forged_Fitting_Group.Rating 옵션"
             " (closed set, std 키 포함). ASTM 4 + JIS 1 + KS 1 = 6 entries"
-            " — JIS/KS 가 short='Sch80' 으로 중복되므로 dialog 는 std 필터링"
-            " 후 매칭되는 long 라벨을 표시."
+            " — JIS/KS 는 저장값이 같은 'SCH80' 이라 dialog 에는 한 항목으로 표시."
+            " dialog 는 Rating 을 std 로 거르지 않는다 (End_Type 호환만 거름)."
         ),
         unique=None,
         relations=[
             "Matl_Std (FK) — std-aware 필터링의 1차 게이트",
-            "End_Type 과 호환 관행:"
+            "End_Type 호환 (Constraint — ASME B16.11-2016 §2.1,"
+            " FORGED_RATING_BY_END_TYPE):"
             "   ASTM CL2000 ↔ threaded (PT/NPT) only,"
             "   ASTM CL9000 ↔ SW only,"
             "   ASTM CL3000/CL6000 ↔ SW · threaded 공통,"
-            "   JIS/KS Sch80 ↔ SW · threaded 공통 (B 2316 / B 2316S)"
-            " — 강제 검증은 별도 작업, 현재 wizard 는 자유 조합 허용",
+            "   JIS/KS Sch80 ↔ SW · threaded 공통 (B 2316 / B 2316S) — 규칙 대상 아님",
             "PMS description 에 합성 (예: 'ELBOW 90 DEG A105 SW CL3000')",
         ],
         validation_location=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (closed set + std 필터)."
-            " End_Type 호환 강제 검증은 미구현 (별도 작업)."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
+            " End_Type 호환: dialog 가 맞지 않는 Class 등급을 후보에서 빼고 저장 시 차단"
+            " (class_level_model.component_row_constraint_errors),"
+            " PMS 엔진은 validator 에서 같은 규칙으로 행을 거른다."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 Matl_Std"
-            " 와 일치하는 항목만)"
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션 중 End_Type 과"
+            " 호환되는 항목만)"
         ),
         unit=None,
     ),
@@ -1506,12 +1508,11 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
             " Item_Code=FB/F8/FBS 행에서는 Flange_Type 이 의미 없음 (빈 값)."
         ),
         data_type="string (short code)",
-        required=True,
+        required=False,  # Item_Code ∈ {F, FR} 일 때만 필수 — conditional_required_when
         format_constraint=(
             "data/field_values.json 의 Flange_Group.Flange_Type 옵션"
             " (closed set, 5개)."
-            " Item_Code ∈ {F, FR} 일 때만 의미; FB/F8/FBS 행에서는 N/A"
-            " (조건부 검증은 별도 작업)."
+            " Item_Code ∈ {F, FR} 이면 필수, FB/F8/FBS 이면 빈 값이어야 함."
         ),
         unique=None,
         relations=[
@@ -1522,13 +1523,15 @@ FLANGE_GROUP_FIELDS: list[FieldDefinition] = [
         ],
         validation_location=(
             "wizard 컴포넌트 dialog 의 콤보박스 (closed set)."
-            " Item_Code 와의 조건부 검증은 별도 작업."
+            " conditional_required / conditional_empty 규칙으로 dialog 저장 시·PMS 엔진 검증."
         ),
         input_method=(
             "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)."
-            " Item_Code ∈ {F, FR} 일 때만 활성화."
+            " Item_Code ∈ {F, FR} 일 때만 활성화, 그 외엔 비우고 잠금."
         ),
         unit=None,
+        conditional_required_when={"field": "Item_Code", "values": ["F", "FR"]},
+        conditional_empty_when={"field": "Item_Code", "values": ["FB", "F8", "FBS"]},
     ),
     FieldDefinition(
         name="Option_Code",
@@ -1997,10 +2000,9 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
 #   - Bolt 재질: Bolt_Matl_Category/Std/Code 3컬럼. Nut 는 Nut_Type + Nut_Matl_Std
 #     + Nut_Matl_Code. Nut designation 은 Bolt 와 다르며(B7↔2H) 독립 지정;
 #     카테고리(탄소강계/SS계)만 Bolt 를 추종 — 큰 분류 일치 검증은 Phase 2-b.
-#   - Bolt_Length_Table: size 별 bolt 길이를 별도 시트에 두고 키로 참조
-#     · 옵션 풀은 닫힌 집합이 아니라 사용자 자유 — _meta.external_dropdown_sources
-#       에 "TBD: separate length table file" 로 표기되어 있음.
-#     · LT-A / LT-B 같은 표기를 사용자가 정함; 본 도메인 검증은 별도 작업.
+#   - Bolt_Length_Table: 선택 입력, 값은 'ASME B16.5' (B16.5 §6.10.2 의 stud bolt
+#     길이 표 Table 7·10·13·15·17·19·21 을 차용). 길이는 개별 자재 정보라
+#     Commodity 단위 PMS 산출물에는 쓰지 않는다. 표 데이터 자체는 아직 없음.
 #   - Bolt_Type / Nut_Type: 형식 구분
 #     · Bolt_Type: STUD BOLT / MACHINE BOLT (Hex Cap Screw 등은 현재 미고려)
 #     · Nut_Type: HEX NUTS / HEAVY HEX NUTS
@@ -2031,7 +2033,7 @@ GASKET_GROUP_FIELDS: list[FieldDefinition] = [
 #   - Nut_Type: Square Nut, Coupling Nut, Lock Nut, Self-Locking 등
 #   - Matl_Std: EN (예: EN ISO 898-1 Class 8.8, 10.9) — 현재 미등록
 #   - Bolt-Nut 표준 짝 강제 (A193-B7 ↔ A194-2H 등) — 자유 조합으로 시작
-#   - Bolt_Length_Table 의 시트 정의 자체 (별도 시트로 분리하는 작업)
+#   - ASME B16.5 stud bolt 길이 표 데이터 (Class·NPS·facing → L)
 #   - Coating / Plating (Hot-dip galvanized, Zinc, Xylan 등) — Remarks 로 우회
 #   - Washer 사양 — 미고려
 
@@ -2339,35 +2341,28 @@ BOLT_GROUP_FIELDS: list[FieldDefinition] = [
     FieldDefinition(
         name="Bolt_Length_Table",
         meaning=(
-            "Bolt 길이 매핑 테이블의 식별자 (예: 'LT-A', 'LT-B'). 별도 시트에서"
-            " 정의되며, 한 row 가 (NPS/DN size, flange rating, facing, gasket 종류"
-            " 등) → 실제 bolt 구경 (inch 또는 M-thread) + bolt 길이 (mm/inch) 로"
-            " 매핑."
-            " 실제 bolt 구경 단위 (inch vs M-thread) 는 이 table 에서 결정 — Bolt"
-            " sheet 자체에는 단위 체계 강제 없음."
-            " 현재는 자유 텍스트 또는 추후 외부 시트 reference (별도 작업)."
-            " _meta.external_dropdown_sources 에 'TBD: separate length table file'"
-            " 로 표기됨."
+            "Stud bolt 길이를 찾을 기준 표의 식별자."
+            " 현재 값은 'ASME B16.5' 하나 — B16.5-2020 §6.10.2: stud bolt 길이 L 은"
+            " Class 별 drilling template 표 (Table 7·10·13·15·17·19·21, inch 는 7C…21C)"
+            " 에 NPS·facing 별로 규정됨. 실제 길이 데이터(표 내용)는 아직 RefPMS 에 없음."
+            " 볼트 길이는 개별 자재를 특정하는 정보라 Commodity 단위 PMS 산출물에는 쓰지"
+            " 않는다 — 그래서 선택 입력."
         ),
-        data_type="string (table identifier; e.g. 'LT-A')",
-        required=True,
+        data_type="string (table identifier; e.g. 'ASME B16.5')",
+        required=False,
         format_constraint=(
-            "현재 형식 강제 없음 — 사용자 자유 텍스트. 추후 외부 시트 reference"
-            " 로 closed set 화 예정."
+            "data/field_values.json 의 Bolt_Group.Bolt_Length_Table 옵션 (closed set)."
         ),
         unique=None,
         relations=[
-            "(외부) Bolt_Length_Table 시트 — table_id → size/dia/length 매핑",
-            "Class_Define.std 와 Bolt_Length_Table 의 단위 체계 (inch/metric)"
-            " 정합은 사용자 책임 (RefPMS 는 강제 검증 안 함)",
-            "PMS description 합성 시 size 별 bolt 길이 lookup 의 키",
+            "ASME B16.5 Table 7·10·13·15·17·19·21 — (Class, NPS, facing) → stud bolt 길이 L",
+            "PMS 엔진은 참조하지 않음 (Commodity 단위 산출물에 길이 없음)",
         ],
         validation_location=(
-            "현재 미구현 — 자유 텍스트 입력."
+            "wizard 컴포넌트 dialog 의 콤보박스 (closed set, (None) 허용)."
         ),
         input_method=(
-            "wizard 컴포넌트 dialog 의 자유 텍스트 입력 (Entry widget)."
-            " 추후 외부 시트 reference 콤보로 전환 예정."
+            "wizard 컴포넌트 dialog 의 콤보박스 (readonly — DB 옵션만)."
         ),
         unit=None,
     ),
@@ -6172,6 +6167,26 @@ def headers(sheet: str) -> list[str]:
 def required_fields(sheet: str) -> list[str]:
     """required=True 인 필드명 목록 (required_non_empty 도출원)."""
     return [fd.name for fd in GROUPS[sheet] if fd.required]
+
+
+# Forged fitting End_Type ↔ Rating (Constraint).
+# ASME B16.11-2016 §2.1: threaded 는 Class 2000/3000/6000, socket-weld 는 Class 3000/6000/9000.
+# 이 Class 집합에 없는 Rating(JIS·KS 의 Sch80 등)은 규칙 대상이 아니다.
+FORGED_B16_11_CLASSES: frozenset[str] = frozenset({"CL2000", "CL3000", "CL6000", "CL9000"})
+FORGED_RATING_BY_END_TYPE: dict[str, frozenset[str]] = {
+    "SW": frozenset({"CL3000", "CL6000", "CL9000"}),
+    "PT": frozenset({"CL2000", "CL3000", "CL6000"}),
+    "NPT": frozenset({"CL2000", "CL3000", "CL6000"}),
+}
+
+
+def forged_rating_allowed(end_type: str, rating: str) -> bool:
+    """Forged fitting 의 End_Type 과 Rating 조합이 B16.11 §2.1 에 맞으면 True."""
+    rating_u = (rating or "").strip().upper()
+    end_u = (end_type or "").strip().upper()
+    if rating_u not in FORGED_B16_11_CLASSES or end_u not in FORGED_RATING_BY_END_TYPE:
+        return True
+    return rating_u in FORGED_RATING_BY_END_TYPE[end_u]
 
 
 def _grouped_conditional(sheet: str, attr: str, require_key: str) -> list[dict]:

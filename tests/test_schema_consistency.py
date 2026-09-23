@@ -34,3 +34,17 @@ def test_schema_audit_reports_no_issues():
     )
     # schema_audit 는 이슈가 하나라도 있으면 종료 코드 1.
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_cl800_only_on_api602_valve_groups():
+    # API 602 §1: Class 800 은 소구경 단조 Gate·Globe·Check 용 중간 등급 (사용자 결정: 이 3종만).
+    with_cl800 = {
+        sheet for sheet in domain_schema.GROUPS
+        if any(o.get("abbr") == "CL800" for o in domain_schema.field_value_options(sheet, "Rating") or [])
+    }
+    assert with_cl800 == {"Gate_Valve_Group", "Globe_Valve_Group", "Check_Valve_Group"}
+
+
+def test_bolt_length_table_values():
+    values = [o["abbr"] for o in domain_schema.field_value_options("Bolt_Group", "Bolt_Length_Table")]
+    assert values == ["ASME B16.5"]

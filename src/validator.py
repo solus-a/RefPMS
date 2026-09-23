@@ -8,6 +8,7 @@ from typing import Any
 
 import config
 import domain_schema
+from class_level_model import component_row_constraint_errors
 from excel_sheet_utils import get_cell_text as _get_cell_text
 
 
@@ -93,10 +94,12 @@ def validate_template_row(
     ``matl_code_categories`` 는 ``load_matl_code_category_lookup`` 결과로,
     ``code_category_consistency`` rule 처리 시 코드→카테고리 조회에 사용.
     """
+    row_values = {f: _get_cell_text(ws, row_idx, header_to_col, f) for f in header_to_col}
     sheets = mapping.get("sheets") or {}
     rules = sheets.get(sheet_name)
     if not rules or not isinstance(rules, dict):
-        return []
+        # 필드 간 Constraint 는 mapping 과 무관하게 항상 적용.
+        return _constraint_messages(sheet_name, row_idx, row_values)
 
     messages: list[str] = []
 
@@ -189,7 +192,16 @@ def validate_template_row(
                 f"category {expected!r}, but {category_field}={category_val!r}"
             )
 
+    messages.extend(_constraint_messages(sheet_name, row_idx, row_values))
     return messages
+
+
+def _constraint_messages(sheet_name: str, row_idx: int, row: dict[str, str]) -> list[str]:
+    """필드 간 Constraint (GUI 저장 검증과 같은 함수) — PMS 엔진 메시지 형식으로."""
+    return [
+        f"{sheet_name} row {row_idx}: {msg}"
+        for msg in component_row_constraint_errors(sheet_name, row)
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -349,7 +361,8 @@ def validate_template_row_dict(
     sheets = mapping.get("sheets") or {}
     rules = sheets.get(sheet_name)
     if not rules or not isinstance(rules, dict):
-        return []
+        # 필드 간 Constraint 는 mapping 과 무관하게 항상 적용.
+        return _constraint_messages(sheet_name, row_idx, row)
 
     def _v(field: str) -> str:
         return str(row.get(field, "") or "")
@@ -441,6 +454,7 @@ def validate_template_row_dict(
                 f"category {expected!r}, but {category_field}={category_val!r}"
             )
 
+    messages.extend(_constraint_messages(sheet_name, row_idx, row))
     return messages
 
 

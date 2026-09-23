@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -91,6 +92,8 @@ class SizeSelection:
 # 별도 경로(validate 의 비어있음 검사)에서 다룬다.
 import domain_schema as _domain_schema
 
+_logger = logging.getLogger(__name__)
+
 CLASS_DEFINE_REQUIRED_FIELDS: tuple[str, ...] = tuple(
     f for f in _domain_schema.class_define_required_fields() if f != "Class_Name"
 )
@@ -166,6 +169,55 @@ def component_row_missing_required(
                 missing.append(req)
 
     return missing
+
+
+def component_row_constraint_errors(
+    sheet_name: str, values: dict[str, str]
+) -> list[str]:
+    """Component row 의 필드 간 Constraint 위반 목록. 빈 리스트 = OK.
+
+    GUI 저장과 PMS 엔진(validator)이 같은 규칙을 쓰도록 여기 한 곳에 둔다.
+    현재: Forged fitting End_Type ↔ Rating (ASME B16.11 §2.1).
+    """
+    if sheet_name != "Forged_Fitting_Group":
+        return []
+    end_type = (values.get("End_Type") or "").strip()
+    rating = (values.get("Rating") or "").strip()
+    if not end_type or not rating or _domain_schema.forged_rating_allowed(end_type, rating):
+        return []
+    allowed = ", ".join(sorted(_domain_schema.FORGED_RATING_BY_END_TYPE[end_type.upper()]))
+    return [
+        f"Rating {rating} is not allowed with End_Type {end_type}"
+        f" (ASME B16.11 §2.1: {allowed})"
+    ]
+
+
+def component_row_clear_conditional_empty(
+    sheet_name: str, values: dict[str, str]
+) -> dict[str, str]:
+    """conditional_empty 규칙상 비어 있어야 하는 필드를 비운 사본.
+
+    불러오기 경계(프로젝트 JSON · 템플릿 xlsx)에서 호출해, 규칙이 바뀌기 전에 저장된
+    행(예: Flange_Type 이 필수였던 시절의 FB 행에 남은 'WN')을 현행 규칙에 맞춘다.
+    그대로 두면 PMS 엔진이 그 행을 conditional_empty 위반으로 제외한다.
+    """
+    from data_defaults import DEFAULT_COMPONENT_MAPPING
+
+    rules = (DEFAULT_COMPONENT_MAPPING.get("sheets") or {}).get(sheet_name) or {}
+    out = dict(values)
+    for cond in rules.get("conditional_empty", []):
+        when_field = cond.get("when_field")
+        allowed = {str(v).strip().upper() for v in (cond.get("when_values") or [])}
+        if (out.get(when_field) or "").strip().upper() not in allowed:
+            continue
+        for f in cond.get("require_empty", []):
+            if (out.get(f) or "").strip():
+                _logger.warning(
+                    "%s: cleared %s=%r (must be empty when %s=%r)",
+                    sheet_name, f, out[f], when_field, out.get(when_field),
+                )
+                out[f] = ""
+    return out
 
 
 def component_row_required_fields(sheet_name: str) -> frozenset[str]:

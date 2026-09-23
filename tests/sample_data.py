@@ -60,8 +60,11 @@ def component_rows() -> dict[str, list[dict[str, str]]]:
             _row("JB", "0.5", "1.5", **{**forged, "End_Type": "NPT"}),
         ],
         "Wrought_Fitting_Group": [_row(c, "2", "24", **wrought) for c in ("E", "E4", "T", "CP")],
-        # Blind(FB)는 Flange_Type 강제 문제(F10) 때문에 공용 샘플에서 제외 — test_validation 참고.
-        "Flange_Group": [_row("F", "0.5", "24", uses_size1=True, **flange)],
+        "Flange_Group": [
+            _row("F", "0.5", "24", uses_size1=True, **flange),
+            # Blind 는 Flange_Type 이 없다 (Item_Code=FB 가 형식을 나타냄).
+            _row("FB", "0.5", "24", uses_size1=True, **{**flange, "Flange_Type": ""}),
+        ],
         "Gasket_Group": [
             _row("G", "0.5", "24", Gasket_Type="SHEET", Material_Primary="COMPRESSED NON-ASBESTOS",
                  Material_Secondary="ARAMID FIBER+NBR", Rating="CL150", Facing="RF", Thickness="1.5mm"),
@@ -69,7 +72,7 @@ def component_rows() -> dict[str, list[dict[str, str]]]:
         "Bolt_Group": [
             _row("B", "0.5", "24", Bolt_Type="STUD BOLT", Bolt_Matl_Category="CS", Bolt_Matl_Std="ASTM",
                  Bolt_Matl_Code="A307-B", Nut_Type="HEX NUTS", Nut_Matl_Std="ASTM",
-                 Nut_Matl_Code="A194-2H", Bolt_Length_Table="BLT-CL150"),
+                 Nut_Matl_Code="A194-2H", Bolt_Length_Table="ASME B16.5"),
         ],
         "Gate_Valve_Group": [
             _row("VA", *_LARGE, uses_size1=True, **_VALVE, Trim_Matl="13CR", End_Type="FLGD RF",
@@ -95,7 +98,7 @@ def component_rows() -> dict[str, list[dict[str, str]]]:
             _row("VP", *_LARGE, uses_size1=True, **_VALVE, Plug_Matl="SS316", Seat_Matl="PTFE",
                  End_Type="FLGD RF", Operation="HW", Plug_Type="LUBRICATED"),
         ],
-        # 소구경 단조 계장 밸브. 실무 표준 CL800 은 Rating 선택지에 없어 CL150 사용 — F11.
+        # 소구경 단조 계장 밸브. CL800 은 API 602 범위(Gate·Globe·Check)에만 두기로 결정 — CL150 사용.
         "Needle_Valve_Group": [
             _row("VN", "0.5", "1", uses_size1=True, **{**_VALVE, "Matl_Code": "A105"}, Trim_Matl="SS316",
                  Seat_Matl="PTFE", End_Type="SW", Bonnet_Stem="BB OS&Y", Operation="HW",

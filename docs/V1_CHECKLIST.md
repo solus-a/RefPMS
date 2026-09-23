@@ -35,11 +35,12 @@
 | F5 | 큼 | Description이 GUI 미리보기와 다름: 밸브(Operation 토큰 누락, 다른 토큰 추가), 볼트(`STUD BOLT BOLT A307-B / HEX NUTS NUT A194-2H`) | 생성기에 GUI `_DESCRIPTION_SPECS`와 별개인 description 로직 |
 | F6 | 큼 | `Commodity_Code` 224/224 빈 값 | 미구현 |
 | F7 ✅ | 중 | Forged Fitting rating을 `CL2000 → 2000#`로 역변환하는 코드 잔존 (CL 통일 결정과 모순; F1 때문에 지금은 드러나지 않음) | 폐지 누락 |
-| F8 | 중 | `Bolt_Length_Table`: 필수인데 값 목록 없음 → 자유입력. 생성기는 비었는지만 확인하고 값은 안 씀. `schema_audit`는 외부 소스로 분류해 문제를 가림 | 값 소스 미정의 |
+| F8 ✅ | 중 | `Bolt_Length_Table`: 필수인데 값 목록 없음 → 자유입력. 생성기는 비었는지만 확인하고 값은 안 씀. `schema_audit`는 외부 소스로 분류해 문제를 가림 | 값 소스 미정의 |
 | F9 | 작음 | GUI가 PIPE(P)에도 Length 입력을 허용 → 미리보기 `PIPE … 50mm`, 산출물은 무시 | 조건부 빈 값 규칙 없음 |
-| F10 | 중 | Blind Flange(FB)·Spectacle 등에도 `Flange_Type`(WN/SO/LJ/SW/THRD)이 필수 → `BLIND FLANGE A105 WN …`, 생성기는 WN이면 Schedule까지 붙임 | 필수 규칙이 Item_Code를 구분하지 않음 |
-| F11 | 중 | 밸브 Rating 선택지에 CL800이 없음 — 소구경 단조 밸브의 실무 표준 등급을 고를 수 없음 (API 602 §1: "intermediate class number widely used for SW/threaded compact valves") | field_values 값 누락 |
-| F12 | 중 | GUI가 Forged Fitting에 SW + CL2000 조합을 허용 — ASME B16.11 §2.1상 SW는 Class 3000/6000/9000, 2000은 나사식 전용 | End_Type↔Rating 규칙 없음 |
+| F10 ✅ | 중 | Blind Flange(FB)·Spectacle 등에도 `Flange_Type`(WN/SO/LJ/SW/THRD)이 필수 → `BLIND FLANGE A105 WN …`, 생성기는 WN이면 Schedule까지 붙임 | 필수 규칙이 Item_Code를 구분하지 않음 |
+| ~~F11~~ | — | **오판 정정:** Gate·Globe·Check에는 CL800이 이미 있었음 (1번 실측 때 Needle 선택지만 보고 일반화). 사용자 결정(API 602 범위 Gate·Globe·Check만)과 현 데이터가 일치 → 변경 없음, 테스트로 고정 | — |
+| F12 ✅ | 중 | GUI가 Forged Fitting에 SW + CL2000 조합을 허용 — ASME B16.11 §2.1상 SW는 Class 3000/6000/9000, 2000은 나사식 전용 | End_Type↔Rating 규칙 없음 |
+| F13 | 작음 | Blind Flange(FB) 행의 `Thickness1`에 배관 Schedule(SCH80/STD)이 들어감 — Blind는 맞물릴 배관 보어가 없어 의미가 불분명 | Flange 두께 = Schedule 일괄 적용 |
 
 정상 확인: Pipe·Flange·Gasket·Valve는 이름과 두께(Schedule 연동)가 기대대로 나옴. Pipe·Flange에 Schedule 토큰이 붙는 것은 의도된 차이 (미리보기는 Class 연동 토큰 제외).
 
@@ -49,9 +50,9 @@
 
 ## 2. 안전망 — pytest ✅
 
-실행: `python -m pytest` (설치: `pip install -r requirements-dev.txt`). 현재 **65 passed, 3 xfailed** (F5·F6·F10).
+실행: `python -m pytest` (설치: `pip install -r requirements-dev.txt`). 현재 **93 passed, 2 xfailed** (F5·F6).
 
-xfail 대응: F5·F6 → `test_generator_e2e.py`, F10 → `test_validation.py` (F1·F2/F3·F4·F7은 3번에서 해결되어 일반 테스트로 전환). F8·F9·F11·F12는 테스트로 표시하지 않음 — 고칠 때 테스트 추가.
+xfail 대응: F5·F6 → `test_generator_e2e.py` (F1·F2/F3·F4·F7·F8·F10·F12는 3번에서 해결되어 일반 테스트로 전환). F9·F13은 아직 테스트 없음 — 고칠 때 추가.
 
 - [x] 2-1. pytest 골격: `pytest.ini`(testpaths, pythonpath=src, xfail_strict), `tests/conftest.py`, `tests/sample_data.py`(리터럴 샘플 — Class A1 + 13그룹)
 - [x] 2-2. `tests/test_generator_e2e.py`: 템플릿 왕복·Item Code 누락 없음은 통과. F1·F2/F3·F4·F5·F6·F7은 `xfail(strict)` — 고치면 XPASS로 실패하므로 그때 마커 제거
@@ -69,10 +70,17 @@ xfail 대응: F5·F6 → `test_generator_e2e.py`, F10 → `test_validation.py` (
   - KS·JIS 단조 피팅: field_values Rating에 `SCH80`(std=JIS/KS)이 이미 있어 Thickness1 = Rating 규칙으로 `SCH80`이 그대로 찍힘. 단, GUI 드롭다운에 `SCH80`이 두 번 보임(표시값이 같음) → std 구분 표시 필요
   - Reducing Coupling(JFR)·Bushing(JB) 직접 행은 일반 단조 경로 (Swage만 Schedule 쌍) — 회귀 테스트 `test_forged_reducing_items_do_not_repeat_rating`
   - 4번 때 확인: Swage(RCS/RES, MSS SP-95) Description에 Rating 토큰(CL3000)이 붙는 기존 동작이 맞는지
-- [ ] 3-4. `Bolt_Length_Table` 값 소스 정의 또는 필수 해제 결정, audit 가림 제거 → F8
-- [ ] 3-5. Blind/Spectacle/Spacer의 `Flange_Type` 필수 해제 → F10
-- [ ] 3-6. 밸브 Rating에 CL800 추가 여부 결정 → F11
-- [ ] 3-7. Forged Fitting End_Type↔Rating 규칙 (SW는 CL3000 이상) → F12
+- [x] 3-4. `Bolt_Length_Table` → 선택 입력, 값 목록 `ASME B16.5` (B16.5 §6.10.2 Table 7·10·13·15·17·19·21 차용). audit 외부 소스 예외 제거 → F8
+  - 근거(사용자 결정): 볼트 길이는 개별 자재 특정 정보라 Commodity 단위 PMS에 불필요. 길이 표 데이터는 추후
+- [x] 3-5. `Flange_Type`: F·FR일 때만 필수, FB·F8·FBS는 빈 값 (스키마 conditional 규칙 + GUI 잠금) → F10
+- [x] 3-6. CL800: Gate·Globe·Check에 이미 존재 — 변경 없음, `test_cl800_only_on_api602_valve_groups`로 고정 (F11 오판 정정)
+- [x] 3-7. Forged End_Type↔Rating Constraint (ASME B16.11 §2.1): 규칙 데이터 `domain_schema.FORGED_RATING_BY_END_TYPE`, GUI 드롭다운 필터 + 저장 차단, 생성기 validator에서도 행 제외. JIS·KS Sch80 제외 → F12
+  - 규칙 변경에 따른 기존 데이터: 프로젝트·템플릿을 불러올 때 conditional_empty 필드를 비움 (`component_row_clear_conditional_empty`) → GUI에서 내보낸 템플릿은 항상 현행 규칙. 목록에 없는 옛 저장값은 선택 입력 필드에서만 편집 창에 보존 (필수 필드는 빈칸으로 보여 다시 고르게 함)
+  - 주의: 엑셀을 직접 고쳐 CLI 생성기에 넣은 규칙 위반 행은 로그 경고만 남기고 산출물에서 빠짐 → **7번(GUI 생성)에서 제외된 행을 사용자에게 보여 줄 것**
+  - 주의(UX): 편집 창을 열 때 규칙에 맞지 않는 기존 값(SW+CL2000의 Rating, FB의 Flange_Type)은 안내 없이 비워짐 — 저장 시 필수 경고로는 드러남
+- [ ] 3-8. Blind Flange `Thickness1` 처리 결정 (빈 값 / Rating / 유지) → F13
+- [ ] 3-10. closed set 소속 검사: GUI 저장·엔진 모두 필드값이 field_values 목록에 있는지 검사하지 않음 (옛 값 보존 때문에 목록 밖 값이 다시 저장될 수 있음). 검사 도입 여부 결정
+- [ ] 3-9. 문서 정합: Flange·Valve Rating 정의에 "Matl_Std 와 일치하는 항목만"이라 적혀 있으나 dialog는 Rating을 std로 거르지 않음 (Forged만 이번에 정정)
 - 후보(미확정): B16.9 3D 엘보(Table 6.1-6) Item Code 추가 / SR 엘보(ES·ES4) 사용 시 경고 규칙 (SR은 Jacket Elbow 외 사용 제한 — 사용자 도메인 지식)
 
 ## 4. Description 단일화

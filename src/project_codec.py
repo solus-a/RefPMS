@@ -19,6 +19,7 @@ from class_level_model import (
     NamedSizeTable,
     SizeSelection,
     SizeTableRow,
+    component_row_clear_conditional_empty,
     default_size_selection_from_catalog,
 )
 
@@ -194,4 +195,8 @@ def _string_rows(raw: Any) -> list[dict[str, str]]:
 def _component_rows_from(raw: Any) -> dict[str, list[dict[str, str]]]:
     if not isinstance(raw, dict):
         return {}
-    return {str(sheet): _string_rows(rows) for sheet, rows in raw.items()}
+    # 규칙 변경 전에 저장된 행을 현행 conditional_empty 규칙에 맞춘다 (예: FB 의 Flange_Type).
+    return {
+        str(sheet): [component_row_clear_conditional_empty(str(sheet), r) for r in _string_rows(rows)]
+        for sheet, rows in raw.items()
+    }

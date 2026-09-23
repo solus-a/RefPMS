@@ -119,6 +119,12 @@ def test_forged_reducing_items_do_not_repeat_rating(generated):
     assert descs["JB"] == "BUSHING A105 NPT"
 
 
+def test_blind_flange_has_no_flange_type_or_schedule_in_description(generated):
+    # F10 해결: Blind(FB)는 Flange_Type 이 없으므로 WN·Schedule 토큰이 붙지 않는다.
+    descs = {r["Item_Description"] for r in generated.rows if r["Item_Code"] == "FB"}
+    assert descs == {"BLIND FLANGE A105 CL150 RF"}
+
+
 def test_wrought_fitting_thickness_is_schedule(generated):
     wrought = [
         r for r in generated.rows

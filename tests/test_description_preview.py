@@ -19,6 +19,7 @@ EXPECTED: dict[tuple[str, str], str] = {
     ("Wrought_Fitting_Group", "T"): "TEE A234-WPB SMLS BW",
     ("Wrought_Fitting_Group", "CP"): "CAP A234-WPB SMLS BW",
     ("Flange_Group", "F"): "FLANGE A105 WN CL150 RF",
+    ("Flange_Group", "FB"): "BLIND FLANGE A105 CL150 RF",
     ("Gasket_Group", "G"): "GASKET SHEET COMPRESSED NON-ASBESTOS ARAMID FIBER+NBR CL150 RF 1.5mm",
     ("Bolt_Group", "B"): "STUD BOLT A307-B / A194-2H HEX NUTS",
     ("Gate_Valve_Group", "VA"): "GATE VALVE A216-WCB / 13CR CL150 FLGD RF BB OS&Y HW",

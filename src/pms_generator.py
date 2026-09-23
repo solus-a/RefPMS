@@ -284,7 +284,6 @@ MATERIAL_SHEET_CONFIGS = [
             "Bolt_Matl_Code",
             "Nut_Type",
             "Nut_Matl_Std",
-            "Bolt_Length_Table",
             "Option_Code",
         ],
         "size_from_1": "Size_From",

@@ -5,10 +5,13 @@ import pytest
 
 from class_level_model import (
     NamedSizeTable,
+    component_row_constraint_errors,
     component_row_missing_required,
     component_row_size_pair_errors,
 )
+from data_defaults import DEFAULT_COMPONENT_MAPPING
 from sample_data import CLASS, class_row, component_rows
+from validator import validate_template_row_dict
 
 
 def _first(sheet: str, item_code: str) -> dict[str, str]:
@@ -50,11 +53,63 @@ def test_reducing_flange_requires_size2():
     assert component_row_missing_required("Flange_Group", row) == ["Size2_From", "Size2_To"]
 
 
-@pytest.mark.xfail(reason="F10: Blind/Spectacle/Spacer 에도 Flange_Type(WN/SO…) 이 필수로 강제됨")
 def test_blind_flange_does_not_require_flange_type():
+    # F10 해결: Flange_Type 은 F/FR 일 때만 필수.
     row = _first("Flange_Group", "F")
     row.update(Item_Code="FB", Flange_Type="")
     assert component_row_missing_required("Flange_Group", row) == []
+
+
+def test_plain_flange_requires_flange_type():
+    row = _first("Flange_Group", "F")
+    row["Flange_Type"] = ""
+    assert component_row_missing_required("Flange_Group", row) == ["Flange_Type"]
+
+
+@pytest.mark.parametrize("item_code", ["FB", "F8", "FBS"])
+def test_engine_rejects_flange_type_on_blind_items(item_code):
+    row = dict(_first("Flange_Group", "F"), Item_Code=item_code)  # Flange_Type=WN 남아 있음
+    msgs = validate_template_row_dict("Flange_Group", 2, row, DEFAULT_COMPONENT_MAPPING)
+    assert any("Flange_Type" in m for m in msgs), msgs
+
+
+def test_bolt_length_table_is_optional():
+    row = _first("Bolt_Group", "B")
+    row["Bolt_Length_Table"] = ""
+    assert component_row_missing_required("Bolt_Group", row) == []
+
+
+# ── Forged End_Type ↔ Rating (ASME B16.11 §2.1) ─────────────────────────────
+
+@pytest.mark.parametrize(
+    "end_type, rating, ok",
+    [
+        ("SW", "CL3000", True),
+        ("SW", "CL9000", True),
+        ("SW", "CL2000", False),   # 2000 은 나사식 전용
+        ("NPT", "CL2000", True),
+        ("PT", "CL6000", True),
+        ("PT", "CL9000", False),   # 9000 은 소켓웰드 전용
+        ("NPT", "CL9000", False),
+        ("SW", "SCH80", True),     # JIS·KS Sch80 은 규칙 대상 아님
+        ("sw ", "cl2000", False),  # 대소문자·공백 무시
+    ],
+)
+def test_forged_end_type_rating_constraint(end_type, rating, ok):
+    row = dict(_first("Forged_Fitting_Group", "E"), End_Type=end_type, Rating=rating)
+    errors = component_row_constraint_errors("Forged_Fitting_Group", row)
+    assert (errors == []) is ok, errors
+
+
+def test_engine_applies_forged_constraint():
+    row = dict(_first("Forged_Fitting_Group", "E"), End_Type="SW", Rating="CL2000")
+    msgs = validate_template_row_dict("Forged_Fitting_Group", 5, row, DEFAULT_COMPONENT_MAPPING)
+    assert any("ASME B16.11" in m and "row 5" in m for m in msgs), msgs
+
+
+def test_constraint_does_not_touch_other_groups():
+    row = dict(_first("Flange_Group", "F"), Rating="CL2000")
+    assert component_row_constraint_errors("Flange_Group", row) == []
 
 
 def test_spiral_wound_gasket_requires_secondary_material():

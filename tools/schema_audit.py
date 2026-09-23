@@ -29,7 +29,7 @@ from data_defaults import DEFAULT_COMPONENT_MAPPING as MAP
 EXTERNAL = {
     "Class_Name", "Item_Code",
     "Size_From", "Size_To", "Size1_From", "Size1_To", "Size2_From", "Size2_To",
-    "Remarks", "Bolt_Length_Table",
+    "Remarks",
 }
 
 headers_by_group = {sn: [h for h in headers] for sn, _l, headers in COMPONENT_GROUPS}

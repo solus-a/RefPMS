@@ -3,10 +3,9 @@
     "version": 2,
     "purpose": "Per-group dropdown values for component fields. Each group is self-contained — same field value lists may appear in multiple groups. Each entry has 'abbr' (stored/output value, uppercase except unit fields) and 'full' (display description). Code fields (Matl_Code / Bolt_Matl_Code / Nut_Matl_Code) carry an additional 'std' key so the dialog filters them by the matching std selection. Matl_Code entries additionally carry a 'category' key (CS / LTCS / AS / SS / DSS / SDSS / Ni-Alloy / Cu-Alloy / GI / CI) so the dialog and validator enforce Matl_Category ↔ Matl_Code consistency.",
     "external_dropdown_sources": {
-      "Item_Code": "data/item_code_db.json (per-group, planned)",
+      "Item_Code": "data/item_code_db.json (per-group)",
       "Class_Name": "Class_Define sheet rows",
-      "Size_From / Size_To / Size1_From / Size1_To": "NPS catalog",
-      "Bolt_Length_Table": "TBD: separate length table file"
+      "Size_From / Size_To / Size1_From / Size1_To": "NPS catalog"
     },
     "free_input_fields": [
       "Remarks"
@@ -1289,6 +1288,12 @@
         "std": "ASTM",
         "category": "SS",
         "full": "ASTM A194 Gr.8"
+      }
+    ],
+    "Bolt_Length_Table": [
+      {
+        "abbr": "ASME B16.5",
+        "full": "ASME B16.5 §6.10.2 stud bolt length L (Tables 7/10/13/15/17/19/21)"
       }
     ],
     "Option_Code": [

@@ -18,6 +18,7 @@ from class_level_model import (
     ClassTemplateGlobalSettings,
     NamedSizeTable,
     SizeSelection,
+    component_row_constraint_errors,
     component_row_missing_required,
     component_row_required_fields,
     component_row_size_pair_errors,
@@ -869,6 +870,17 @@ class _ComponentRowEditDialog(tk.Toplevel):
 
             options = self._with_none_option(h, options)
             initial_storage = ((initial or {}).get(h, "") or "").strip()
+            # 선택 입력 필드에서 옵션 목록에 아예 없는 기존 저장값(규칙 변경 전 자유 입력 등)은
+            # 그대로 보여 준다 — 편집만 하고 저장했을 때 조용히 지워지지 않게.
+            # 필수 필드는 보존하지 않는다: 빈칸으로 보여 사용자가 목록 값으로 다시 고르게 한다.
+            if (
+                options and initial_storage
+                and h not in _SIZE_FIELDS and h not in self._required_fields
+            ):
+                known = {s for s, _ in (_options_for(sheet_name, h) or [])}
+                shown = {d for _, d in options}
+                if initial_storage not in known and initial_storage not in shown:
+                    options = options + [(initial_storage, initial_storage)]
 
             if options:
                 display_values = [d for _, d in options]
@@ -897,16 +909,29 @@ class _ComponentRowEditDialog(tk.Toplevel):
 
         form.columnconfigure(1, weight=1)
 
-        # Flange: Item_Code 가 FR 일 때만 Size2 입력 허용 — 그 외엔 잠금(비우고 disable).
+        # Flange: Item_Code 가 FR 일 때만 Size2 입력 허용, F/FR 일 때만 Flange_Type 입력 허용
+        # — 그 외엔 잠금(비우고 disable).
         if self._sheet_name == "Flange_Group":
             ic_combo = self._combo_widgets.get("Item_Code")
             if ic_combo is not None:
                 ic_combo.bind(
                     "<<ComboboxSelected>>",
-                    lambda _e: self._apply_flange_size2_lock(),
+                    lambda _e: (self._apply_flange_size2_lock(), self._apply_flange_type_lock()),
                     add="+",
                 )
             self._apply_flange_size2_lock()
+            self._apply_flange_type_lock()
+
+        # Forged: Rating 후보를 End_Type 에 맞는 Class 로 제한 (ASME B16.11 §2.1).
+        if self._sheet_name == "Forged_Fitting_Group":
+            et_combo = self._combo_widgets.get("End_Type")
+            if et_combo is not None:
+                et_combo.bind(
+                    "<<ComboboxSelected>>",
+                    lambda _e: self._apply_forged_rating_filter(),
+                    add="+",
+                )
+            self._apply_forged_rating_filter()
 
         # Pipe: Length 는 Nipple (JN) Item_Code 일 때만 입력 허용 — 그 외엔 잠금(비우고 disable).
         if self._sheet_name == "Pipe_Group":
@@ -936,6 +961,8 @@ class _ComponentRowEditDialog(tk.Toplevel):
         if not options:
             return options
         cleaned = [(s, d) for (s, d) in options if (s or "").strip()]
+        # 저장값·표시값이 모두 같은 항목(예: JIS·KS 의 SCH80)은 하나만 남긴다.
+        cleaned = list(dict.fromkeys(cleaned))
         if field not in self._required_fields:
             cleaned = [("", _NONE_DISPLAY)] + cleaned
         return cleaned or None
@@ -956,6 +983,41 @@ class _ComponentRowEditDialog(tk.Toplevel):
                 if var is not None:
                     var.set("")
                 w.configure(state="disabled")
+
+    def _apply_flange_type_lock(self) -> None:
+        """Item_Code 가 F/FR 가 아니면(FB/F8/FBS) Flange_Type 을 비우고 잠근다."""
+        ic_var = self._vars.get("Item_Code")
+        # Item_Code 는 keep-short 라 표시값=저장값(code) 이므로 그대로 비교.
+        has_type = (ic_var.get() if ic_var is not None else "").strip().upper() in ("F", "FR")
+        w = self._field_widgets.get("Flange_Type")
+        if w is None:
+            return
+        if has_type:
+            w.configure(state="readonly" if isinstance(w, ttk.Combobox) else "normal")
+        else:
+            var = self._vars.get("Flange_Type")
+            if var is not None:
+                var.set("")
+            w.configure(state="disabled")
+
+    def _apply_forged_rating_filter(self) -> None:
+        """End_Type 에 맞지 않는 B16.11 Class 등급을 Rating 후보에서 뺀다.
+        현재 값이 후보에서 빠지면 비운다. JIS·KS 의 Sch80 등은 그대로 둔다."""
+        cb = self._combo_widgets.get("Rating")
+        if cb is None:
+            return
+        end_type = self._current_storage_value("End_Type")
+        options = self._with_none_option("Rating", _options_for(self._sheet_name, "Rating")) or []
+        options = [
+            (s, d) for s, d in options
+            if not s or domain_schema.forged_rating_allowed(end_type, s)
+        ]
+        display = [d for _, d in options]
+        self._reverse_maps["Rating"] = {d: s for s, d in options}
+        cb.config(values=display)
+        var = self._vars.get("Rating")
+        if var is not None and var.get() not in display:
+            var.set("")
 
     def _apply_pipe_length_lock(self) -> None:
         """Item_Code != JN(Nipple) 이면 Length 를 비우고 잠근다. JN 이면 입력 허용."""
@@ -1028,6 +1090,15 @@ class _ComponentRowEditDialog(tk.Toplevel):
             messagebox.showerror(
                 "Invalid size range",
                 "\n".join(f"  • {e}" for e in size_errors),
+                parent=self,
+            )
+            return
+
+        constraint_errors = component_row_constraint_errors(self._sheet_name, out)
+        if constraint_errors:
+            messagebox.showerror(
+                "Invalid combination",
+                "\n".join(f"  • {e}" for e in constraint_errors),
                 parent=self,
             )
             return
