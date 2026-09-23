@@ -42,7 +42,9 @@
       "Bash(grep -iE \"\\\\.\\(refpms|xlsx\\)$\")",
       "Bash(PYTHONIOENCODING=utf-8 grep -rn \"import domain_schema\\\\|from domain_schema\" src/)",
       "Bash(PYTHONIOENCODING=utf-8 python -c \"import ast; ast.parse\\(open\\('src/domain_schema.py',encoding='utf-8'\\).read\\(\\)\\); print\\('domain_schema parse OK'\\)\")",
-      "Bash(git grep *)"
+      "Bash(git grep *)",
+      "Bash(PYTHONIOENCODING=utf-8 python tools/schema_audit.py)",
+      "Bash(cd *)"
     ]
   }
 }

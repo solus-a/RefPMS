@@ -28,3 +28,5 @@ For coding conventions, see CODING_STYLE.md.
 For full glossary, see docs/domain-glossary.md.
 For module structure, commands, and file paths, see ARCHITECTURE.md and README.md.
 For the agent-based work flow on coding requests, see WORKFLOW.md.
+
+WORKFLOW.md governs coding requests. OMC workflows (ralph, autopilot, team, plan/execute, etc.) run only when the user invokes them explicitly, and must still pass `domain-reviewer` before completion.
