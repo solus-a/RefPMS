@@ -18,6 +18,7 @@ from class_level_model import (
     ClassTemplateGlobalSettings,
     NamedSizeTable,
     SizeSelection,
+    component_row_closed_set_errors,
     component_row_constraint_errors,
     component_row_missing_required,
     component_row_required_fields,
@@ -811,6 +812,16 @@ def _filtered_code_options(
     return [(it.get("abbr", ""), _field_display_label(code_field, it)) for it in items]
 
 
+_MAX_ERRORS_SHOWN = 20
+
+
+def _summarize_errors(errors: list[str], limit: int = _MAX_ERRORS_SHOWN) -> str:
+    """오류 목록을 메시지 창용 문자열로 — 많으면 앞의 limit 개만 보이고 나머지는 개수로."""
+    if len(errors) <= limit:
+        return "\n".join(errors)
+    return "\n".join(errors[:limit]) + f"\n… and {len(errors) - limit} more"
+
+
 # ── Component row editor ───────────────────────────────────────────────────────
 
 
@@ -871,7 +882,7 @@ class _ComponentRowEditDialog(tk.Toplevel):
             options = self._with_none_option(h, options)
             initial_storage = ((initial or {}).get(h, "") or "").strip()
             # 선택 입력 필드에서 옵션 목록에 아예 없는 기존 저장값(규칙 변경 전 자유 입력 등)은
-            # 그대로 보여 준다 — 편집만 하고 저장했을 때 조용히 지워지지 않게.
+            # 그대로 보여 준다 — 조용히 지워지지 않게. 저장은 _ok 의 목록 검사가 막는다.
             # 필수 필드는 보존하지 않는다: 빈칸으로 보여 사용자가 목록 값으로 다시 고르게 한다.
             if (
                 options and initial_storage
@@ -1094,10 +1105,12 @@ class _ComponentRowEditDialog(tk.Toplevel):
             )
             return
 
-        constraint_errors = component_row_constraint_errors(self._sheet_name, out)
+        # 목록 밖 값(옛 자유 입력 등)은 저장 단계에서 막는다 — 창에는 보이되 저장은 안 됨.
+        constraint_errors = component_row_closed_set_errors(self._sheet_name, out)
+        constraint_errors += component_row_constraint_errors(self._sheet_name, out)
         if constraint_errors:
             messagebox.showerror(
-                "Invalid combination",
+                "Invalid values",
                 "\n".join(f"  • {e}" for e in constraint_errors),
                 parent=self,
             )
@@ -3376,7 +3389,7 @@ class ClassLevelWizard(tk.Toplevel):
         self._bundle.global_settings = copy.deepcopy(self._global_settings)
         errs = self._bundle.validate()
         if errs:
-            messagebox.showerror("Validation", "\n".join(errs), parent=self)
+            messagebox.showerror("Validation", _summarize_errors(errs), parent=self)
             return False
         warns = self._bundle.validation_warnings()
         if warns:

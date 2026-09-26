@@ -20,7 +20,7 @@ from class_level_model import (
     SIZE_SELECTION_SHEET,
     UNIT_SYSTEM_HEADERS,
     UNIT_SYSTEM_SHEET,
-    component_row_clear_conditional_empty,
+    component_row_normalize_on_load,
     default_size_selection_from_catalog,
     read_global_settings_from_workbook,
     row_dict_for_headers,
@@ -339,9 +339,9 @@ def load_class_level_bundle_from_template(path: Path | str) -> ClassLevelBundle:
     for sheet_name, _, headers in COMPONENT_GROUP_DEFS:
         ws_comp = ws_or_none(sheet_name)
         if ws_comp is not None:
-            # 규칙 변경 전에 만든 템플릿의 행을 현행 conditional_empty 규칙에 맞춘다.
+            # 규칙·표기 변경 전에 만든 템플릿의 행을 현행 규칙에 맞춘다.
             component_rows[sheet_name] = [
-                component_row_clear_conditional_empty(sheet_name, r)
+                component_row_normalize_on_load(sheet_name, r)
                 for r in _read_dict_rows(ws_comp, headers)
             ]
 

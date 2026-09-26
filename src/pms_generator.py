@@ -802,7 +802,9 @@ def _build_item_description_by_rule(
         rating_disp = _flange_rating_display(rating_raw)
         # SW/WN만 조인트 파이프와 보어 매칭이 필요하므로 SCH를 설명에 표기.
         show_sch = flange_type in FLANGE_BORE_MATCHED_TYPES
-        sch_from_table = sch1 if show_sch else ""
+        # Reducing Flange(FR) 허브는 작은 쪽(Size2) 배관에 맞춘다 (ASME B16.5 §6.8.2) → Size2 Schedule.
+        is_reducing = item_code.upper() == "FR"
+        sch_from_table = (thickness2 if is_reducing else sch1) if show_sch else ""
         title = description_lead if _to_text(description_lead) else "FLANGE"
         return _join_tokens(
             title, mat, flange_type, rating_disp, facing, sch_from_table, dim_standard
@@ -1099,6 +1101,10 @@ def _iter_output_rows(
                 if should_blank_flange_thickness:
                     # WN·SW 외 Flange(SO·LJ·THRD·Blind 류)는 배관 Schedule 과 무관.
                     th1 = th2 = ""
+                elif sheet_name == "Flange_Group" and item_code.upper() == "FR":
+                    # FR 의 큰 쪽(Size1)은 flange 면·볼트 구멍 기준일 뿐 배관과 용접되지 않는다
+                    # (ASME B16.5 §6.8.1) — Schedule 은 작은 쪽(Thickness2)에만.
+                    th1 = ""
 
                 nip = (
                     _try_nipple_pipe_output(
@@ -1174,6 +1180,10 @@ def _iter_output_rows(
                 if should_blank_flange_thickness:
                     # WN·SW 외 Flange(SO·LJ·THRD·Blind 류)는 배관 Schedule 과 무관.
                     th1 = th2 = ""
+                elif sheet_name == "Flange_Group" and item_code.upper() == "FR":
+                    # FR 의 큰 쪽(Size1)은 flange 면·볼트 구멍 기준일 뿐 배관과 용접되지 않는다
+                    # (ASME B16.5 §6.8.1) — Schedule 은 작은 쪽(Thickness2)에만.
+                    th1 = ""
 
                 nip = (
                     _try_nipple_pipe_output(

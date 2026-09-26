@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -190,6 +191,79 @@ def component_row_constraint_errors(
         f"Rating {rating} is not allowed with End_Type {end_type}"
         f" (ASME B16.11 §2.1: {allowed})"
     ]
+
+
+def component_row_closed_set_errors(
+    sheet_name: str, values: dict[str, str]
+) -> list[str]:
+    """값 목록(closed set)이 있는 필드에 목록 밖 값이 들어 있으면 오류. 빈 리스트 = OK.
+
+    목록: field_values.json (그룹·필드별 abbr), Item_Code 는 item_code_db.json.
+    목록이 없는 필드(Class_Name·크기·Remarks)와 빈 값은 검사하지 않는다.
+    """
+    errors: list[str] = []
+    for field_name, raw in values.items():
+        value = (raw or "").strip()
+        if not value:
+            continue
+        if field_name == "Item_Code":
+            allowed = {
+                (e.get("code") or "").strip()
+                for e in _domain_schema.item_code_entries(sheet_name)
+            }
+        else:
+            allowed = {
+                (o.get("abbr") or "").strip()
+                for o in _domain_schema.field_value_options(sheet_name, field_name)
+            }
+        allowed.discard("")
+        if allowed and value not in allowed:
+            errors.append(f"{field_name} {value!r} is not in the {field_name} list")
+    return errors
+
+
+_LEGACY_RATING = re.compile(r"^(\d+)#$")
+
+
+def component_row_canonicalize_values(
+    sheet_name: str, values: dict[str, str]
+) -> dict[str, str]:
+    """이미 결정된 표기 변경 이전에 저장된 값을 현행 목록 값으로 맞춘 사본.
+
+    - 대소문자만 다르고 목록에 하나로 맞는 값 → 목록 값 (abbr 대문자화 이전 저장분, 예: '13Cr')
+    - 'NNN#' → 'CLNNN' (CL 표기 통일 이전 저장분, 예: '150#')
+    맞출 수 없는 값은 그대로 둔다 — 저장 단계의 목록 검사가 막는다.
+    """
+    out = dict(values)
+    for field_name, raw in values.items():
+        value = (raw or "").strip()
+        if not value or field_name == "Item_Code":
+            continue
+        allowed = [
+            (o.get("abbr") or "").strip()
+            for o in _domain_schema.field_value_options(sheet_name, field_name)
+        ]
+        allowed = [a for a in allowed if a]
+        if not allowed or value in allowed:
+            continue
+        candidates = {a for a in allowed if a.upper() == value.upper()}
+        m = _LEGACY_RATING.match(value)
+        if not candidates and m and f"CL{m.group(1)}" in allowed:
+            candidates = {f"CL{m.group(1)}"}
+        if len(candidates) == 1:
+            fixed = candidates.pop()
+            _logger.warning("%s: %s %r -> %r (legacy notation)", sheet_name, field_name, value, fixed)
+            out[field_name] = fixed
+    return out
+
+
+def component_row_normalize_on_load(
+    sheet_name: str, values: dict[str, str]
+) -> dict[str, str]:
+    """불러오기 경계용 — 옛 표기 정리 후 conditional_empty 필드를 비운다."""
+    return component_row_clear_conditional_empty(
+        sheet_name, component_row_canonicalize_values(sheet_name, values)
+    )
 
 
 def component_row_clear_conditional_empty(
@@ -586,6 +660,19 @@ class ClassLevelBundle:
                 errs.append(
                     f"{label}: Schedule value {schedule_raw!r} is not allowed."
                 )
+
+        # Component 행: 편집 창을 거치지 않은 기존 행도 저장·Export 단계에서 같은 규칙으로 막는다.
+        # 행 번호는 화면(Class 별 표)과 같게 Class 안에서의 순번.
+        for sheet, rows in self.component_rows.items():
+            seq_by_class: dict[str, int] = {}
+            for row in rows:
+                cls = (row.get("Class_Name") or "").strip()
+                seq_by_class[cls] = seq_by_class.get(cls, 0) + 1
+                for e in (
+                    component_row_closed_set_errors(sheet, row)
+                    + component_row_constraint_errors(sheet, row)
+                ):
+                    errs.append(f"[{cls}] {sheet} row {seq_by_class[cls]}: {e}")
         return errs
 
     def validation_warnings(self) -> list[str]:

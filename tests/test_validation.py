@@ -5,6 +5,7 @@ import pytest
 
 from class_level_model import (
     NamedSizeTable,
+    component_row_closed_set_errors,
     component_row_constraint_errors,
     component_row_missing_required,
     component_row_size_pair_errors,
@@ -112,6 +113,43 @@ def test_constraint_does_not_touch_other_groups():
     assert component_row_constraint_errors("Flange_Group", row) == []
 
 
+# ── 값 목록(closed set) — 3-10 ─────────────────────────────────────────────
+
+def test_sample_rows_are_inside_value_lists():
+    for sheet, rows in component_rows().items():
+        for row in rows:
+            assert component_row_closed_set_errors(sheet, row) == [], (sheet, row["Item_Code"])
+
+
+def test_value_outside_list_is_error():
+    row = dict(_first("Gate_Valve_Group", "VA"), Rating="150#")
+    assert component_row_closed_set_errors("Gate_Valve_Group", row) == [
+        "Rating '150#' is not in the Rating list"
+    ]
+
+
+def test_item_code_outside_group_list_is_error():
+    # VA(게이트 밸브)는 Pipe_Group 목록에 없다.
+    row = dict(_first("Pipe_Group", "P"), Item_Code="VA")
+    assert component_row_closed_set_errors("Pipe_Group", row) == [
+        "Item_Code 'VA' is not in the Item_Code list"
+    ]
+
+
+def test_free_fields_and_blanks_are_not_checked():
+    row = dict(_first("Pipe_Group", "P"), Remarks="ANY TEXT", Option_Code="")
+    assert component_row_closed_set_errors("Pipe_Group", row) == []
+
+
+def test_project_save_blocks_rows_never_opened_in_dialog(sample_bundle):
+    # 편집 창을 거치지 않은 기존 행도 저장·Export 검증(bundle.validate)에서 막힌다.
+    sample_bundle.component_rows["Bolt_Group"][0]["Bolt_Length_Table"] = "LT-A"
+    sample_bundle.component_rows["Forged_Fitting_Group"][0]["Rating"] = "CL2000"  # SW + CL2000
+    errs = sample_bundle.validate()
+    assert "[A1] Bolt_Group row 1: Bolt_Length_Table 'LT-A' is not in the Bolt_Length_Table list" in errs
+    assert any(e.startswith("[A1] Forged_Fitting_Group row 1: Rating CL2000") for e in errs)
+
+
 def test_spiral_wound_gasket_requires_secondary_material():
     row = _first("Gasket_Group", "G")
     row.update(Gasket_Type="SPIRAL WOUND", Material_Secondary="")
@@ -187,3 +225,22 @@ def test_missing_class_field_and_schedule_are_listed(sample_bundle):
     missing = sample_bundle.class_define_missing_fields(CLASS)
     assert "Design_Code" in missing
     assert "Schedule (no rows defined for this class)" in missing
+
+
+def test_error_summary_is_capped():
+    from class_template_wizard import _summarize_errors
+    errs = [f"e{i}" for i in range(25)]
+    text = _summarize_errors(errs, limit=20)
+    assert text.splitlines()[-1] == "… and 5 more"
+    assert len(text.splitlines()) == 21
+    assert _summarize_errors(["a", "b"]) == "a\nb"
+
+
+def test_row_number_is_counted_within_class(sample_bundle):
+    # 같은 시트에 다른 Class 행이 앞에 섞여 있어도 번호는 Class 안의 순번.
+    good = sample_bundle.component_rows["Bolt_Group"][0]
+    other = dict(good, Class_Name="B2")
+    bad = dict(good, Bolt_Length_Table="LT-A")
+    sample_bundle.component_rows["Bolt_Group"] = [other, good, bad]
+    errs = sample_bundle.validate()
+    assert "[A1] Bolt_Group row 2: Bolt_Length_Table 'LT-A' is not in the Bolt_Length_Table list" in errs

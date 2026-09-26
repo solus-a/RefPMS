@@ -87,3 +87,39 @@ def test_reducing_slip_on_flange_blanks_both_thicknesses(tmp_path):
     rows = [r for r in _generate(bundle, tmp_path) if r["Item_Code"] == "FR"]
     assert rows
     assert {(r["Thickness1"], r["Thickness2"]) for r in rows} == {(None, None)}
+
+
+@pytest.mark.parametrize("flange_type", ["WN", "SW"])
+def test_reducing_flange_schedule_follows_small_end(tmp_path, flange_type):
+    # 3-11: ASME B16.5 §6.8.2 — FR 허브는 작은 쪽(Size2) 배관에 맞춤. 큰 쪽(Size1)은 면·볼트 구멍 기준.
+    bundle = build_sample_bundle()
+    f = next(r for r in bundle.component_rows["Flange_Group"] if r["Item_Code"] == "F")
+    # Size1 2~4 는 Schedule STD, Size2 1 은 SCH80 (sample_data.schedule_rows)
+    fr = dict(f, Item_Code="FR", Flange_Type=flange_type, Size1_From="2", Size1_To="4",
+              Size2_From="1", Size2_To="1")
+    bundle.component_rows["Flange_Group"].append(fr)
+    rows = [r for r in _generate(bundle, tmp_path) if r["Item_Code"] == "FR"]
+    assert rows
+    assert {(r["Thickness1"], r["Thickness2"]) for r in rows} == {(None, "SCH80")}
+    assert all(r["Item_Description"].endswith(" SCH80") for r in rows), [r["Item_Description"] for r in rows]
+
+
+def test_load_canonicalizes_legacy_notation():
+    # 대문자 통일·CL 표기 통일 이전에 저장된 프로젝트도 불러오면 현행 목록 값으로 맞춰진다.
+    bundle = build_sample_bundle()
+    va = bundle.component_rows["Gate_Valve_Group"][0]
+    bundle.component_rows["Gate_Valve_Group"][0] = dict(va, Rating="150#", Trim_Matl="13Cr")
+    loaded = bundle_from_json_dict(bundle_to_json_dict(bundle))
+    row = loaded.component_rows["Gate_Valve_Group"][0]
+    assert (row["Rating"], row["Trim_Matl"]) == ("CL150", "13CR")
+    assert loaded.validate() == []
+
+
+def test_load_keeps_values_it_cannot_map():
+    # 맞출 수 없는 값은 그대로 둔다 — 저장 단계 검사가 막는다.
+    bundle = build_sample_bundle()
+    b = bundle.component_rows["Bolt_Group"][0]
+    bundle.component_rows["Bolt_Group"][0] = dict(b, Bolt_Length_Table="LT-A")
+    loaded = bundle_from_json_dict(bundle_to_json_dict(bundle))
+    assert loaded.component_rows["Bolt_Group"][0]["Bolt_Length_Table"] == "LT-A"
+    assert any("LT-A" in e for e in loaded.validate())

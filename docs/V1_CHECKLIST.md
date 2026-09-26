@@ -50,7 +50,7 @@
 
 ## 2. 안전망 — pytest ✅
 
-실행: `python -m pytest` (설치: `pip install -r requirements-dev.txt`). 현재 **99 passed, 2 xfailed** (F5·F6).
+실행: `python -m pytest` (설치: `pip install -r requirements-dev.txt`). 현재 **110 passed, 2 xfailed** (F5·F6).
 
 xfail 대응: F5·F6 → `test_generator_e2e.py` (F1·F2/F3·F4·F7·F8·F10·F12는 3번에서 해결되어 일반 테스트로 전환). F9는 아직 테스트 없음 — 고칠 때 추가.
 
@@ -80,8 +80,11 @@ xfail 대응: F5·F6 → `test_generator_e2e.py` (F1·F2/F3·F4·F7·F8·F10·F1
   - 주의(UX): 편집 창을 열 때 규칙에 맞지 않는 기존 값(SW+CL2000의 Rating, FB의 Flange_Type)은 안내 없이 비워짐 — 저장 시 필수 경고로는 드러남
 - [x] 3-8. Flange `Thickness1`은 WN·SW만 Schedule, 나머지(SO·LJ·THRD·FB·F8·FBS)는 빈 값 → F13. Description의 SCH 토큰과 같은 상수(`FLANGE_BORE_MATCHED_TYPES`) 사용
   - 근거: WN은 용접 끝 보어를 배관 두께에 맞춤(B16.5 §7.7), SO·LJ는 배관 외경에 끼우는 형식(§7.7.1 보어 공차), Blind는 보어 없음
-- [ ] 3-10. closed set 소속 검사: GUI 저장·엔진 모두 필드값이 field_values 목록에 있는지 검사하지 않음 (옛 값 보존 때문에 목록 밖 값이 다시 저장될 수 있음). 검사 도입 여부 결정
-- [ ] 3-11. (도메인 확인) Reducing Flange(FR)+WN의 Schedule 기준 크기: 지금은 Thickness1·Description SCH가 큰 쪽(Size1) 기준. WN 허브·보어는 작은 쪽 배관에 맞추므로 Size2 기준이 맞는지 확인 필요
+- [x] 3-10. 값 목록(closed set) 검사 — 저장 단계에서 차단 (사용자 결정): `component_row_closed_set_errors` (field_values abbr / Item_Code 는 item_code_db). 행 편집 창 OK + 프로젝트 저장·Export 검증(`ClassLevelBundle.validate`, Forged End_Type↔Rating 포함) 양쪽. 목록 밖 옛 값은 창에 보이되 저장은 막힘. PMS 엔진(CLI)은 아직 검사하지 않음
+  - 불러오기 때 이미 결정된 표기 변경은 자동 정리 (`component_row_canonicalize_values`): 대소문자만 다른 값(예: `13Cr`→`13CR`), `NNN#`→`CLNNN`. 맞출 수 없는 값만 저장 단계에서 막힘
+  - 오류 메시지는 `[Class] 시트 row n` (Class 안 순번, 화면 표와 같음), 20건 넘으면 "… and N more"로 줄임
+  - 후속(작음): 엑셀에서 `001`을 다시 입력하면 숫자 1로 읽혀 막힘 / std·category 로 걸러진 Matl_Code 옛 값은 창에서 빈칸(필수 경고로 드러남) / 목록 밖 옛 값에 "(not in list)" 표시
+- [x] 3-11. Reducing Flange(FR) WN·SW 의 Schedule 은 작은 쪽(Size2) 기준 (사용자 결정): Thickness1 빈 값, Thickness2 = Size2 Schedule, Description SCH 도 Size2. 근거 ASME B16.5-2020 §6.8.1 (면·볼트 구멍은 큰 쪽) / §6.8.2 (허브는 작은 쪽). Size2 가 범위(From≠To)면 From 크기 Schedule — 기존 동작
 - [x] 3-9. 문서 정합: Flange·Gasket·Valve 9개 Rating 정의의 "Matl_Std 로 거름" 문구를 실제 동작(전체 목록 표시)으로 정정. Pipe Matl_Code 설명의 낡은 내용(category 키 없음·없는 함수명·엔진 검증 없음)도 정정
 - 후보(미확정): B16.9 3D 엘보(Table 6.1-6) Item Code 추가 / SR 엘보(ES·ES4) 사용 시 경고 규칙 (SR은 Jacket Elbow 외 사용 제한 — 사용자 도메인 지식)
 

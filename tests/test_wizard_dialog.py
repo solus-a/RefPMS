@@ -69,14 +69,17 @@ def test_blind_flange_locks_flange_type(root):
         dlg.destroy()
 
 
-def test_legacy_free_text_value_survives_edit(root):
-    # 선택 입력 필드: Bolt_Length_Table 이 자유 입력이던 시절의 값은 목록에 없어도 지워지지 않는다.
+def test_legacy_value_is_shown_but_save_is_blocked(root, monkeypatch):
+    # 선택 입력 필드의 옛 자유 입력 값: 창에는 그대로 보이지만(조용히 지우지 않음) 저장은 막힌다.
+    import class_template_wizard as w
+    shown = []
+    monkeypatch.setattr(w.messagebox, "showerror", lambda title, msg, **k: shown.append(msg))
     dlg = _dialog(root, "Bolt_Group", dict(_first("Bolt_Group", "B"), Bolt_Length_Table="LT-A"))
     try:
         assert dlg._vars["Bolt_Length_Table"].get() == "LT-A"
         dlg._ok()
-        assert dlg.result is not None
-        assert dlg.result["Bolt_Length_Table"] == "LT-A"
+        assert dlg.result is None
+        assert shown and "Bolt_Length_Table 'LT-A' is not in the Bolt_Length_Table list" in shown[0]
     finally:
         if dlg.winfo_exists():
             dlg.destroy()
