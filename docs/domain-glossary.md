@@ -40,7 +40,8 @@ Project  ──▶  Class  ──▶  Component
 | Definition | The top-level scope that establishes **global premises and constraints** shared by every class and component beneath it. |
 | Examples | Design code (ASME B31.3), unit system (Metric/Imperial), nominal size **notation selection** (NPS or DN), pipe thread standard (NPT/PT), bolt thread standard, design unit labels (°C, kPa, etc.) |
 | In code | Project file (JSON, `project_codec.py`); Global Setting tab → `ClassTemplateGlobalSettings` in `class_level_model.py` |
-| Note on sizes | The Project layer selects **only the nominal size system** (NPS or DN). The **full catalog of valid sizes** (ASME B36.10 NPS / ISO 6708 DN with a `preferred` flag) is a **program-internal, immutable** dataset at `data/nps_catalog.json`. The **active subset of sizes** actually used is declared **per Class** (see Size Range below). |
+| Note on tie-in overrides | The design code and the nominal size system (NPS or DN) are decided at the Project layer and apply to every Class. A Class may **Override** either (see 3.6) when it serves a tie-in to existing piping built to another code or size system, so the connection matches the other side — mainly flange connections. In code both are stored per Class (`Design_Code`, `Nominal_Size_System` in `Class_Define`); there are no separate Project-level fields, so most Classes carry the Project's values and tie-in Classes carry the other side's. |
+| Note on sizes | The Project layer selects **only the nominal size system** (NPS or DN); a tie-in Class may Override it (see above). The **full catalog of valid sizes** (ASME B36.10 NPS / ISO 6708 DN with a `preferred` flag) is a **program-internal, immutable** dataset at `data/nps_catalog.json`. The **active subset of sizes** actually used is declared **per Class** (see Size Range below). |
 
 ### 1.2 Class
 
@@ -49,7 +50,7 @@ Project  ──▶  Class  ──▶  Component
 | English | Class |
 | Korean | 클래스 (배관재 등급) |
 | Definition | A grouping layer that inherits **Project constraints** and adds further constraints to classify piping materials into a distinct grade (Piping Material Classification). |
-| Examples | Class_Base_Material (material group, e.g., KCS, SS304), Class_Rating (pressure-temperature rating, e.g., 150, 300), Corrosion_Allowance, Design_Temperature range, Design_Pressure range, Fluid_Service, **Size Range** (the active subset of the Project's nominal size system — e.g., the specific NPS values this class permits) |
+| Examples | Class_Base_Material (material group, e.g., KCS, SS304), Class_Rating (pressure-temperature rating, e.g., 150, 300), Corrosion_Allowance, Design_Temperature range, Design_Pressure range, Fluid_Service, **Size Range** (the active subset of the Class's nominal size system — e.g., the specific NPS values this class permits) |
 | In code | `class_spec.py`, `Class_Define` tab/sheet (incl. `Size_From` / `Size_To`) |
 
 ### 1.3 Component
@@ -127,7 +128,7 @@ Project  ──▶  Class  ──▶  Component
 |---|---|
 | English | Size Range |
 | Korean | 사이즈 범위 — 특정 Class 에서 실제로 사용하도록 선언한 공칭 사이즈 부분집합 |
-| Definition | The **subset of the Project-selected nominal size system** (NPS or DN) that a specific Class **permits**. Declaring a size outside a Class's Size Range on any downstream sheet (Schedule, Pipe/Fitting/Flange/Valve/Gasket/Bolt groups, Reducing/Branch tables) is an **error**. |
+| Definition | The **subset of the nominal size system in effect for the Class** (NPS or DN — the Project's, or the Class's tie-in Override) that a specific Class **permits**. Declaring a size outside a Class's Size Range on any downstream sheet (Schedule, Pipe/Fitting/Flange/Valve/Gasket/Bolt groups, Reducing/Branch tables) is an **error**. |
 | Default | Seeded from the `preferred` sizes of the built-in catalog (`data/nps_catalog.json`). Non-preferred sizes can be activated through the Class wizard UI. |
 | Scope | Class-scope: the constraint applies to all Components of that class. |
 | In code | `Size_From` / `Size_To` in `Class_Define` ∩ Global Size Selection → `ClassLevelBundle.active_sizes_for_class` (`class_level_model.py`); `validate_size_range_for_row` in `validator.py` |
@@ -194,6 +195,7 @@ Project  ──▶  Class  ──▶  Component
 | English | Override |
 | Korean | 재지정 — 상위 계층 또는 Default에 의해 결정된 값을 하위 계층에서 명시적으로 다른 값으로 바꾸는 행위 |
 | Definition | The act of **explicitly replacing** a value determined by a higher scope or by a Default with a different value at a lower scope. An Override must still satisfy all applicable Constraints. |
+| Examples | The Project is designed to code A, but a Class used for a tie-in to existing piping built to code B sets its `Design_Code` to B so the connection (mainly flanges) matches the existing side. Likewise, in an NPS project a Class for a tie-in to DN-based existing piping sets its `Nominal_Size_System` to DN. |
 
 ### 3.7 State
 
