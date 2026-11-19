@@ -17,10 +17,10 @@ Handle errors explicitly; never swallow them silently. Logic raises; UI decides 
 ## 5. File Size and Cohesion
 Prefer many small, focused files over few large ones.
 
-**Engine / service modules** (`pms_generator`, `class_spec`, `validator`, `project_constraints`, etc.):
+**Engine / service modules** (`pms_generator`, `class_spec`, `validator`, `thickness_engine`, etc.):
 200–400 lines is typical, 800 is the hard ceiling. Growing past that is a signal that responsibilities have mixed — extract utilities by responsibility, not by type.
 
-**UI wizard / dialog files** (`class_template_wizard`, `project_settings_dialog`, etc.):
+**UI wizard / dialog files** (`class_template_wizard`, `size_matrix_editor`, etc.):
 No hard line. tkinter has no component model, so a multi-tab wizard accumulates setup, event handlers, and refresh logic that cannot be split across files without artificial seams. Keep cohesion by grouping private helpers near the method that uses them, and extract self-contained helper classes (dialogs, validators, formatters) into the same file or a dedicated `_helpers` module when they grow large enough to obscure the main class.
 
 **SSOT definition files** (`domain_schema.py`):

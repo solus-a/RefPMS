@@ -13,6 +13,5 @@ A transformation engine that takes project-level piping constraints, class-level
 
 ## Gotchas
 
-- `config/project/*.bak` files are created on each save (configurable) and are `.gitignore`'d.
 - Generated directories `output/`, `template/`, and `build-output/` are `.gitignore`'d — don't commit sample outputs.
 - Daily platform is Windows + PowerShell. In Python code, use `pathlib.Path` and forward slashes; avoid `/dev/null`.

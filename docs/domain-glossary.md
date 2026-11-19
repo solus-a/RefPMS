@@ -39,7 +39,7 @@ Project  ──▶  Class  ──▶  Component
 | Korean | 프로젝트 |
 | Definition | The top-level scope that establishes **global premises and constraints** shared by every class and component beneath it. |
 | Examples | Design code (ASME B31.3), unit system (Metric/Imperial), nominal size **notation selection** (NPS or DN), pipe thread standard (NPT/PT), bolt thread standard, design unit labels (°C, kPa, etc.) |
-| In code | `config/project/*`, `project_constraints.py` |
+| In code | Project file (JSON, `project_codec.py`); Global Setting tab → `ClassTemplateGlobalSettings` in `class_level_model.py` |
 | Note on sizes | The Project layer selects **only the nominal size system** (NPS or DN). The **full catalog of valid sizes** (ASME B36.10 NPS / ISO 6708 DN with a `preferred` flag) is a **program-internal, immutable** dataset at `data/nps_catalog.json`. The **active subset of sizes** actually used is declared **per Class** (see Size Range below). |
 
 ### 1.2 Class
@@ -50,7 +50,7 @@ Project  ──▶  Class  ──▶  Component
 | Korean | 클래스 (배관재 등급) |
 | Definition | A grouping layer that inherits **Project constraints** and adds further constraints to classify piping materials into a distinct grade (Piping Material Classification). |
 | Examples | Class_Base_Material (material group, e.g., KCS, SS304), Class_Rating (pressure-temperature rating, e.g., 150, 300), Corrosion_Allowance, Design_Temperature range, Design_Pressure range, Fluid_Service, **Size Range** (the active subset of the Project's nominal size system — e.g., the specific NPS values this class permits) |
-| In code | `class_spec.py`, `Class_Define` sheet and `Class_Size_Range` sheet in the template |
+| In code | `class_spec.py`, `Class_Define` tab/sheet (incl. `Size_From` / `Size_To`) |
 
 ### 1.3 Component
 
@@ -60,7 +60,7 @@ Project  ──▶  Class  ──▶  Component
 | Korean | 컴포넌트 (개별 자재 항목) |
 | Definition | The lowest level of the hierarchy. Within a Class, a Component is a **single, fully specified item** whose shape, characteristics, and detailed specifications have been determined to make it unique. |
 | Examples | A specific elbow (type, size, schedule, rating, material), a specific gasket (type, size, class, material) |
-| In code | Rows in template component sheets, `component_mapping.json`, `item_code_db.json` |
+| In code | Components tab rows (component group sheets in the exported template), field definitions in `domain_schema.py`, `item_code_db.json` |
 
 > **Prohibited synonym**: Do NOT use `Material` as the name of this hierarchy level. `Material` in Korean can be confused with `재질` (metallurgical material), which is only one attribute of a Component.
 
@@ -77,7 +77,7 @@ Project  ──▶  Class  ──▶  Component
 | Definition | A **mandatory limit or permissible range** that must be respected. Constraints are not optional; violating them is always an error. |
 | Relationship | Upstream constraints narrow downstream choices. `Project constraints` limit `Class`; `Class constraints` limit `Component`. |
 | Examples | "Design pressure must not exceed the flange rating", "Component Size_From/Size_To must lie inside the Class's declared Size Range" |
-| In code | `config/project/*` values, `Class_Size_Range` sheet (Class Size Range), validation checks in `project_constraints.py` and `validator.py` |
+| In code | Global settings and `Class_Define` values in the project file, Class Size Range (see 2.5a), checks in `validator.py` and `class_level_model.py` (rules from `domain_schema.py`) |
 
 ### 2.2 Condition
 
@@ -108,7 +108,7 @@ Project  ──▶  Class  ──▶  Component
 | Korean | 검증 — 입력값, 설정값, 연결 관계가 정해진 기준에 맞는지 확인하는 검사 |
 | Definition | A **conformance check** that verifies whether an input, setting, or relationship meets the established criteria. Validation does not decide outcomes; it confirms or rejects. |
 | Examples | "Required field is missing", "Size-schedule combination does not exist in the thickness table", "Branch table references an undefined class" |
-| In code | `validator.py`, `project_constraints.py` (pre-generation checks) |
+| In code | `validator.py`; `ClassLevelBundle.validate()` in `class_level_model.py` (on Save Project / Export xlsx) |
 
 ### 2.5 Default
 
@@ -130,7 +130,7 @@ Project  ──▶  Class  ──▶  Component
 | Definition | The **subset of the Project-selected nominal size system** (NPS or DN) that a specific Class **permits**. Declaring a size outside a Class's Size Range on any downstream sheet (Schedule, Pipe/Fitting/Flange/Valve/Gasket/Bolt groups, Reducing/Branch tables) is an **error**. |
 | Default | Seeded from the `preferred` sizes of the built-in catalog (`data/nps_catalog.json`). Non-preferred sizes can be activated through the Class wizard UI. |
 | Scope | Class-scope: the constraint applies to all Components of that class. |
-| In code | `Class_Size_Range` sheet in the template; `ClassSizeRange` in `class_level_model.py`; `validate_size_range_for_row` in `validator.py` |
+| In code | `Size_From` / `Size_To` in `Class_Define` ∩ Global Size Selection → `ClassLevelBundle.active_sizes_for_class` (`class_level_model.py`); `validate_size_range_for_row` in `validator.py` |
 
 ### 2.6 Domain Knowledge
 
@@ -160,7 +160,7 @@ Project  ──▶  Class  ──▶  Component
 | English | Mapping |
 | Korean | 매핑 — 하나의 입력값 또는 조건 조합을 특정 출력값에 대응시키는 관계 |
 | Definition | A **correspondence** between an input (or combination of inputs) and a specific output. Mappings are a common way to encode Rules as data. |
-| In code | `component_mapping.json`, `class_material_mapping.json`, `coding_rules.json` |
+| In code | Component mapping derived in memory from `domain_schema.py`, `class_material_mapping.json`, `coding_rules.json` |
 
 ### 3.3 Exception
 
@@ -210,7 +210,7 @@ Project  ──▶  Class  ──▶  Component
 | English | Input / Output |
 | Korean | 입력 / 출력 |
 | Definition | **Input**: data or settings provided by the user or upstream hierarchy. **Output**: data or files produced by the system as a result of processing. |
-| In code | Input = template `.xlsx`; Output = `Piping_Material_Class_Data.xlsx` |
+| In code | Input = project file (JSON) edited in the wizard, exported as `Class_Define_Template.xlsx`; Output = `Piping_Material_Class_Data.xlsx` |
 
 ---
 
@@ -266,17 +266,17 @@ This section maps each standard term to its representation in the codebase.
 
 | Standard Term | Codebase Representation |
 |---|---|
-| Project | `config/project/*` JSON files; `project_constraints.py`; built-in size catalog `data/nps_catalog.json` |
-| Class | `Class_Define` sheet + `Class_Size_Range` sheet in template; `class_spec.py` |
-| Component | Component sheets in template; `component_mapping.json`; `item_code_db.json` |
-| Constraint | Values in `config/project/*`; `Class_Size_Range` sheet; checks in `project_constraints.py`, `validator.py`; `validation_policy.json` |
-| Condition | Input cells in template sheets; evaluated states in Rule logic |
+| Project | Project file (JSON, `project_codec.py`); Global Setting (`ClassTemplateGlobalSettings`); built-in size catalog `data/nps_catalog.json` |
+| Class | `Class_Define` tab/sheet (incl. `Size_From` / `Size_To`); `class_spec.py` |
+| Component | Components tab / component sheets in the exported template; field definitions in `domain_schema.py`; `item_code_db.json` |
+| Constraint | Global settings and `Class_Define` values; Class Size Range; checks in `validator.py`, `class_level_model.py`; `validation_policy.json` |
+| Condition | Wizard input fields (template sheets on export); evaluated states in Rule logic |
 | Rule | Decision logic in `pms_generator.py`, `class_spec.py`; mapping JSONs |
-| Validation | `validator.py`; pre-generation checks in `project_constraints.py` |
+| Validation | `validator.py`; `ClassLevelBundle.validate()` on Save Project / Export xlsx |
 | Default | `data_defaults.py`; default columns in template sheets |
 | Domain Knowledge | Encoded in mapping JSONs, Rule logic, and this glossary; originates from engineering expertise |
-| Mapping | `component_mapping.json`, `class_material_mapping.json`, `coding_rules.json` |
-| Input | Template `.xlsx` file provided by user |
+| Mapping | Component mapping derived from `domain_schema.py`; `class_material_mapping.json`; `coding_rules.json` |
+| Input | Project file (JSON) edited in the wizard; `pms_generator.py` reads the exported `Class_Define_Template.xlsx` |
 | Output | `Piping_Material_Class_Data.xlsx` generated by `pms_generator.py` |
 
 ---
