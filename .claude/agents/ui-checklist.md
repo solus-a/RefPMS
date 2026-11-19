@@ -11,19 +11,14 @@ tools: Bash, Read, Glob, Grep
 
 ```
 메인 창 (gui.py)
-├── [Load Template] 버튼 → 템플릿 파일 열기
-├── [Generate PMS] 버튼 → 출력 파일 생성
-└── [Class Template Wizard] → ClassLevelWizard 창 (class_template_wizard.py)
-    ├── 좌측: Class 목록
-    └── 우측 탭
-        ├── Class_Define  — 클래스 기본 속성 (재질, 등급, 온도/압력, 부식여유 등)
-        ├── Schedule      — 사이즈별 Schedule 배정
-        ├── Components    — 12개 그룹 × 클래스별 컴포넌트 행 편집 (Add/Edit/Delete/Save)
-        ├── Reducing      — Reducing 테이블
-        └── Branch        — Branch 테이블
-
-Project Settings Dialog (project_settings_dialog.py)
-└── 프로젝트 레벨 제약 설정
+└── [New Project] / [Open Project] 버튼 → ClassLevelWizard 창 (class_template_wizard.py)
+    ├── 탭
+    │   ├── Global Setting  — 전 Class 공통 단위 체계 + Size Selection
+    │   ├── Class_Define    — 좌측 Class 목록 + 클래스 기본 속성 (재질, 등급, 온도/압력, 부식여유 등) + [Edit Schedule...] 사이즈별 Schedule 배정
+    │   ├── Reducing Tables — Reducing 테이블
+    │   ├── Branch Tables   — Branch 테이블
+    │   └── Components      — 12개 그룹 × 클래스별 컴포넌트 행 편집 (Add/Edit/Delete/Save)
+    └── 하단: [Save Project] / [Export xlsx]
 ```
 
 ## 검토 절차
@@ -36,13 +31,13 @@ Project Settings Dialog (project_settings_dialog.py)
 변경 파일이 어느 UI 영역에 해당하는지 매핑합니다:
 - `src/class_template_wizard.py` → ClassLevelWizard 전체
 - `src/gui.py` → 메인 창
-- `src/project_settings_dialog.py` → Project Settings
+- `src/project_codec.py` → Save Project / Open Project
 - `src/controller.py` → 전반적 흐름
 - `data/field_values.json` → Components 탭 드롭다운
 - `data/item_code_db.json` → Components 탭 Item Code 드롭다운
 - `src/pms_generator.py`, `src/class_spec.py` → Generate 결과물
 - `src/validator.py` → 검증 메시지
-- `src/thickness_engine.py` → Schedule 탭
+- `src/thickness_engine.py` → Class_Define 탭의 Schedule 배정
 
 ### Step 2 — 변경 내용 파악
 영향받은 파일의 diff를 읽고 어떤 동작이 바뀌었는지 파악합니다.

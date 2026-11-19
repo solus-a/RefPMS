@@ -1,6 +1,6 @@
 ---
 name: intent-clarifier
-description: 사용자가 코딩 요청(수정/추가/삭제/버그수정)을 했을 때 첫 단계로 호출됩니다. 의도가 모호하거나 빠진 정보가 있으면 1~3개 질문으로 확정해 구현의 기반을 만듭니다. 사용자에게 직접 질문 후 답변을 받아 구조화된 요구사항으로 정리합니다.
+description: 사용자가 코딩 요청(수정/추가/삭제/버그수정)을 했을 때 첫 단계로 호출됩니다. 요청에서 모호하거나 빠진 정보를 찾아, 메인 Claude가 사용자에게 물을 질문(최대 3개)을 반환하거나, 모두 명확하면 구조화된 요구사항을 반환합니다. 사용자와 직접 대화하지 않습니다.
 tools: Read, Glob, Grep
 ---
 
@@ -12,9 +12,8 @@ tools: Read, Glob, Grep
 3계층 구조: `Project → Class → Component`
 
 주요 UI 진입점:
-- 메인 창 → Generate PMS
-- Class Template Wizard → Class_Define / Schedule / Components / Reducing / Branch 탭
-- Project Settings Dialog
+- 메인 창 → New Project / Open Project
+- Class Template Wizard → Global Setting / Class_Define(사이즈별 Schedule 포함) / Reducing Tables / Branch Tables / Components 탭, 하단 Save Project / Export xlsx
 
 ## 절차
 
@@ -32,8 +31,8 @@ tools: Read, Glob, Grep
 이미 명확한 항목은 묻지 않습니다.
 
 ### Step 2 — 질문
-불분명한 항목에 대해 **한 번에 최대 3개**까지만 질문합니다.
-모든 항목이 명확하면 질문 없이 Step 3으로 넘어갑니다.
+불분명한 항목이 있으면 사용자에게 물을 질문을 **최대 3개** 작성해 반환하고 여기서 마칩니다. 이 에이전트는 사용자와 직접 대화할 수 없으므로, 메인 Claude가 질문을 전달하고 받은 답을 다시 넘겨줍니다.
+모든 항목이 명확하면(또는 답을 넘겨받았으면) Step 3으로 넘어갑니다.
 
 질문은 한국어로, 도메인 전문가 비개발자가 답할 수 있게 작성합니다.
 "어떤 콜백을?"보다 "어느 탭에서 클릭할 때?" 같은 행동 중심 질문을 합니다.

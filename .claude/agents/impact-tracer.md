@@ -13,24 +13,24 @@ tools: Read, Glob, Grep, Bash
 |---|---|
 | `controller.py` | GUI ↔ engine 흐름 제어 (비즈니스 로직 없음) |
 | `gui.py`, `main.py` | 메인 창 / 엔트리 포인트 |
-| `class_template_wizard.py` | Class Template Wizard 전체 (Class_Define/Schedule/Components/Reducing/Branch 탭) |
-| `project_settings_dialog.py`, `project_config_service.py` | Project Settings UI + 로드/검증 |
+| `class_template_wizard.py` | Class Template Wizard 전체 (Global Setting/Class_Define/Reducing Tables/Branch Tables/Components 탭) |
+| `project_codec.py` | 프로젝트 파일(JSON) ↔ `ClassLevelBundle` 저장/로드 |
 | `template_generator.py` | `Class_Define_Template.xlsx` 생성/재오픈 |
 | `pms_generator.py` | template → `Piping_Material_Class_Data.xlsx` 변환 파이프라인 |
 | `class_spec.py` | Class_Define → 클래스 기술 envelope |
 | `thickness_engine.py` | Size/class → Schedule 룩업 |
 | `validator.py` | template 행 단위 검증 |
-| `project_constraints.py` | 프로젝트 레벨 제약 검증 |
+| `domain_schema.py` | 도메인 필드 스키마 SSOT (헤더·필수 여부·검증 규칙) |
 | `data_defaults.py` | 템플릿 기본값 |
-| `config.py` | ProjectConfig 싱글톤 + path helper |
+| `config.py` | `GeneratorConfig` + 경로 헬퍼 + 카탈로그 로더 |
 | `class_level_model.py` | ClassSizeRange 등 데이터 모델 |
 | `size_matrix_*` | Size Range 에디터 UI |
 
 데이터:
-- `config/project/*.json` — 프로젝트 제약
+- 프로젝트 파일(JSON) — 사용자 프로젝트 저장본 (`project_codec.py`)
 - `config/generator/*.json` — 생성/검증 정책
 - `data/field_values.json`, `data/item_code_db.json` — Components 탭 드롭다운
-- `data/component_mapping.json`, `data/class_material_mapping.json` — 매핑/카탈로그
+- `data/class_material_mapping.json` — 매핑/카탈로그 (component_mapping은 `domain_schema.py`에서 메모리로 도출)
 
 ## 절차
 

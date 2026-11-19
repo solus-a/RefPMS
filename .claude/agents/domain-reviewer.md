@@ -18,19 +18,22 @@ tools: Bash, Read, Glob, Grep
 
 #### [원칙 1] 3계층 계층구조 (CRITICAL)
 - `Project → Class → Component` 순서 엄격 준수
+- 하위 계층이 상위 계층을 직접 참조하거나 수정하면 위반
 - `Material`이라는 용어 사용 금지 — 반드시 `Component` 사용 (단, 컴포넌트 내부 필드명으로서의 Material_Primary 등은 허용)
 
 #### [원칙 2] Config Boundary (CRITICAL)
-- `config/project/*`, `config/generator/*`, `data/*` 절대 혼용 금지
-- Config 접근은 `src/config.py` 통해서만
+- 프로젝트 파일(JSON, `project_codec.py`), `config/generator/*`(`GeneratorConfig`), `data/*`(프로그램 내부 데이터) 절대 혼용 금지
+- config/data 경로와 로딩은 `src/config.py`의 경로 헬퍼와 `GeneratorConfig`를 통해서만
+- 예: `data/`의 파일을 프로젝트 파일처럼 취급하면 위반
 
 #### [원칙 3] 비즈니스 로직 위치
-- 도메인 규칙은 엔진 모듈에만: `pms_generator.py`, `class_spec.py`, `thickness_engine.py`, `validator.py`, `project_constraints.py`
+- 도메인 규칙은 엔진 모듈에만: `pms_generator.py`, `class_spec.py`, `thickness_engine.py`, `validator.py`, `domain_schema.py`(SSOT)
 - `gui.py`, `main.py`, `controller.py`에 비즈니스 로직 금지
 
 #### [원칙 4] Immutability (CRITICAL)
 - 입력 객체 직접 변경 금지, 새 객체 반환
 - 모듈 경계를 넘는 값(settings, config snapshot, class-level bundle)은 불변
+- `dict.update()`, `list.append()` 등으로 인자를 직접 수정하면 위반
 
 #### [원칙 5] Constraint > Rule > Default 용어
 - `Default`는 덮어쓸 수 있는 값. 필수값처럼 처리하면 위반.
@@ -40,7 +43,7 @@ tools: Bash, Read, Glob, Grep
 - Python 기본 `snake_case`, 기존 rule 헬퍼는 `camelCase` (파일 관례 유지)
 - 불리언은 `is_`, `has_`, `should_`, `can_` 접두사
 - 상수 `UPPER_SNAKE_CASE`, 클래스 `PascalCase`
-- 파일 길이: 엔진/서비스 모듈 200~400줄 권장, **800줄 상한**. UI wizard/dialog 파일(`class_template_wizard`, `project_settings_dialog` 등)은 상한 없음 — tkinter 특성상 허용.
+- 파일 길이: 엔진/서비스 모듈 200~400줄 권장, **800줄 상한**. UI wizard/dialog 파일(`class_template_wizard` 등)은 상한 없음 — tkinter 특성상 허용.
 - `except: pass` 또는 에러 무음 처리 금지
 - 경계에서만 검증 — 내부는 신뢰
 - YAGNI: feature flag, fallback, shim 금지
@@ -49,7 +52,7 @@ tools: Bash, Read, Glob, Grep
 - UI 변경 → 엔진/서비스 로직 동기화 확인
 - DB/JSON 구조 변경 → 읽기/쓰기 양쪽 모두
 - 새 필드 추가 → `validator.py`, `pms_generator.py`, template 모두 반영
-- 새 컴포넌트 그룹/타입 → `component_mapping.json`, `item_code_db.json` 관련 로직 확인
+- 새 컴포넌트 그룹/타입 → `domain_schema.py`(component_mapping은 여기서 메모리로 도출), `data/item_code_db.json` 관련 로직 확인
 
 ### Step 3 — 리포트
 

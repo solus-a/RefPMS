@@ -14,9 +14,8 @@ description: >-
 
 3계층 구조: `Project → Class → Component`
 주요 UI 진입점:
-- 메인 창 → Generate PMS
-- Class Template Wizard → Class_Define / Schedule / Components / Reducing / Branch 탭
-- Project Settings Dialog
+- 메인 창 → New Project / Open Project
+- Class Template Wizard → Global Setting / Class_Define(사이즈별 Schedule 포함) / Reducing Tables / Branch Tables / Components 탭, 하단 Save Project / Export xlsx
 
 ## 절차
 
