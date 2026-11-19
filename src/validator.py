@@ -1,4 +1,4 @@
-"""부품군별 템플릿 행 검증 (component_mapping.json 기반)."""
+"""부품군별 템플릿 행 검증 (domain_schema 에서 도출한 component mapping 기반)."""
 
 from __future__ import annotations
 
